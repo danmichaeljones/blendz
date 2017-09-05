@@ -1,7 +1,7 @@
 import numpy as np
 
 class Responses(object):
-    def __init__(self, templates, filters, ref_band, zGrid=zGrid):
+    def __init__(self, templates, filters, ref_band, zGrid=None):
         self.templates = templates
         self.filters = filters
         self.ref_band = ref_band
