@@ -3,3 +3,5 @@
 z_lo = 0
 z_hi = 10
 z_len = 1000
+template_set_path = %(resource_path)s/templates/
+template_set = BPZ8

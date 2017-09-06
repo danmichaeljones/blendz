@@ -1,39 +1,35 @@
 import numpy as np
+from os.path import join
 from scipy.interpolate import interp1d
 import warnings
+from blendz.config import _config
+
+#In the notebook, template_dict is just a name:path. Instead, would be best to use
+#the config we have to have template_dict['templateName']={'path':'/a/b/c', 'type':'irr'}
 
 class Templates(object):
-    def __init__(self, template_path, template_dict, file_extension='.sed'):
-        self.template_path = template_path
+    def __init__(self, template_dict=_config.template_dict):
         self.template_dict = template_dict
-        self.file_extension = file_extension
-        self.template_names = self.template_dict.keys() #for consistent ordering from non-ordered dict
         self.num_templates = len(self.template_dict)
-        self.possible_types = set(tmp for tmp in template_dict.values())
+        self.possible_types = set(tmp['type'] for tmp in self.template_dict.values())
 
-        self._all_templates = {}
         self.load_templates()
         self._num_type = self._count_types()
         self._interpolators = self._get_interpolators()
 
-    def load_templates(self, filenames=None, filepath=None, file_extension=None):
-        #Default arguments evaluated at define, self only available at function call, so use None instead
-        if filenames is None:
-            filenames = self.template_names
-        if filepath is None:
-            filepath = self.template_path
-        if file_extension is None:
-            file_extension = self.file_extension
-
-        for T in xrange(len(filenames)):
+    def load_templates(self):
+        self._all_templates = {}
+        for T in xrange(self.num_templates):
             self._all_templates[T] = {}
             self._all_templates[T]['lambda'], self._all_templates[T]['flux'] = \
-                    np.loadtxt(filepath + filenames[T] + file_extension, unpack=True)
+                        np.loadtxt(self.template_dict[T]['path'], unpack=True)
+            self._all_templates[T]['name'] = self.template_dict[T]['name']
 
     def _count_types(self):
         type_dict = {}
         for tmpType in self.possible_types:
-            type_dict[tmpType] = len([T for T in self.template_dict.values() if T==tmpType])
+            type_dict[tmpType] = len([tmp['type'] for tmp in self.template_dict.values()\
+                                      if tmp['type']==tmpType])
         return type_dict
 
     def _get_interpolators(self):
@@ -70,5 +66,14 @@ class Templates(object):
         except (KeyError, TypeError):
             raise ValueError('Template may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_templates-1, type(T), T))
 
+    def name(self, T):
+        try:
+            return self._all_templates[T]['name']
+        except (KeyError, TypeError):
+            raise ValueError('Template may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_templates-1, type(T), T))
+
     def interp(self, T, newLambda):
-        return self._interpolators[T](newLambda)
+        try:
+            return self._interpolators[T](newLambda)
+        except (KeyError, TypeError):
+            raise ValueError('Template may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_templates-1, type(T), T))

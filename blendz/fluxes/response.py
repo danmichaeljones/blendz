@@ -1,9 +1,23 @@
 import numpy as np
+from scipy.interpolate import interp1d
+from blendz.config import _config
+from templates import Templates
+from filters import Filters
 
 class Responses(object):
-    def __init__(self, templates, filters, ref_band, zGrid=None):
-        self.templates = templates
-        self.filters = filters
+    def __init__(self, templates=None, filters=None, ref_band=_config.ref_mag, zGrid=_config.redshift_grid):
+        if templates is None:
+            #Load default templates
+            self.templates = Templates()
+        else:
+            #From kwarg
+            self.templates = templates
+        if filters is None:
+            #Load default filters
+            self.filters = Filters()
+        else:
+            #From kwarg
+            self.filters = filters
         self.ref_band = ref_band
         self.zGrid = zGrid
 
@@ -29,7 +43,8 @@ class Responses(object):
             for F in xrange(self.filters.num_filters):
                 responseColours = self._all_responses[T][F] / self._all_responses[T][self.ref_band]
                 responseColours[~np.isfinite(responseColours)] = 0.
-                self._interpolators[T][F] = interp1d(self.zGrid, responseColours, bounds_error=False, fill_value=0.)
+                self._interpolators[T][F] = interp1d(self.zGrid, responseColours,\
+                                                     bounds_error=False, fill_value=0.)
 
     def __call__(self, T, F, Z):
         #Using isinstance for redshift to catch python float and np.float64
@@ -44,7 +59,10 @@ class Responses(object):
             return np.array([self._interpolators[T][ff](Z) for ff in xrange(self.filters.num_filters)])
         #Single template, multiple redshift, all filters case
         elif type(T)==int and (F is None) and type(Z)==np.ndarray:
-            return np.array([[self._interpolators[T][ff](zz) for ff in xrange(self.filters.num_filters)]\
-                             for zz in Z])
+            return np.array([[self._interpolators[T][ff](zz) \
+                              for ff in xrange(self.filters.num_filters)]\
+                            for zz in Z])
         else:
-            raise TypeError('Incompatible types for arguments, got T={}, F={}, Z={}'.format(type(T), type(F), type(Z)))
+            raise TypeError('Incompatible types for arguments. Require T = int, \
+                            F = int or None, Z = float or numpy.ndarray. Instead,\
+                            got T={}, F={}, Z={}'.format(type(T), type(F), type(Z)))

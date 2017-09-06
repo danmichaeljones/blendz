@@ -1,7 +1,9 @@
 import numpy as np
+from os.path import join
+from blendz.config import _config
 
 class Filters(object):
-    def __init__(self, filter_path, filter_names, file_extension='.res'):
+    def __init__(self, filter_path=_config.filter_path, filter_names=_config.filters, file_extension=_config.filter_file_extension):
         self.filter_path = filter_path
         self.filter_names = filter_names
         self.file_extension = file_extension
@@ -24,7 +26,7 @@ class Filters(object):
             #Read from file
             self._all_filters[F] = {}
             self._all_filters[F]['lambda'], self._all_filters[F]['response'] = \
-                    np.loadtxt(filepath + filenames[F] + file_extension, unpack=True)
+                    np.loadtxt(join(filepath, filenames[F] + file_extension), unpack=True)
             #Calculate normalisation
             self._all_filters[F]['norm'] = np.trapz(self._all_filters[F]['response'] / self._all_filters[F]['lambda'],\
                                             x = self._all_filters[F]['lambda'])

@@ -1,5 +1,5 @@
 import numpy as np
-import os
+from os.path import join, abspath, dirname
 import warnings
 try:
     #Python 2
@@ -10,8 +10,8 @@ except ImportError:
 
 class BlendzConfig(object):
     def __init__(self, data_config_path=None, run_config_path=None, combined_config_path=None):
-        self.blendz_path = os.path.join(os.path.dirname(__file__), '..')
-        self.resource_path = os.path.abspath(os.path.join(self.blendz_path, 'resources'))
+        self.blendz_path = join(dirname(__file__), '..')
+        self.resource_path = abspath(join(self.blendz_path, 'resources'))
 
         self.getConfigPaths(data_config_path, run_config_path, combined_config_path)
         self.readConfig()
@@ -33,11 +33,11 @@ class BlendzConfig(object):
         else:
             self.combined_config_path = combined_config_path
             if run_config_path is None:
-                self.run_config_path = os.path.join(self.resource_path, 'config/defaultRunConfig.txt')
+                self.run_config_path = join(self.resource_path, 'config/defaultRunConfig.txt')
             else:
                 self.run_config_path = run_config_path
             if data_config_path is None:
-                self.data_config_path = os.path.join(self.resource_path, 'config/defaultDataConfig.txt')
+                self.data_config_path = join(self.resource_path, 'config/defaultDataConfig.txt')
             else:
                 self.data_config_path = data_config_path
             self.configs_to_read = [self.run_config_path, self.data_config_path]
@@ -53,11 +53,28 @@ class BlendzConfig(object):
         self.z_lo = self.config.getfloat('Run', 'z_lo')
         self.z_hi = self.config.getfloat('Run', 'z_hi')
         self.z_len = self.config.getint('Run', 'z_len')
+        self.template_set = self.config.get('Run', 'template_set')
+        self.template_set_path = self.config.get('Run', 'template_set_path')
+
+        self.template_path = None
         #Data config
         self.data_path = self.config.get('Data', 'data_path')
         self.mag_cols = [int(i) for i in self.config.get('Data', 'mag_cols').split(',')]
         self.sigma_cols = [int(i) for i in self.config.get('Data', 'sigma_cols').split(',')]
         self.ref_mag = self.config.getint('Data', 'ref_mag')
+        self.filter_path = self.config.get('Data', 'filter_path')
+        self.filter_file_extension = self.config.get('Data', 'filter_file_extension')
+        self.filters = [f.strip() for f in self.config.get('Data', 'filters').split(',')]
 
     def setDerivedValues(self):
         self.redshift_grid = np.linspace(self.z_lo, self.z_hi, self.z_len)
+        #Templates are a little different - main config points to an info file, which
+        #is itself a configuration file, containing the path and type of each template
+        self.template_config = ConfigParser.SafeConfigParser()
+        self.template_config.read(join(self.template_set_path, self.template_set))
+        self.template_dict = {}
+        for i, template_name in enumerate(self.template_config.sections()):
+            rel_path_t = self.template_config.get(template_name, 'path')
+            abs_path_t = join(self.template_set_path, rel_path_t)
+            type_t = self.template_config.get(template_name, 'type')
+            self.template_dict[i] = {'name':template_name, 'path':abs_path_t, 'type':type_t}
