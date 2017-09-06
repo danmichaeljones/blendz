@@ -10,7 +10,7 @@ except ImportError:
 
 class BlendzConfig(object):
     def __init__(self, data_config_path=None, run_config_path=None, combined_config_path=None):
-        self.blendz_path = os.path.dirname(__file__)
+        self.blendz_path = os.path.join(os.path.dirname(__file__), '..')
         self.resource_path = os.path.abspath(os.path.join(self.blendz_path, 'resources'))
 
         self.getConfigPaths(data_config_path, run_config_path, combined_config_path)
