@@ -15,9 +15,7 @@ class BlendzConfig(object):
 
         self.getConfigPaths(data_config_path, run_config_path, combined_config_path)
         self.readConfig()
-        #Easy access with correct types
-        self.setAccess()
-        #Calculate values to store that are derived from other configured values
+        self.convertValuesFromString()
         self.setDerivedValues()
 
     def getConfigPaths(self, data_config_path=None, run_config_path=None, combined_config_path=None):
@@ -50,8 +48,7 @@ class BlendzConfig(object):
         self.config.set('DEFAULT', 'resource_path', self.resource_path)
         self.config.read(self.configs_to_read)
 
-
-    def setAccess(self):
+    def convertValuesFromString(self):
         #Run config
         self.z_lo = self.config.getfloat('Run', 'z_lo')
         self.z_hi = self.config.getfloat('Run', 'z_hi')
