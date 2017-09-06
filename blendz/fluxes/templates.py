@@ -59,10 +59,16 @@ class Templates(object):
                              {} instead.'.format(type(T)))
 
     def wavelength(self, T):
-        return self._all_templates[T]['lambda']
+        try:
+            return self._all_templates[T]['lambda']
+        except (KeyError, TypeError):
+            raise ValueError('Template may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_templates-1, type(T), T))
 
     def flux(self, T):
-        return self._all_templates[T]['flux']
+        try:
+            return self._all_templates[T]['flux']
+        except (KeyError, TypeError):
+            raise ValueError('Template may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_templates-1, type(T), T))
 
     def interp(self, T, newLambda):
         return self._interpolators[T](newLambda)

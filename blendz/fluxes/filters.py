@@ -30,10 +30,19 @@ class Filters(object):
                                             x = self._all_filters[F]['lambda'])
 
     def wavelength(self, F):
-        return self._all_filters[F]['lambda']
+        try:
+            return self._all_filters[F]['lambda']
+        except (KeyError, TypeError):
+            raise ValueError('Filter may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_filters-1, type(F), F))
 
     def response(self, F):
-        return self._all_filters[F]['response']
+        try:
+            return self._all_filters[F]['response']
+        except (KeyError, TypeError):
+            raise ValueError('Filter may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_filters-1, type(F), F))
 
     def norm(self, F):
-        return self._all_filters[F]['norm']
+        try:
+            return self._all_filters[F]['norm']
+        except (KeyError, TypeError):
+            raise ValueError('Filter may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_filters-1, type(F), F))
