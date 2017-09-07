@@ -44,7 +44,7 @@ class Base(object):
         #we need, which is the number of blends we want. So the two nested loops below
         #is for 2-blends, we'd need 3 loops for 3-blends.
         #To do this for nb-blends, looping over nt templates, we can do
-        #for x in product(*[range(nt) for b in xrange(nb)]):
+        #for x in product(*repeat(range(nt), blends)):
         #   print x
         #where x is a tuple each time that is nb long. This gives us each combination of T we need.
         for t1 in xrange(len(templateList)):
