@@ -4,9 +4,6 @@ from scipy.interpolate import interp1d
 import warnings
 from blendz.config import _config
 
-#In the notebook, template_dict is just a name:path. Instead, would be best to use
-#the config we have to have template_dict['templateName']={'path':'/a/b/c', 'type':'irr'}
-
 class Templates(object):
     def __init__(self, template_dict=_config.template_dict):
         self.template_dict = template_dict
