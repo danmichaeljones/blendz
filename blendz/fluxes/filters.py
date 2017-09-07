@@ -1,5 +1,5 @@
-import numpy as np
 from os.path import join
+import numpy as np
 from blendz.config import _config
 
 class Filters(object):

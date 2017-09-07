@@ -1,7 +1,7 @@
-import numpy as np
 from os.path import join
-from scipy.interpolate import interp1d
 import warnings
+import numpy as np
+from scipy.interpolate import interp1d
 from blendz.config import _config
 
 class Templates(object):

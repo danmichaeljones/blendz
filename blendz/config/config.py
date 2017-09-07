@@ -1,4 +1,3 @@
-import numpy as np
 from os.path import join, abspath, dirname
 import warnings
 try:
@@ -7,6 +6,7 @@ try:
 except ImportError:
     #Python 3
     import configparser as ConfigParser
+import numpy as np
 
 class BlendzConfig(object):
     def __init__(self, data_config_path=None, run_config_path=None, combined_config_path=None):

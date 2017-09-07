@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-
 import numpy as np
 
 #TODO: Edit this to use the Responses and Photometry objects

@@ -1,5 +1,4 @@
 import numpy as np
-
 from base import base
 
 #TODO: Edit this to use the Responses and Photometry objects
