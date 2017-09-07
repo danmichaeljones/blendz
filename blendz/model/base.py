@@ -34,15 +34,31 @@ class Base(object):
         #No in-place incrementing (i.e., +=) as this breaks autograd
         #lnProbTemplate = np.zeros(len(templateList))
         lnProb = -np.inf #Init at -ve inf (i.e., zero probability)
-        #Could vary number of for loops (for different number of components in general) with recursion
-        # https://stackoverflow.com/questions/7186518/function-with-varying-number-of-for-loops-python
 
         #Should move things out of the loops a bit to speed up execution.
         #e.g., for 8 templates, each self.modelFlux line is called 64 times each
         #instead of the 8 required. Should calculate what's needed then cache rather
         #than wasting calculations.
+
+        #itertools can generalise the following nested for loop to however many times
+        #we need, which is the number of blends we want. So the two nested loops below
+        #is for 2-blends, we'd need 3 loops for 3-blends.
+        #To do this for nb-blends, looping over nt templates, we can do
+        #for x in product(*[range(nt) for b in xrange(nb)]):
+        #   print x
+        #where x is a tuple each time that is nb long. This gives us each combination of T we need.
         for t1 in xrange(len(templateList)):
             for t2 in xrange(len(templateList)):
+                #Inside here, instead of fixing each line to have tmp += f(t1) + f(t2)
+                #which is for 2-blends, can can increment tmp with f(ti) for ti in x from above
+                #The redshift sorting should be done as checking ascending(zArray)
+                #Maybe would make sense to add a z-positive prior in here rather
+                #than relying on the prior for easier usage.
+                #This whole idea might require frac be an array nb long. This could be done
+                #by moving to a Dirichlet prior on frac so that we can enforce sum-to-one.
+                #The posterior will have to be changed to accept parameters as a 1d array, theta.
+                #Since we only need reshifts and frac, each are nb long, and theta is 2*nb long.
+
                 #Template prior
                 #Assume independance between template of components so
                 #P(T1, T2 | m0) = P(T1 | m0) * P(T2 | m0)
