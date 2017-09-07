@@ -29,7 +29,7 @@ class BlendzConfig(object):
 
             self.combined_config_path = combined_config_path
             self.configs_to_read = [self.combined_config_path]
-        #Two-config-files case
+        #Two-config-files case - If nothing is set, we use the two default config files
         else:
             self.combined_config_path = combined_config_path
             if run_config_path is None:
@@ -65,6 +65,7 @@ class BlendzConfig(object):
         self.filter_path = self.config.get('Data', 'filter_path')
         self.filter_file_extension = self.config.get('Data', 'filter_file_extension')
         self.filters = [f.strip() for f in self.config.get('Data', 'filters').split(',')]
+        self.zero_point_errors = np.array([float(i) for i in self.config.get('Data', 'mag_cols').split(',')])
 
     def setDerivedValues(self):
         self.redshift_grid = np.linspace(self.z_lo, self.z_hi, self.z_len)
