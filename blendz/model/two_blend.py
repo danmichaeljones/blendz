@@ -22,7 +22,7 @@ class TwoBlendModel(Base):
         else:
             self.mag0 = mag0
 
-    def lnPriorTemplate(self, templateIndex):
+    def lnTemplatePrior(self, templateIndex):
         #This is the parameters the BPZ code uses, NOT what is in the paper...
         #The BPZ code prior *seems* to have early/late mixed up...
         k_t_early = 0.45#0.147
@@ -49,7 +49,7 @@ class TwoBlendModel(Base):
             out = np.log(1. - early - late) - np.log(Nti)
         return out
 
-    def lnPriorRedshift(self, redshift, templateIndex):
+    def lnRedshiftPrior(self, redshift, templateIndex):
         templateType = templateTypeList[templateIndex]
 
         #Values from Benitez 2000
@@ -75,8 +75,14 @@ class TwoBlendModel(Base):
                 out = -np.inf
         return out
 
-    def lnPriorFrac(self, frac):
+    def lnFracPrior(self, frac):
         #Prior on the fraction
+        '''
+        This might be better placed in the base class. There's not much reason to
+        place anything other than a uniform prior on the fractions. The preference
+        for one source over a blend is a MODEL prior that should come into the
+        evidence calculation, NOT in the fraction prior I think...
+        '''
         #Uniform(0, 1) -- no preference for 1/2 component models
         if frac < 0.:
             return -np.inf
