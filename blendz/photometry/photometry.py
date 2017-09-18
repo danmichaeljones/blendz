@@ -21,7 +21,7 @@ class Photometry(object):
         self.galaxies = []
         for g in xrange(self.num_galaxies):
             data_row = self.photo_data[g, :]
-            self.galaxies.append(Galaxy(data_row, self.zero_point_frac))
+            self.galaxies.append(Galaxy(g, data_row, self.zero_point_frac))
 
     def __getitem__(self, key):
         return self.galaxies[key]

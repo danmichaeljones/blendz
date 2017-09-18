@@ -2,12 +2,13 @@ import numpy as np
 from blendz.config import _config
 
 class Galaxy(object):
-    def __init__(self, data_row, zero_point_frac):
+    def __init__(self, index, data_row, zero_point_frac):
         self.mag_data = data_row[_config.mag_cols]
         self.mag_sigma = data_row[_config.sigma_cols]
         self.ref_mag_data = self.mag_data[_config.ref_mag]
         self.ref_mag_sigma = self.mag_sigma[_config.ref_mag]
         self.zero_point_frac = zero_point_frac
+        self.index = index
 
         self.convertMagnitudes()
 
