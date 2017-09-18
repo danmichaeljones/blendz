@@ -39,12 +39,18 @@ class Responses(object):
                     integrand = shiftedTemplate * self.filters.response(F) * \
                                 self.filters.wavelength(F) / self.filters.norm(F)
                     self._all_responses[T][F][iZ] = np.trapz(integrand, x=self.filters.wavelength(F))
+                    #Commented out colours below now as repsonses should be fluxes, colours done in model
+                    #Define interpolators as flux here
+                    self._interpolators[T][F] = interp1d(self.zGrid, self._all_responses[T][F],\
+                                                         bounds_error=False, fill_value=0.)
             #Loop through all filters again so that we know the reference band has been calculated
+            '''
             for F in xrange(self.filters.num_filters):
                 responseColours = self._all_responses[T][F] / self._all_responses[T][self.ref_band]
                 responseColours[~np.isfinite(responseColours)] = 0.
                 self._interpolators[T][F] = interp1d(self.zGrid, responseColours,\
                                                      bounds_error=False, fill_value=0.)
+            '''
 
     def __call__(self, T, F, Z):
         #Using isinstance for redshift to catch python float and np.float64

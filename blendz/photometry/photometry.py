@@ -1,18 +1,23 @@
 import numpy as np
 from blendz.config import _config
 
+#TODO: What are the errors on the colour data? Should just be simple division to
+# propagate flux errors, but should actually calculate this rather than guessing
+# to make sure it's right.
+
 class Photometry(object):
     def __init__(self, data_path=_config.data_path, zero_point_errors=_config.zero_point_errors):
         self.data_path = data_path
         self.zero_point_errors = zero_point_errors
 
-        self.photo_data = np.loadtxt(self.data_path, skiprows=16)
+        self.photo_data = np.loadtxt(self.data_path)
         self.zero_point_frac = 10.**(0.4*self.zero_point_errors) - 1.
         self.num_galaxies = np.shape(self.photo_data)[0]
 
         self.extract_magnitudes()
         #The conversion process also handles the non-observed/detected sources
         self.convert_magnitudes_to_fluxes()
+        self.calculate_colours()
 
     def extract_magnitudes(self):
         self.mag_data = {}
@@ -55,3 +60,11 @@ class Photometry(object):
             self.flux_sigma_data[g] = np.where(seen, np.sqrt(self.flux_sigma_data[g]*self.flux_sigma_data[g]+(self.zero_point_frac*self.flux_data[g])**2), self.flux_sigma_data[g])[0]
             #Handle objects not seen differently to observed objects
             self.flux_sigma_data[g] = np.where(notSeen, np.sqrt(self.flux_sigma_data[g]*self.flux_sigma_data[g]+(self.zero_point_frac*(self.flux_sigma_data[g]/2.))**2), self.flux_sigma_data[g])[0]
+
+    def calculate_colours(self):
+        #TODO: Check the colour sigmas!!!
+        self.colour_data = {}
+        self.colour_sigma_data = {}
+        for g in xrange(self.num_galaxies):
+            self.colour_data[g] = self.flux_data[g] / self.flux_data[g][_config.ref_mag]
+            self.colour_sigma_data[g] = self.flux_sigma_data[g] / self.flux_sigma_data[g][_config.ref_mag]
