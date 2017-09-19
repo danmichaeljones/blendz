@@ -126,7 +126,3 @@ class Base(ABC_meta):
     @abc.abstractmethod
     def lnRedshiftPrior(self, redshift, templateType):
         pass
-
-    @abc.abstractmethod
-    def lnFracPrior(self, fracs):
-        pass
