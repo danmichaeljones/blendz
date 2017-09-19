@@ -25,7 +25,7 @@ class Base(ABC_meta):
             self.photometry = photometry
         self.num_templates = self.responses.templates.num_templates
         self.num_galaxies = self.photometry.num_galaxies
-        self.galaxy = None
+        self.current_galaxy = None
         self.precalculateTemplatePriors()
 
     def precalculateTemplatePriors(self):
@@ -37,7 +37,7 @@ class Base(ABC_meta):
                 template_priors[gal.index, T] = self.lnPriorTemplate(tmpType, mag0)
 
     def lnLikelihood(self, model_colour):
-        out = -1. * np.sum((self.galaxy.colour_data - model_colour)**2 / self.galaxy.colour_sigma**2)
+        out = -1. * np.sum((self.current_galaxy.colour_data - model_colour)**2 / self.current_galaxy.colour_sigma**2)
         return out
 
     def lnFracPrior(self, frac):
@@ -85,7 +85,7 @@ class Base(ABC_meta):
                 tmp = 0.
                 blend_flux = np.zeros(nblends)
                 for b in xrange(nblends):
-                    tmp += self.template_priors[self.galaxy.index, template_combo[b]]
+                    tmp += self.template_priors[self.current_galaxy.index, template_combo[b]]
                     tmp += redshift_priors[redshifts[b], template_combo[b]]
                     blend_flux += self.model_fluxes[redshifts[b], template_combo[b], :] * fracs[b]
 
@@ -119,10 +119,10 @@ class Base(ABC_meta):
         pass
 
     @abc.abstractmethod
-    def lnTemplatePrior(self, templateType):
+    def lnTemplatePrior(self, template_type):
         #Would make sense to pass type, not index, to hide the index->type check
         pass
 
     @abc.abstractmethod
-    def lnRedshiftPrior(self, redshift, templateType):
+    def lnRedshiftPrior(self, redshift, template_type):
         pass
