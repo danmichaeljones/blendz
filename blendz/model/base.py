@@ -25,16 +25,15 @@ class Base(ABC_meta):
             self.photometry = photometry
         self.num_templates = self.responses.templates.num_templates
         self.num_galaxies = self.photometry.num_galaxies
-        self.current_galaxy = None
+        self.current_galaxy = self.photometry[0] #init to first galaxy by default
         self.precalculateTemplatePriors()
 
     def precalculateTemplatePriors(self):
-        self.template_priors = np.zeros(self.num_galaxies, self.num_templates)
+        self.template_priors = np.zeros((self.num_galaxies, self.num_templates))
         for gal in self.photometry:
-            mag0 = gal.ref_mag_data
             for T in xrange(self.num_templates):
                 tmpType = self.responses.templates.template_type(T)
-                template_priors[gal.index, T] = self.lnPriorTemplate(tmpType, mag0)
+                template_priors[gal.index, T] = self.lnTemplatePrior(tmpType)
 
     def lnLikelihood(self, model_colour):
         out = -1. * np.sum((self.current_galaxy.colour_data - model_colour)**2 / self.current_galaxy.colour_sigma**2)

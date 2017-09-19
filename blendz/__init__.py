@@ -1,4 +1,4 @@
 import numpy as np
 from fluxes import Templates, Filters, Responses
-import model
+from model import BlendBPZ
 from photometry import Photometry, Galaxy
