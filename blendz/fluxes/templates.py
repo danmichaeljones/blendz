@@ -43,13 +43,10 @@ class Templates(object):
             return 0
 
     def template_type(self, T):
-        if type(T) == str:
-            return self.template_dict[T]
-        elif type(T) == int:
-            return self.template_dict[self.template_names[T]]
-        else:
-            raise TypeError('The argument to template_type() should either be a string or an integer, got \
-                             {} instead.'.format(type(T)))
+        try:
+            return self.template_dict[T]['type']
+        except (KeyError, TypeError):
+            raise ValueError('Template may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_templates-1, type(T), T))
 
     def wavelength(self, T):
         try:
