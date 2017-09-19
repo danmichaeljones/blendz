@@ -40,6 +40,10 @@ class Base(ABC_meta):
         out = -1. * np.sum((self.galaxy.colour_data - model_colour)**2 / self.galaxy.colour_sigma**2)
         return out
 
+    def lnFracPrior(self, frac):
+        #Uniform prior on fractions
+        return 0.
+
     def lnPosterior(self, params):
         nblends = (len(params)+1)/2
         redshifts = params[:nblends]

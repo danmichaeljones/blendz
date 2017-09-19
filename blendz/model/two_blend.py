@@ -75,22 +75,6 @@ class TwoBlendModel(Base):
                 out = -np.inf
         return out
 
-    def lnFracPrior(self, frac):
-        #Prior on the fraction
-        '''
-        This might be better placed in the base class. There's not much reason to
-        place anything other than a uniform prior on the fractions. The preference
-        for one source over a blend is a MODEL prior that should come into the
-        evidence calculation, NOT in the fraction prior I think...
-        '''
-        #Uniform(0, 1) -- no preference for 1/2 component models
-        if frac < 0.:
-            return -np.inf
-        elif frac > 1:
-            return -np.inf
-        else:
-            return 0.
-
     def correlationFunction(self, redshift1, redshift2):
         #Extra correlation between objects at z1 and z2
         #For now, assume no extra correlation, i.e., xi = 0
