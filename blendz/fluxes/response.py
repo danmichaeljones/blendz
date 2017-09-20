@@ -5,7 +5,7 @@ from templates import Templates
 from filters import Filters
 
 class Responses(object):
-    def __init__(self, templates=None, filters=None, ref_band=_config.ref_mag, zGrid=_config.redshift_grid):
+    def __init__(self, templates=None, filters=None, zGrid=_config.redshift_grid):
         if templates is None:
             #Load default templates
             self.templates = Templates()
@@ -18,7 +18,6 @@ class Responses(object):
         else:
             #From kwarg
             self.filters = filters
-        self.ref_band = ref_band
         self.zGrid = zGrid
 
         self._calculate_responses()
