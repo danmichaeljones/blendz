@@ -8,6 +8,7 @@ else:
     ABC_meta = abc.ABCMeta('ABC', (), {})
 import itertools as itr
 import numpy as np
+from blendz.config import _config
 from blendz.fluxes import Responses
 from blendz.photometry import Photometry
 
@@ -24,16 +25,25 @@ class Base(ABC_meta):
         else:
             self.photometry = photometry
         self.num_templates = self.responses.templates.num_templates
+        self.num_filters = self.responses.filters.num_filters
         self.num_galaxies = self.photometry.num_galaxies
         self.current_galaxy = self.photometry[0] #init to first galaxy by default
-        self.precalculateTemplatePriors()
 
     def precalculateTemplatePriors(self):
         self.template_priors = np.zeros((self.num_galaxies, self.num_templates))
+        #The template prior function relies of current_galaxy pointing to
+        #the single Galaxy object it should calculate for. So we need to update
+        #current_galaxy as we iterate here, but need to save the galaxy we started
+        #with to put it back before this function returns, so the sampling can
+        #continue on the correct galaxy
+        starting_galaxy = self.current_galaxy
         for gal in self.photometry:
+            self.current_galaxy = gal
             for T in xrange(self.num_templates):
                 tmpType = self.responses.templates.template_type(T)
-                template_priors[gal.index, T] = self.lnTemplatePrior(tmpType)
+                self.template_priors[gal.index, T] = self.lnTemplatePrior(tmpType)
+        #Now the template prior has finished calling, replace with original value
+        self.current_galaxy = starting_galaxy
 
     def lnLikelihood(self, model_colour):
         out = -1. * np.sum((self.current_galaxy.colour_data - model_colour)**2 / self.current_galaxy.colour_sigma**2)
@@ -69,10 +79,10 @@ class Base(ABC_meta):
             for iz, Z in enumerate(redshifts):
                 for T in xrange(self.num_templates):
                     tmpType = self.responses.templates.template_type(T)
-                    redshift_priors[iz, T] = self.lnPriorRedshift(Z, tmpType)
+                    redshift_priors[iz, T] = self.lnRedshiftPrior(Z, tmpType)
                     model_fluxes[iz, T, :] = self.responses(T, None, Z)
             redshift_correlation = np.log(1. + self.correlationFunction(redshifts))
-            frac_prior = self.lnPriorFrac(fracs)
+            frac_prior = self.lnFracPrior(fracs)
 
             #Loop over all templates - discrete marginalisation
             #All log probabilities so (multiply -> add) and (add -> logaddexp)
@@ -82,19 +92,24 @@ class Base(ABC_meta):
             for template_combo in itr.product(*itr.repeat(xrange(self.num_templates), nblends)):
                 #One redshift prior, template prior and model flux for each blend component
                 tmp = 0.
-                blend_flux = np.zeros(nblends)
+                blend_flux = np.zeros(self.num_filters)
                 for b in xrange(nblends):
-                    tmp += self.template_priors[self.current_galaxy.index, template_combo[b]]
-                    tmp += redshift_priors[redshifts[b], template_combo[b]]
-                    blend_flux += self.model_fluxes[redshifts[b], template_combo[b], :] * fracs[b]
+                    blend_flux += model_fluxes[b, template_combo[b], :] * fracs[b]
+                    tmp += redshift_priors[b, template_combo[b]]
+                    #Precalculate all the template priors the first time posterior is called
+                    try:
+                        tmp += self.template_priors[self.current_galaxy.index, template_combo[b]]
+                    except AttributeError:
+                        self.precalculateTemplatePriors()
+                        tmp += self.template_priors[self.current_galaxy.index, template_combo[b]]
+
+                #Define colour wrt reference band
+                blend_colour = blend_flux / blend_flux[_config.ref_band]
 
                 #Other terms only appear once per summation-step
                 tmp += redshift_correlation
                 tmp += frac_prior
                 tmp += self.lnLikelihood(blend_colour)
-
-                #Define colour wrt reference band
-                blend_colour = blend_flux / blend_flux[_config.ref_band]
 
                 #logaddexp contribution from this template to marginalise
                 lnProb = np.logaddexp(lnProb, tmp)

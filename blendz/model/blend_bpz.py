@@ -20,21 +20,16 @@ class BlendBPZ(Base):
             self.prior_params = {'k_t': {'early': 0.45, 'late': 0.147},\
                                  'f_t': {'early': 0.35, 'late': 0.5},\
                                  'alpha_t': {'early': 2.46, 'late': 1.81, 'irr': 0.91},\
-                                 'z_0T': {'early': 0.431, 'late': 0.39, 'irr': 0.063},\
-                                 'k_mT': {'early': 0.091, 'late': 0.0636, 'irr': 0.123}}
+                                 'z_0t': {'early': 0.431, 'late': 0.39, 'irr': 0.063},\
+                                 'k_mt': {'early': 0.091, 'late': 0.0636, 'irr': 0.123}}
 
     def lnTemplatePrior(self, template_type):
         mag0 = self.current_galaxy.bounded_ref_mag
         #All include a scaling of 1/Number of templates of that type
-        if template_type == 'early':
-            Nte = self.responses.templates.num_type('early')
-            coeff = np.log(self.prior_params['f_t']['early'] / Nte)
-            expon = self.prior_params['k_t']['early'] * (mag0 - 20.)
-            out = coeff - expon
-        elif template_type == 'late':
-            Ntl = self.responses.templates.num_type('late')
-            coeff = np.log(self.prior_params['f_t']['late'] / Ntl)
-            expon = self.prior_params['k_t']['late'] * (mag0 - 20.)
+        if template_type in ['early', 'late']:
+            Nt = self.responses.templates.num_type(template_type)
+            coeff = np.log(self.prior_params['f_t'][template_type] / Nt)
+            expon = self.prior_params['k_t'][template_type] * (mag0 - 20.)
             out = coeff - expon
         elif template_type == 'irr':
             Nte = self.responses.templates.num_type('early')
@@ -52,17 +47,16 @@ class BlendBPZ(Base):
         return out
 
     def lnRedshiftPrior(self, redshift, template_type):
-        if template_type not in ['early', 'late', 'irr']:
+        try:
+            mag0 = self.current_galaxy.bounded_ref_mag
+            first = (self.prior_params['alpha_t'][template_type] * np.log(redshift))
+            second = self.prior_params['z_0t'][template_type] + (self.prior_params['k_mt'][template_type] * (mag0 - 20.))
+            out = first - (redshift / second)**self.prior_params['alpha_t'][template_type]
+        except KeyError:
             raise ValueError('The BPZ priors are only defined for templates of \
                               types "early", "late" and "irr", but the redshift \
                               prior was called with type ' + template_type)
-
-        mag0 = self.current_galaxy.bounded_ref_mag
-        first = (alpha_T * np.log(redshift))
-        second = self.prior_params['z_0t'][template_type] + (k_mT * (mag0 - 20.))
-
-        return first - (redshift / second)**self.prior_params['alpha_t'][template_type]
-
+        return out
 
     def correlationFunction(self, redshifts):
         #Extra correlation between objects at z1 and z2
