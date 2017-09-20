@@ -61,7 +61,7 @@ class BlendzConfig(object):
         self.data_path = self.config.get('Data', 'data_path')
         self.mag_cols = [int(i) for i in self.config.get('Data', 'mag_cols').split(',')]
         self.sigma_cols = [int(i) for i in self.config.get('Data', 'sigma_cols').split(',')]
-        self.ref_mag = self.config.getint('Data', 'ref_mag')
+        self.ref_band = self.config.getint('Data', 'ref_band')
         self.filter_path = self.config.get('Data', 'filter_path')
         self.filter_file_extension = self.config.get('Data', 'filter_file_extension')
         self.filters = [f.strip() for f in self.config.get('Data', 'filters').split(',')]

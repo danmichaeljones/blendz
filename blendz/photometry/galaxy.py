@@ -5,8 +5,8 @@ class Galaxy(object):
     def __init__(self, index, data_row, zero_point_frac):
         self.mag_data = data_row[_config.mag_cols]
         self.mag_sigma = data_row[_config.sigma_cols]
-        self.ref_mag_data = self.mag_data[_config.ref_mag]
-        self.ref_mag_sigma = self.mag_sigma[_config.ref_mag]
+        self.ref_mag_data = self.mag_data[_config.ref_band]
+        self.ref_mag_sigma = self.mag_sigma[_config.ref_band]
         self.zero_point_frac = zero_point_frac
         self.index = index
 
@@ -42,5 +42,5 @@ class Galaxy(object):
 
         #Calculate colours
         #TODO: Check the colour sigmas!!!
-        self.colour_data = self.flux_data / self.flux_data[_config.ref_mag]
-        self.colour_sigma = self.flux_sigma / self.flux_sigma[_config.ref_mag]
+        self.colour_data = self.flux_data / self.flux_data[_config.ref_band]
+        self.colour_sigma = self.flux_sigma / self.flux_sigma[_config.ref_band]
