@@ -1,8 +1,8 @@
 import numpy as np
 from scipy.interpolate import interp1d
 from blendz.config import _config
-from templates import Templates
-from filters import Filters
+from blendz.fluxes import Templates
+from blendz.fluxes import Filters
 
 class Responses(object):
     def __init__(self, templates=None, filters=None, zGrid=_config.redshift_grid):

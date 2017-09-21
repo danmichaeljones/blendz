@@ -1,2 +1,2 @@
-from base import Base
-from blend_bpz import BlendBPZ
+from .base import Base
+from .blend_bpz import BlendBPZ

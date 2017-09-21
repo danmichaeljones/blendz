@@ -1,3 +1,3 @@
-import config
+from .config import BlendzConfig
 
-_config = config.BlendzConfig()
+_config = BlendzConfig()
