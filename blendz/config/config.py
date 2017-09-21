@@ -65,7 +65,7 @@ class BlendzConfig(object):
         self.filter_path = self.config.get('Data', 'filter_path')
         self.filter_file_extension = self.config.get('Data', 'filter_file_extension')
         self.filters = [f.strip() for f in self.config.get('Data', 'filters').split(',')]
-        self.zero_point_errors = np.array([float(i) for i in self.config.get('Data', 'mag_cols').split(',')])
+        self.zero_point_errors = np.array([float(i) for i in self.config.get('Data', 'zero_point_errors').split(',')])
 
     def setDerivedValues(self):
         self.redshift_grid = np.linspace(self.z_lo, self.z_hi, self.z_len)
