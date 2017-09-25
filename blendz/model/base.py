@@ -159,10 +159,11 @@ class Base(ABC_meta):
             for gal in self.photometry.iterate(start, stop):
                 blend_count = 1
                 for nb in nblends:
-                    pbar.set_description('[Gal {}/{}, Component {}/{}] '.format(gal_count,
+                    pbar.set_description('[Galaxy {}/{}, Component {}/{}] '.format(gal_count,
                                                                                num_galaxies_sampling,
                                                                                blend_count,
                                                                                num_components_sampling))
+                    pbar.refresh()
                     gal_count += 1
                     blend_count += 1
 
