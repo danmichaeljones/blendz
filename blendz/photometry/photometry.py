@@ -37,6 +37,8 @@ class Photometry(object):
         iterator = self.iterate()
         for g in xrange(self.num_galaxies):
             yield next(iterator)
+        #Clean up by resetting current_galaxy to None when done
+        self.current_galaxy = None
 
     def __getitem__(self, key):
         out = self.galaxies[key]
