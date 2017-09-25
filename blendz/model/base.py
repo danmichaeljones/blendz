@@ -8,6 +8,8 @@ else:
     ABC_meta = abc.ABCMeta('ABC', (), {})
 import itertools as itr
 import numpy as np
+import nestle
+from tqdm import tqdm
 from blendz.config import _config
 from blendz.fluxes import Responses
 from blendz.photometry import Photometry
@@ -27,6 +29,15 @@ class Base(ABC_meta):
         self.num_templates = self.responses.templates.num_templates
         self.num_filters = self.responses.filters.num_filters
         self.num_galaxies = self.photometry.num_galaxies
+
+        #Set up empty dictionaries to put results into
+        self.sample_results = {}
+        self.reweighted_samples = {}
+        for g in xrange(self.num_galaxies):
+            #Each value is a dictionary which will be filled by sample function
+            #The keys of this inner dictionary will be the number of blends for run
+            self.sample_results[g] = {}
+            self.reweighted_samples[g] = {}
 
     def precalculateTemplatePriors(self):
         self.template_priors = np.zeros((self.num_galaxies, self.num_templates))
@@ -90,7 +101,9 @@ class Base(ABC_meta):
                     try:
                         tmp += self.template_priors[self.photometry.current_galaxy.index, template_combo[b]]
                     except AttributeError:
+                        incoming_galaxy_index = self.photometry.current_galaxy.index
                         self.precalculateTemplatePriors()
+                        self.photometry.current_galaxy = self.photometry[incoming_galaxy_index]
                         tmp += self.template_priors[self.photometry.current_galaxy.index, template_combo[b]]
 
                 #Define colour wrt reference band
@@ -106,8 +119,18 @@ class Base(ABC_meta):
 
             return lnProb
 
-    def sample(self, nblends, gal=None):
-        #TODO: Implement this function.
+    def priorTransform(self, params):
+        '''
+        Transform params from [0, 1] uniform random to [0, max] uniform random,
+        where the max redshift is set in the configuration, and the max fraction
+        is 1.
+        '''
+        nblends = (len(params)+1)/2
+        trans = np.ones(len(params))
+        trans[:nblends] = _config.z_hi
+        return params * trans
+
+    def sample(self, nblends, galaxy=None):
         '''
         nblends should be int, or could be a list so that multiple
         different nb's can be done and compared for evidence etc.
@@ -115,8 +138,40 @@ class Base(ABC_meta):
         galaxy should be an int choosing which galaxy of all in photometry
         to estimate the redshift of. If none, do all of them.
         '''
-        #self.galaxy = self.photometry[gal]
-        pass
+
+        if isinstance(nblends, int):
+            nblends = [nblends]
+        num_components_sampling = len(nblends)
+
+        if galaxy is None:
+            start = None
+            stop = None
+            num_galaxies_sampling = self.num_galaxies
+        elif isinstance(galaxy, int):
+            start = galaxy
+            stop = galaxy + 1
+            num_galaxies_sampling = 1
+        else:
+            raise TypeError('galaxy may be either None or an integer, but got {} instead'.format(type(galaxy)))
+
+        with tqdm(total=num_galaxies_sampling*num_components_sampling) as pbar:
+            gal_count = 1
+            for gal in self.photometry.iterate(start, stop):
+                blend_count = 1
+                for nb in nblends:
+                    pbar.set_description('[Gal {}/{}, Component {}/{}] '.format(gal_count,
+                                                                               num_galaxies_sampling,
+                                                                               blend_count,
+                                                                               num_components_sampling))
+                    gal_count += 1
+                    blend_count += 1
+
+                    num_param = (2 * nb) - 1
+                    results = nestle.sample(self.lnPosterior, self.priorTransform,
+                                            num_param, method='multi', npoints=150)
+                    self.sample_results[gal.index][nb] = results
+                    self.reweighted_samples[gal.index][nb] = nestle.resample_equal(results.samples, results.weights)
+                    pbar.update()
 
     @abc.abstractmethod
     def correlationFunction(self, redshifts):
