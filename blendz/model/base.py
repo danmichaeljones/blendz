@@ -27,26 +27,16 @@ class Base(ABC_meta):
         self.num_templates = self.responses.templates.num_templates
         self.num_filters = self.responses.filters.num_filters
         self.num_galaxies = self.photometry.num_galaxies
-        self.current_galaxy = self.photometry[0] #init to first galaxy by default
 
     def precalculateTemplatePriors(self):
         self.template_priors = np.zeros((self.num_galaxies, self.num_templates))
-        #The template prior function relies of current_galaxy pointing to
-        #the single Galaxy object it should calculate for. So we need to update
-        #current_galaxy as we iterate here, but need to save the galaxy we started
-        #with to put it back before this function returns, so the sampling can
-        #continue on the correct galaxy
-        starting_galaxy = self.current_galaxy
         for gal in self.photometry:
-            self.current_galaxy = gal
             for T in xrange(self.num_templates):
                 tmpType = self.responses.templates.template_type(T)
                 self.template_priors[gal.index, T] = self.lnTemplatePrior(tmpType)
-        #Now the template prior has finished calling, replace with original value
-        self.current_galaxy = starting_galaxy
 
     def lnLikelihood(self, model_colour):
-        out = -1. * np.sum((self.current_galaxy.colour_data - model_colour)**2 / self.current_galaxy.colour_sigma**2)
+        out = -1. * np.sum((self.photometry.current_galaxy.colour_data - model_colour)**2 / self.photometry.current_galaxy.colour_sigma**2)
         return out
 
     def lnFracPrior(self, frac):
@@ -98,10 +88,10 @@ class Base(ABC_meta):
                     tmp += redshift_priors[b, template_combo[b]]
                     #Precalculate all the template priors the first time posterior is called
                     try:
-                        tmp += self.template_priors[self.current_galaxy.index, template_combo[b]]
+                        tmp += self.template_priors[self.photometry.current_galaxy.index, template_combo[b]]
                     except AttributeError:
                         self.precalculateTemplatePriors()
-                        tmp += self.template_priors[self.current_galaxy.index, template_combo[b]]
+                        tmp += self.template_priors[self.photometry.current_galaxy.index, template_combo[b]]
 
                 #Define colour wrt reference band
                 blend_colour = blend_flux / blend_flux[_config.ref_band]

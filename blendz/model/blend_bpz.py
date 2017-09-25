@@ -24,7 +24,7 @@ class BlendBPZ(Base):
                                  'k_mt': {'early': 0.091, 'late': 0.0636, 'irr': 0.123}}
 
     def lnTemplatePrior(self, template_type):
-        mag0 = self.current_galaxy.bounded_ref_mag
+        mag0 = self.photometry.current_galaxy.bounded_ref_mag
         #All include a scaling of 1/Number of templates of that type
         if template_type in ['early', 'late']:
             Nt = self.responses.templates.num_type(template_type)
@@ -48,7 +48,7 @@ class BlendBPZ(Base):
 
     def lnRedshiftPrior(self, redshift, template_type):
         try:
-            mag0 = self.current_galaxy.bounded_ref_mag
+            mag0 = self.photometry.current_galaxy.bounded_ref_mag
             first = (self.prior_params['alpha_t'][template_type] * np.log(redshift))
             second = self.prior_params['z_0t'][template_type] + (self.prior_params['k_mt'][template_type] * (mag0 - 20.))
             out = first - (redshift / second)**self.prior_params['alpha_t'][template_type]

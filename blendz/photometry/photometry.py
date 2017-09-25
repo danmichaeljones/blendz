@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from blendz.config import _config
 from blendz.photometry import Galaxy
@@ -16,6 +17,7 @@ class Photometry(object):
         self.num_galaxies = np.shape(self.photo_data)[0]
 
         self.getGalaxies()
+        self.current_galaxy = None
 
     def getGalaxies(self):
         self.galaxies = []
@@ -23,5 +25,23 @@ class Photometry(object):
             data_row = self.photo_data[g, :]
             self.galaxies.append(Galaxy(g, data_row, self.zero_point_frac))
 
+    def iterate(self, start=None, stop=None, step=None):
+        out_list = self.galaxies[start:stop:step]
+        for gal in out_list:
+            self.current_galaxy = gal
+            yield gal
+
+    def __iter__(self):
+        iterator = self.iterate()
+        for g in xrange(self.num_galaxies):
+            yield next(iterator)
+
     def __getitem__(self, key):
-        return self.galaxies[key]
+        out = self.galaxies[key]
+        if isinstance(out, list):
+            warnings.warn("""This slice of the photometry returns a list of Galaxy objects, but doesn't
+                             update current_galaxy, so this should not be used for iterating over if any
+                             methods are called. Instead, you should use the
+                             Photometry.iterate(start, stop, step) method for iterating""")
+
+        return out
