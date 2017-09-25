@@ -30,6 +30,8 @@ class Photometry(object):
         for gal in out_list:
             self.current_galaxy = gal
             yield gal
+        #Clean up by resetting current_galaxy to None when done
+        self.current_galaxy = None
 
     def __iter__(self):
         iterator = self.iterate()
