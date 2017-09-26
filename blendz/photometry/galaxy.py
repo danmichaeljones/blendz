@@ -2,11 +2,11 @@ import numpy as np
 from blendz.config import _config
 
 class Galaxy(object):
-    def __init__(self, index, data_row, zero_point_frac):
-        self.mag_data = data_row[_config.mag_cols]
-        self.mag_sigma = data_row[_config.sigma_cols]
-        self.ref_mag_data = self.mag_data[_config.ref_band]
-        self.ref_mag_sigma = self.mag_sigma[_config.ref_band]
+    def __init__(self, mag_data, mag_sigma, ref_band, zero_point_frac, index):
+        self.mag_data = mag_data
+        self.mag_sigma = mag_sigma
+        self.ref_mag_data = self.mag_data[ref_band]
+        self.ref_mag_sigma = self.mag_sigma[ref_band]
         self.zero_point_frac = zero_point_frac
         self.index = index
 
