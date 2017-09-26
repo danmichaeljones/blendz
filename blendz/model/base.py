@@ -50,6 +50,15 @@ class Base(ABC_meta):
         out = -1. * np.sum((self.photometry.current_galaxy.colour_data - model_colour)**2 / self.photometry.current_galaxy.colour_sigma**2)
         return out
 
+    def lnLikelihood_bpz(self, model_flux):
+        F_tt = np.sum(model_flux**2. / self.photometry.current_galaxy.flux_sigma**2.)
+        F_ot = np.sum((self.photometry.current_galaxy.flux_data * model_flux) / self.photometry.current_galaxy.flux_sigma**2.)
+        scaling = F_ot / F_tt
+        scaled_model_flux = model_flux * scaling
+
+        chi_sq = -1. * np.sum((self.photometry.current_galaxy.flux_data - scaled_model_flux)**2 / self.photometry.current_galaxy.flux_sigma**2)
+        return chi_sq
+
     def lnFracPrior(self, frac):
         #Uniform prior on fractions
         return 0.
@@ -112,7 +121,8 @@ class Base(ABC_meta):
                 #Other terms only appear once per summation-step
                 tmp += redshift_correlation
                 tmp += frac_prior
-                tmp += self.lnLikelihood(blend_colour)
+                #tmp += self.lnLikelihood(blend_colour)
+                tmp += self.lnLikelihood_bpz(blend_flux)
 
                 #logaddexp contribution from this template to marginalise
                 lnProb = np.logaddexp(lnProb, tmp)
