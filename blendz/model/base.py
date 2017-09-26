@@ -130,7 +130,7 @@ class Base(ABC_meta):
         trans[:nblends] = _config.z_hi
         return params * trans
 
-    def sample(self, nblends, galaxy=None):
+    def sample(self, nblends, galaxy=None, npoints=150, resample=None):
         '''
         nblends should be int, or could be a list so that multiple
         different nb's can be done and compared for evidence etc.
@@ -169,9 +169,11 @@ class Base(ABC_meta):
 
                     num_param = (2 * nb) - 1
                     results = nestle.sample(self.lnPosterior, self.priorTransform,
-                                            num_param, method='multi', npoints=150)
+                                            num_param, method='multi', npoints=npoints)
                     self.sample_results[gal.index][nb] = results
-                    self.reweighted_samples[gal.index][nb] = nestle.resample_equal(results.samples, results.weights)
+                    if resample is not None:
+                        #self.reweighted_samples[gal.index][nb] = nestle.resample_equal(results.samples, results.weights)
+                        self.reweighted_samples[gal.index][nb] = results.samples[np.random.choice(len(results.weights), size=resample, p=results.weights)]
                     pbar.update()
 
     @abc.abstractmethod
