@@ -140,6 +140,15 @@ class Base(ABC_meta):
         trans[:nblends] = _config.z_hi
         return params * trans
 
+    def sampleIterationProgressUpdate(self, info):
+        if info['it']%100.==0:
+            self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
+                                                                                   self.num_galaxies_sampling,
+                                                                                   self.blend_count,
+                                                                                   self.num_components_sampling,
+                                                                                   info['it']))
+            self.pbar.refresh()
+
     def sample(self, nblends, galaxy=None, npoints=150, resample=None):
         '''
         nblends should be int, or could be a list so that multiple
@@ -151,40 +160,37 @@ class Base(ABC_meta):
 
         if isinstance(nblends, int):
             nblends = [nblends]
-        num_components_sampling = len(nblends)
+        self.num_components_sampling = len(nblends)
 
         if galaxy is None:
             start = None
             stop = None
-            num_galaxies_sampling = self.num_galaxies
+            self.num_galaxies_sampling = self.num_galaxies
         elif isinstance(galaxy, int):
             start = galaxy
             stop = galaxy + 1
-            num_galaxies_sampling = 1
+            self.num_galaxies_sampling = 1
         else:
             raise TypeError('galaxy may be either None or an integer, but got {} instead'.format(type(galaxy)))
 
-        with tqdm(total=num_galaxies_sampling*num_components_sampling) as pbar:
-            gal_count = 1
+        with tqdm(total=self.num_galaxies_sampling * self.num_components_sampling) as self.pbar:
+            self.gal_count = 1
             for gal in self.photometry.iterate(start, stop):
-                blend_count = 1
+                self.blend_count = 1
                 for nb in nblends:
-                    pbar.set_description('[Galaxy {}/{}, Component {}/{}] '.format(gal_count,
-                                                                               num_galaxies_sampling,
-                                                                               blend_count,
-                                                                               num_components_sampling))
-                    pbar.refresh()
-                    gal_count += 1
-                    blend_count += 1
 
                     num_param = (2 * nb) - 1
                     results = nestle.sample(self.lnPosterior, self.priorTransform,
-                                            num_param, method='multi', npoints=npoints)
+                                            num_param, method='multi', npoints=npoints,
+                                            callback=self.sampleIterationProgressUpdate)
                     self.sample_results[gal.index][nb] = results
                     if resample is not None:
                         #self.reweighted_samples[gal.index][nb] = nestle.resample_equal(results.samples, results.weights)
                         self.reweighted_samples[gal.index][nb] = results.samples[np.random.choice(len(results.weights), size=resample, p=results.weights)]
-                    pbar.update()
+
+                    self.gal_count += 1
+                    self.blend_count += 1
+                    self.pbar.update()
 
     @abc.abstractmethod
     def correlationFunction(self, redshifts):
