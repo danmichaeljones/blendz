@@ -90,21 +90,21 @@ class Responses(object):
                                                      bounds_error=False, fill_value=0.)
 
     def __call__(self, T, F, Z):
-        #Using isinstance for redshift to catch python float and np.float64
+        #Using isinstance to catch suitable python and numpy data-types
         #Single template/filter/redshift case
-        if type(T)==int and type(F)==int and isinstance(Z, float):
+        if isinstance(T, (int, np.integer)) and type(F)==int and isinstance(Z, (float, np.floating)):
             return float(self._interpolators[T][F](Z))
         #Single template/filter, multiple redshifts case
-        elif type(T)==int and type(F)==int and type(Z)==np.ndarray:
+        elif isinstance(T, (int, np.integer)) and type(F)==int and type(Z)==np.ndarray:
             return np.array([self._interpolators[T][F](zz) for zz in Z])
         #Single template/redshift case, all filters
-        elif type(T)==int and (F is None) and isinstance(Z, float):
+        elif isinstance(T, (int, np.integer)) and (F is None) and isinstance(Z, (float, np.floating)):
             return np.array([self._interpolators[T][ff](Z) for ff in xrange(self.filters.num_filters)])
         #Single template, multiple redshift, all filters case
-        elif type(T)==int and (F is None) and type(Z)==np.ndarray:
+        elif isinstance(T, (int, np.integer)) and (F is None) and type(Z)==np.ndarray:
             return np.array([[self._interpolators[T][ff](zz) \
                               for ff in xrange(self.filters.num_filters)]\
-                            for zz in Z])
+                              for zz in Z])
         else:
             raise TypeError('Incompatible types for arguments. Require T = int, \
                             F = int or None, Z = float or numpy.ndarray. Instead,\
