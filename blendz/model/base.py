@@ -140,7 +140,7 @@ class Base(ABC_meta):
         trans[:nblends] = _config.z_hi
         return params * trans
 
-    def sampleIterationProgressUpdate(self, info):
+    def sampleProgressUpdate(self, info):
         if info['it']%100.==0:
             self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
                                                                                    self.num_galaxies_sampling,
@@ -149,7 +149,7 @@ class Base(ABC_meta):
                                                                                    info['it']))
             self.pbar.refresh()
 
-    def sample(self, nblends, galaxy=None, npoints=150, resample=None):
+    def sample(self, nblends, galaxy=None, npoints=150, resample=None, seed=None):
         '''
         nblends should be int, or could be a list so that multiple
         different nb's can be done and compared for evidence etc.
@@ -179,14 +179,21 @@ class Base(ABC_meta):
                 self.blend_count = 1
                 for nb in nblends:
 
+                    if seed is None:
+                        rstate = np.random.RandomState()
+                    elif seed is True:
+                        rstate = np.random.RandomState(gal.index)
+                    else:
+                        rstate = np.random.RandomState(seed + gal.index)
+
                     num_param = (2 * nb) - 1
                     results = nestle.sample(self.lnPosterior, self.priorTransform,
                                             num_param, method='multi', npoints=npoints,
-                                            callback=self.sampleIterationProgressUpdate)
+                                            rstate=rstate, callback=self.sampleProgressUpdate)
                     self.sample_results[gal.index][nb] = results
                     if resample is not None:
                         #self.reweighted_samples[gal.index][nb] = nestle.resample_equal(results.samples, results.weights)
-                        self.reweighted_samples[gal.index][nb] = results.samples[np.random.choice(len(results.weights), size=resample, p=results.weights)]
+                        self.reweighted_samples[gal.index][nb] = results.samples[rstate.choice(len(results.weights), size=resample, p=results.weights)]
 
                     self.gal_count += 1
                     self.blend_count += 1

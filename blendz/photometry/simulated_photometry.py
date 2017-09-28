@@ -3,7 +3,7 @@ from blendz.config import _config
 from blendz.photometry import PhotometryBase, Galaxy
 
 class SimulatedPhotometry(PhotometryBase):
-    def __init__(self, num_sims, num_components=1, max_redshift=6., max_scale=50., max_err_frac=0.1, responses=None, zero_point_errors=_config.zero_point_errors):
+    def __init__(self, num_sims, num_components=1, max_redshift=6., max_scale=50., max_err_frac=0.1, responses=None, seed=None, zero_point_errors=_config.zero_point_errors):
         super(SimulatedPhotometry, self).__init__()
 
         self.num_sims = num_sims
@@ -11,6 +11,7 @@ class SimulatedPhotometry(PhotometryBase):
         self.max_redshift = max_redshift
         self.max_scale = max_scale
         self.max_err_frac = max_err_frac
+        self.rstate = np.random.RandomState(seed) #Default seed is none -> random
 
         self.zero_point_errors = zero_point_errors
         self.zero_point_frac = 10.**(0.4*self.zero_point_errors) - 1.
@@ -33,10 +34,10 @@ class SimulatedPhotometry(PhotometryBase):
         return obs_mag, mag_err
 
     def randomBlend(self, num_components, max_redshift, max_scale, max_err_frac):
-        sim_redshift = np.sort(np.random.rand(num_components) * max_redshift)        
-        sim_scale = np.random.rand(num_components) * max_scale
-        sim_template = np.random.randint(0, self.responses.templates.num_templates, num_components)
-        sim_err_frac = np.random.rand() * max_err_frac
+        sim_redshift = np.sort(self.rstate.rand(num_components) * max_redshift)
+        sim_scale = self.rstate.rand(num_components) * max_scale
+        sim_template = self.rstate.randint(0, self.responses.templates.num_templates, num_components)
+        sim_err_frac = self.rstate.rand() * max_err_frac
 
         truth = {}
         truth['num_components'] = num_components
