@@ -21,6 +21,7 @@ class Responses(object):
         self.zGrid = zGrid
 
         self._calculate_responses()
+        self._calculate_interpolators()
 
     def etau_madau(self, wl,z):
         """
@@ -35,12 +36,12 @@ class Responses(object):
 
         #If all the spectrum is redder than (1+z)*wl_lyman_alfa
         if wl[0]> l[0]*xe:
-            return np.zeros(n)+1.
+            return np.ones(n)#np.zeros(n)+1.
 
         #Madau coefficients
         c = np.array([3.6e-3,1.7e-3,1.2e-3,9.3e-4])
         ll = 912.
-        tau = wl*0.
+        tau = np.zeros(n)#wl*0.
         i1 = np.searchsorted(wl,ll)
         i2 = n-1
         #Lyman series absorption
@@ -65,15 +66,21 @@ class Responses(object):
         tau = np.clip(tau, 0, 700)
         return np.exp(-tau)
 
-    def _calculate_responses(self):
-        self._all_responses = {}
+    def _calculate_interpolators(self):
         self._interpolators = {}
         for T in xrange(self.templates.num_templates):
-            self._all_responses[T] = {}
             self._interpolators[T] = {}
             for F in xrange(self.filters.num_filters):
-                self._all_responses[T][F] = np.zeros(len(self.zGrid))
-                for iZ, Z in enumerate(self.zGrid):
+                self._interpolators[T][F] = interp1d(self.zGrid, self._all_responses[T][F],\
+                                                     bounds_error=False, fill_value=0.)
+
+    def _calculate_responses(self):
+        #self._all_responses = {}
+        self._all_responses = np.zeros((self.templates.num_templates, self.filters.num_filters, len(self.zGrid)))
+        for F in xrange(self.filters.num_filters):
+            for iZ, Z in enumerate(self.zGrid):
+                extinction = self.etau_madau(self.filters.wavelength(F), Z)
+                for T in xrange(self.templates.num_templates):
                     shiftedTemplate = self.templates.interp(T, self.filters.wavelength(F) / (1+Z) )
                     # TODO:The multiply by lambda in here is a conversion
                     # from flux_nu (in the equation) to flux_lambda (how templates are defined)
@@ -81,13 +88,10 @@ class Responses(object):
                     # Normalisation includes factor of c
                     flux_norm = self.filters.norm(F) * 2.99792458e18
                     integrand = shiftedTemplate * self.filters.response(F) * \
-                                self.filters.wavelength(F) / flux_norm#self.filters.norm(F)
-                    integrand_extinct = integrand * self.etau_madau(self.filters.wavelength(F), Z)
-                    self._all_responses[T][F][iZ] = np.trapz(integrand_extinct, x=self.filters.wavelength(F))
-                    #Commented out colours below now as repsonses should be fluxes, colours done in model
-                    #Define interpolators as flux here
-                self._interpolators[T][F] = interp1d(self.zGrid, self._all_responses[T][F],\
-                                                     bounds_error=False, fill_value=0.)
+                                self.filters.wavelength(F) / flux_norm
+                    #integrand_extinct = integrand * self.etau_madau(self.filters.wavelength(F), Z)
+                    integrand_extinct = integrand * extinction
+                    self._all_responses[T, F, iZ] = np.trapz(integrand_extinct, x=self.filters.wavelength(F))
 
     def __call__(self, T, F, Z):
         #Using isinstance to catch suitable python and numpy data-types
