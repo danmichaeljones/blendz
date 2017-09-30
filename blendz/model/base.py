@@ -85,12 +85,15 @@ class Base(ABC_meta):
 
             #Precalculate all quantities we'll need in the template loop
             redshift_priors = np.zeros((nblends, self.num_templates))
-            model_fluxes = np.zeros((nblends, self.num_templates, self.responses.filters.num_filters))
+            #Single interp call -> Shape = (N_template, N_band, N_component)
+            #model_fluxes = np.zeros((nblends, self.num_templates, self.responses.filters.num_filters))
+            #Different order indices to before!
+            model_fluxes = self.responses.interp(redshifts)
             for iz, Z in enumerate(redshifts):
                 for T in xrange(self.num_templates):
                     tmpType = self.responses.templates.template_type(T)
                     redshift_priors[iz, T] = self.lnRedshiftPrior(Z, tmpType)
-                    model_fluxes[iz, T, :] = self.responses(T, None, Z)
+                    #model_fluxes[iz, T, :] = self.responses(T, None, Z)
             redshift_correlation = np.log(1. + self.correlationFunction(redshifts))
             frac_prior = self.lnFracPrior(fracs)
 
@@ -104,7 +107,9 @@ class Base(ABC_meta):
                 tmp = 0.
                 blend_flux = np.zeros(self.num_filters)
                 for b in xrange(nblends):
-                    blend_flux += model_fluxes[b, template_combo[b], :] * fracs[b]
+                    #Index order change with new interp
+                    #blend_flux += model_fluxes[b, template_combo[b], :] * fracs[b]
+                    blend_flux += model_fluxes[template_combo[b], :, b] * fracs[b]
                     tmp += redshift_priors[b, template_combo[b]]
                     #Precalculate all the template priors the first time posterior is called
                     try:

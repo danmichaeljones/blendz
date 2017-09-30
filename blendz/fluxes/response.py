@@ -71,7 +71,7 @@ class Responses(object):
         for T in xrange(self.templates.num_templates):
             self._interpolators[T] = {}
             for F in xrange(self.filters.num_filters):
-                self._interpolators[T][F] = interp1d(self.zGrid, self._all_responses[T][F],\
+                self._interpolators[T][F] = interp1d(self.zGrid, self._all_responses[T, F, :],\
                                                      bounds_error=False, fill_value=0.)
 
     def _calculate_responses(self):
@@ -92,6 +92,7 @@ class Responses(object):
                     #integrand_extinct = integrand * self.etau_madau(self.filters.wavelength(F), Z)
                     integrand_extinct = integrand * extinction
                     self._all_responses[T, F, iZ] = np.trapz(integrand_extinct, x=self.filters.wavelength(F))
+        self.interp = interp1d(self.zGrid, self._all_responses, bounds_error=False, fill_value=0.)
 
     def __call__(self, T, F, Z):
         #Using isinstance to catch suitable python and numpy data-types
