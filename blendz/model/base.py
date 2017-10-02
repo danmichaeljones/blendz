@@ -82,18 +82,22 @@ class Base(ABC_meta):
         else:
             #Get final frac by imposing sum-to-one condition
             fracs = np.append(fracs, 1.-np.sum(fracs))
+            #Get m_{0, a}, m_{0, b} ... using reference flux and fractions, convert back to mags for priors
+            component_ref_mags = np.log10(self.photometry.current_galaxy.ref_flux_data * fracs) / (-0.4)
 
             #Precalculate all quantities we'll need in the template loop
+            template_priors = np.zeros((nblends, self.num_templates))
             redshift_priors = np.zeros((nblends, self.num_templates))
             #Single interp call -> Shape = (N_template, N_band, N_component)
             #model_fluxes = np.zeros((nblends, self.num_templates, self.responses.filters.num_filters))
             #Different order indices to before!
             model_fluxes = self.responses.interp(redshifts)
-            for iz, Z in enumerate(redshifts):
-                for T in xrange(self.num_templates):
-                    tmpType = self.responses.templates.template_type(T)
-                    redshift_priors[iz, T] = self.lnRedshiftPrior(Z, tmpType)
-                    #model_fluxes[iz, T, :] = self.responses(T, None, Z)
+
+            for T in xrange(self.num_templates):
+                tmpType = self.responses.templates.template_type(T)
+                for nb in xrange(nblends):
+                    template_priors[nb, T] = self.lnTemplatePrior(tmpType, component_ref_mags[nb])
+                    redshift_priors[nb, T] = self.lnRedshiftPrior(redshifts[nb], tmpType, component_ref_mags[nb])
             redshift_correlation = np.log(1. + self.correlationFunction(redshifts))
             frac_prior = self.lnFracPrior(fracs)
 
@@ -106,19 +110,16 @@ class Base(ABC_meta):
                 #One redshift prior, template prior and model flux for each blend component
                 tmp = 0.
                 blend_flux = np.zeros(self.num_filters)
-                for b in xrange(nblends):
-                    #Index order change with new interp
-                    #blend_flux += model_fluxes[b, template_combo[b], :] * fracs[b]
-                    blend_flux += model_fluxes[template_combo[b], :, b] * fracs[b]
-                    tmp += redshift_priors[b, template_combo[b]]
-                    #Precalculate all the template priors the first time posterior is called
-                    try:
-                        tmp += self.template_priors[self.photometry.current_galaxy.index, template_combo[b]]
-                    except AttributeError:
-                        incoming_galaxy_index = self.photometry.current_galaxy.index
-                        self.precalculateTemplatePriors()
-                        self.photometry.current_galaxy = self.photometry[incoming_galaxy_index]
-                        tmp += self.template_priors[self.photometry.current_galaxy.index, template_combo[b]]
+                component_scaling_norm = 0.
+                for nb in xrange(nblends):
+                    T = template_combo[nb]
+                    component_scaling = fracs[nb] / model_fluxes[T, _config.ref_band, nb]
+                    component_scaling_norm += component_scaling
+                    blend_flux += model_fluxes[T, :, nb] * component_scaling
+                    tmp += template_priors[nb, T]
+                    tmp += redshift_priors[nb, T]
+                #Enforce the scaling summing to one
+                blend_flux /= component_scaling_norm
 
                 #Define colour wrt reference band
                 blend_colour = blend_flux / blend_flux[_config.ref_band]
@@ -126,8 +127,8 @@ class Base(ABC_meta):
                 #Other terms only appear once per summation-step
                 tmp += redshift_correlation
                 tmp += frac_prior
-                #tmp += self.lnLikelihood(blend_colour)
-                tmp += self.lnLikelihood_bpz(blend_flux)
+                tmp += self.lnLikelihood(blend_colour)
+                #tmp += self.lnLikelihood_bpz(blend_flux)
 
                 #logaddexp contribution from this template to marginalise
                 lnProb = np.logaddexp(lnProb, tmp)
@@ -209,10 +210,9 @@ class Base(ABC_meta):
         pass
 
     @abc.abstractmethod
-    def lnTemplatePrior(self, template_type):
-        #Would make sense to pass type, not index, to hide the index->type check
+    def lnTemplatePrior(self, template_type, component_ref_mag):
         pass
 
     @abc.abstractmethod
-    def lnRedshiftPrior(self, redshift, template_type):
+    def lnRedshiftPrior(self, redshift, template_type, component_ref_mag):
         pass

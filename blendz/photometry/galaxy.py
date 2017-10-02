@@ -44,3 +44,7 @@ class Galaxy(object):
         #TODO: Check the colour sigmas!!!
         self.colour_data = self.flux_data / self.flux_data[_config.ref_band]
         self.colour_sigma = self.flux_sigma / self.flux_data[_config.ref_band]
+
+        #Create attribute for the flux in the reference band
+        self.ref_flux_data = self.flux_data[_config.ref_band]
+        self.ref_flux_sigma = self.flux_sigma[_config.ref_band]

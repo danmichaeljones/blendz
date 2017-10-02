@@ -4,15 +4,6 @@ from blendz.model import Base
 class BlendBPZ(Base):
     def __init__(self, responses=None, photometry=None, prior_params=None):
         super(BlendBPZ, self).__init__(responses=responses, photometry=photometry)
-        #BPZ priors assume the reference magnitude is bounded [20, 32]
-        for gal in self.photometry:
-            if gal.ref_mag_data > 32.:
-                gal.bounded_ref_mag = 32.
-            elif gal.ref_mag_data < 20.:
-                gal.bounded_ref_mag = 20.
-            else:
-                gal.bounded_ref_mag = gal.ref_mag_data
-
         #Default to the prior parameters given in Benitez 2000
         if prior_params is not None:
             self.prior_params = prior_params
@@ -23,8 +14,13 @@ class BlendBPZ(Base):
                                  'z_0t': {'early': 0.431, 'late': 0.39, 'irr': 0.063},\
                                  'k_mt': {'early': 0.091, 'late': 0.0636, 'irr': 0.123}}
 
-    def lnTemplatePrior(self, template_type):
-        mag0 = self.photometry.current_galaxy.bounded_ref_mag
+    def lnTemplatePrior(self, template_type, component_ref_mag):
+        if component_ref_mag > 32.:
+            mag0 = 32.
+        elif component_ref_mag < 20.:
+            mag0 = 20.
+        else:
+            mag0 = component_ref_mag
         #All include a scaling of 1/Number of templates of that type
         if template_type in ['early', 'late']:
             Nt = self.responses.templates.num_type(template_type)
@@ -46,9 +42,14 @@ class BlendBPZ(Base):
                               prior was called with type ' + template_type)
         return out
 
-    def lnRedshiftPrior(self, redshift, template_type):
+    def lnRedshiftPrior(self, redshift, template_type, component_ref_mag):
         try:
-            mag0 = self.photometry.current_galaxy.bounded_ref_mag
+            if component_ref_mag > 32.:
+                mag0 = 32.
+            elif component_ref_mag < 20.:
+                mag0 = 20.
+            else:
+                mag0 = component_ref_mag
             first = (self.prior_params['alpha_t'][template_type] * np.log(redshift))
             second = self.prior_params['z_0t'][template_type] + (self.prior_params['k_mt'][template_type] * (mag0 - 20.))
             out = first - (redshift / second)**self.prior_params['alpha_t'][template_type]
