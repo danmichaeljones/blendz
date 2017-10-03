@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.interpolate import interp1d
 from blendz.model import Base
 
 class BlendBPZ(Base):
@@ -13,6 +14,16 @@ class BlendBPZ(Base):
                                  'alpha_t': {'early': 2.46, 'late': 1.81, 'irr': 0.91},\
                                  'z_0t': {'early': 0.431, 'late': 0.39, 'irr': 0.063},\
                                  'k_mt': {'early': 0.091, 'late': 0.0636, 'irr': 0.123}}
+        #Normalisation of redshift priors
+        self.redshift_prior_norm = {}
+        mag_len = 100
+        mag_range = np.linspace(20, 32, mag_len)
+        for T in self.responses.templates.possible_types:
+            norms = np.zeros(mag_len)
+            for i, mag in enumerate(mag_range):
+                zi = np.exp(np.array([self.lnRedshiftPrior(zz, T, mag, norm=False) for zz in self.responses.zGrid]))
+                norms[i] = np.log(1./np.trapz(zi[np.isfinite(zi)], x=self.responses.zGrid[np.isfinite(zi)]))
+            self.redshift_prior_norm[T] = interp1d(mag_range, norms)
 
     def lnTemplatePrior(self, template_type, component_ref_mag):
         if component_ref_mag > 32.:
@@ -42,7 +53,7 @@ class BlendBPZ(Base):
                               prior was called with type ' + template_type)
         return out
 
-    def lnRedshiftPrior(self, redshift, template_type, component_ref_mag):
+    def lnRedshiftPrior(self, redshift, template_type, component_ref_mag, norm=True):
         try:
             if component_ref_mag > 32.:
                 mag0 = 32.
@@ -57,7 +68,10 @@ class BlendBPZ(Base):
             raise ValueError('The BPZ priors are only defined for templates of \
                               types "early", "late" and "irr", but the redshift \
                               prior was called with type ' + template_type)
-        return out
+        if norm:
+            return out + self.redshift_prior_norm[template_type](mag0)
+        else:
+            return out
 
     def correlationFunction(self, redshifts):
         #Extra correlation between objects at z1 and z2
