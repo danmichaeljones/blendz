@@ -10,6 +10,7 @@ import itertools as itr
 import numpy as np
 import nestle
 from tqdm import tqdm
+import dill
 from blendz.config import _config
 from blendz.fluxes import Responses
 from blendz.photometry import Photometry
@@ -17,27 +18,31 @@ from blendz.photometry import Photometry
 #TODO: Write sample function, which should deal with setting galaxy to the current Galaxy object
 
 class Base(ABC_meta):
-    def __init__(self, responses=None, photometry=None):
-        if responses is None:
-            self.responses = Responses()
+    def __init__(self, responses=None, photometry=None, load_state_path=None):
+        if load_state_path is not None:
+            self.loadState(load_state_path)
         else:
-            self.responses = responses
-        if photometry is None:
-            self.photometry = Photometry()
-        else:
-            self.photometry = photometry
-        self.num_templates = self.responses.templates.num_templates
-        self.num_filters = self.responses.filters.num_filters
-        self.num_galaxies = self.photometry.num_galaxies
+            if responses is None:
+                self.responses = Responses()
+            else:
+                self.responses = responses
+            if photometry is None:
+                self.photometry = Photometry()
+            else:
+                self.photometry = photometry
+            self.num_templates = self.responses.templates.num_templates
+            self.num_filters = self.responses.filters.num_filters
+            self.num_galaxies = self.photometry.num_galaxies
 
-        #Set up empty dictionaries to put results into
-        self.sample_results = {}
-        self.reweighted_samples = {}
-        for g in xrange(self.num_galaxies):
-            #Each value is a dictionary which will be filled by sample function
-            #The keys of this inner dictionary will be the number of blends for run
-            self.sample_results[g] = {}
-            self.reweighted_samples[g] = {}
+            #Set up empty dictionaries to put results into
+            self.sample_results = {}
+            self.reweighted_samples = {}
+            for g in xrange(self.num_galaxies):
+                #Each value is a dictionary which will be filled by sample function
+                #The keys of this inner dictionary will be the number of blends for run
+                self.sample_results[g] = {}
+                self.reweighted_samples[g] = {}
+
 
     def precalculateTemplatePriors(self):
         self.template_priors = np.zeros((self.num_galaxies, self.num_templates))
@@ -45,6 +50,17 @@ class Base(ABC_meta):
             for T in xrange(self.num_templates):
                 tmpType = self.responses.templates.template_type(T)
                 self.template_priors[gal.index, T] = self.lnTemplatePrior(tmpType)
+
+    def saveState(self, filepath):
+        with open(filepath, 'wb') as f:
+            #Need to exclude the progress bar object as cannot pickle
+            state = {key: val for key, val in self.__dict__.items() if key!='pbar'}
+            dill.dump(state, f)
+
+    def loadState(self, filepath):
+        with open(filepath, 'r') as f:
+            #self.__dict__.update(dill.load(f).__dict__)
+            self.__dict__.update(dill.load(f))
 
     def lnLikelihood(self, model_colour):
         out = -1. * np.sum((self.photometry.current_galaxy.colour_data - model_colour)**2 / self.photometry.current_galaxy.colour_sigma**2)
@@ -155,7 +171,7 @@ class Base(ABC_meta):
                                                                                    info['it']))
             self.pbar.refresh()
 
-    def sample(self, nblends, galaxy=None, npoints=150, resample=None, seed=None):
+    def sample(self, nblends, galaxy=None, npoints=150, resample=None, seed=None, colour_likelihood=True):
         '''
         nblends should be int, or could be a list so that multiple
         different nb's can be done and compared for evidence etc.
@@ -163,6 +179,7 @@ class Base(ABC_meta):
         galaxy should be an int choosing which galaxy of all in photometry
         to estimate the redshift of. If none, do all of them.
         '''
+        self.colour_likelihood = colour_likelihood
 
         if isinstance(nblends, int):
             nblends = [nblends]
