@@ -33,6 +33,7 @@ class Base(ABC_meta):
             self.num_templates = self.responses.templates.num_templates
             self.num_filters = self.responses.filters.num_filters
             self.num_galaxies = self.photometry.num_galaxies
+            self.colour_likelihood = True
 
             #Set up empty dictionaries to put results into
             self.sample_results = {}
@@ -62,7 +63,7 @@ class Base(ABC_meta):
             #self.__dict__.update(dill.load(f).__dict__)
             self.__dict__.update(dill.load(f))
 
-    def lnLikelihood(self, model_colour):
+    def lnLikelihood_col(self, model_colour):
         out = -1. * np.sum((self.photometry.current_galaxy.colour_data - model_colour)**2 / self.photometry.current_galaxy.colour_sigma**2)
         return out
 
@@ -143,8 +144,10 @@ class Base(ABC_meta):
                 #Other terms only appear once per summation-step
                 tmp += redshift_correlation
                 tmp += frac_prior
-                tmp += self.lnLikelihood(blend_colour)
-                #tmp += self.lnLikelihood_bpz(blend_flux)
+                if self.colour_likelihood:
+                    tmp += self.lnLikelihood_col(blend_colour)
+                else:
+                    tmp += self.lnLikelihood_bpz(blend_flux)
 
                 #logaddexp contribution from this template to marginalise
                 lnProb = np.logaddexp(lnProb, tmp)
