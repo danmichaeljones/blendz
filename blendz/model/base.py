@@ -15,7 +15,6 @@ from blendz.config import _config
 from blendz.fluxes import Responses
 from blendz.photometry import Photometry
 
-#TODO: Write sample function, which should deal with setting galaxy to the current Galaxy object
 
 class Base(ABC_meta):
     def __init__(self, responses=None, photometry=None, load_state_path=None):
@@ -138,13 +137,11 @@ class Base(ABC_meta):
                 #Enforce the scaling summing to one
                 blend_flux /= component_scaling_norm
 
-                #Define colour wrt reference band
-                blend_colour = blend_flux / blend_flux[_config.ref_band]
-
                 #Other terms only appear once per summation-step
                 tmp += redshift_correlation
                 tmp += frac_prior
                 if self.colour_likelihood:
+                    blend_colour = blend_flux / blend_flux[_config.ref_band]
                     tmp += self.lnLikelihood_col(blend_colour)
                 else:
                     tmp += self.lnLikelihood_bpz(blend_flux)
