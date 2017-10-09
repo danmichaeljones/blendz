@@ -30,9 +30,12 @@ class Base(ABC_meta):
             else:
                 self.photometry = photometry
             self.num_templates = self.responses.templates.num_templates
-            self.num_filters = self.responses.filters.num_filters
+            self.num_measurements = self.responses.filters.num_filters
             self.num_galaxies = self.photometry.num_galaxies
             self.colour_likelihood = True
+
+            #Default to assuming single component, present in all measurements
+            self.setMeasurementComponentMapping(None, 1)
 
             #Set up empty dictionaries to put results into
             self.sample_results = {}
@@ -59,8 +62,30 @@ class Base(ABC_meta):
 
     def loadState(self, filepath):
         with open(filepath, 'r') as f:
-            #self.__dict__.update(dill.load(f).__dict__)
             self.__dict__.update(dill.load(f))
+
+    def setMeasurementComponentMapping(self, specification, num_components):
+        '''
+        Construct the measurement-component mapping matrix from the specification.
+
+        If specification is None, it is assumed that all measurements contain
+        num_components components. Otherwise, specification should be a list of
+        num_measurements tuples, where each tuples contains the (zero-based)
+        indices of the components that measurement contains.
+
+        If specification is given, the reference band must contain all components.
+        '''
+        if specification is None:
+            measurement_component_mapping = np.ones((num_components, self.num_measurements))
+        else:
+            measurement_component_mapping = np.zeros((num_components, self.num_measurements))
+            for m in xrange(num_measurements):
+                measurement_component_mapping[specification[m], m] = 1.
+            # TODO: LOOK AT CONFUSION BETWEEN REF BAND AND REF MEASUREMENT!!!!
+            if np.all(measurement_component_mapping[:, _config.ref_band] == 1.):
+                self.measurement_component_mapping = measurement_component_mapping
+            else:
+                raise ValueError('The reference band must contain all components.')
 
     def lnLikelihood_col(self, model_colour):
         out = -1. * np.sum((self.photometry.current_galaxy.colour_data - model_colour)**2 / self.photometry.current_galaxy.colour_sigma**2)
@@ -105,8 +130,6 @@ class Base(ABC_meta):
             template_priors = np.zeros((nblends, self.num_templates))
             redshift_priors = np.zeros((nblends, self.num_templates))
             #Single interp call -> Shape = (N_template, N_band, N_component)
-            #model_fluxes = np.zeros((nblends, self.num_templates, self.responses.filters.num_filters))
-            #Different order indices to before!
             model_fluxes = self.responses.interp(redshifts)
 
             for T in xrange(self.num_templates):
@@ -125,13 +148,13 @@ class Base(ABC_meta):
             for template_combo in itr.product(*itr.repeat(xrange(self.num_templates), nblends)):
                 #One redshift prior, template prior and model flux for each blend component
                 tmp = 0.
-                blend_flux = np.zeros(self.num_filters)
+                blend_flux = np.zeros(self.num_measurements)
                 component_scaling_norm = 0.
                 for nb in xrange(nblends):
                     T = template_combo[nb]
                     component_scaling = fracs[nb] / model_fluxes[T, _config.ref_band, nb]
                     component_scaling_norm += component_scaling
-                    blend_flux += model_fluxes[T, :, nb] * component_scaling
+                    blend_flux += model_fluxes[T, :, nb] * component_scaling * self.measurement_component_mapping[nb, :]
                     tmp += template_priors[nb, T]
                     tmp += redshift_priors[nb, T]
                 #Enforce the scaling summing to one
@@ -171,7 +194,7 @@ class Base(ABC_meta):
                                                                                    info['it']))
             self.pbar.refresh()
 
-    def sample(self, nblends, galaxy=None, npoints=150, resample=None, seed=None, colour_likelihood=True):
+    def sample(self, nblends, galaxy=None, npoints=150, resample=None, seed=None, colour_likelihood=True, measurement_component_mapping=None):
         '''
         nblends should be int, or could be a list so that multiple
         different nb's can be done and compared for evidence etc.
@@ -183,6 +206,13 @@ class Base(ABC_meta):
 
         if isinstance(nblends, int):
             nblends = [nblends]
+        else:
+            if measurement_component_mapping is not None:
+                #TODO: This is a time-saving hack to avoid dealing with multiple specifications
+                #The solution would probably be to rethink the overall api design
+                raise ValueError('measurement_component_mapping cannot be set when sampling multiple numbers of components in one call. Do the separate cases separately.')
+        self.setMeasurementComponentMapping(measurement_component_mapping)
+
         self.num_components_sampling = len(nblends)
 
         if galaxy is None:
