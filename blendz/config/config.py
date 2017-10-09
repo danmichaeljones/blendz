@@ -79,3 +79,13 @@ class BlendzConfig(object):
             abs_path_t = join(self.template_set_path, rel_path_t)
             type_t = self.template_config.get(template_name, 'type')
             self.template_dict[i] = {'name':template_name, 'path':abs_path_t, 'type':type_t}
+
+    def __eq__(self, other):
+        '''
+        Check for equality of configurations. This will return True if all the settings are the
+        same in both configurations, even if they are different objects.
+        '''
+        if self.__class__ != other.__class__:
+            return False
+        else:
+            return self.__dict__ == other.__dict__
