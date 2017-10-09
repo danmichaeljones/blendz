@@ -81,10 +81,23 @@ class Base(ABC_meta):
             measurement_component_mapping = np.zeros((num_components, self.num_measurements))
             for m in xrange(num_measurements):
                 measurement_component_mapping[specification[m], m] = 1.
-            # TODO: LOOK AT CONFUSION BETWEEN REF BAND AND REF MEASUREMENT!!!!
+
             if np.all(measurement_component_mapping[:, _config.ref_band] == 1.):
+                #Set the mapping
                 self.measurement_component_mapping = measurement_component_mapping
+                #Set whether the redshifts are exchangable and so need sorting condition
+                #Only need to check if there's more than one component
+                if num_components > 1:
+                    self.redshifts_exchangeable = np.all(measurement_component_mapping[1:, :] ==
+                                                         measurement_component_mapping[:-1, :])
+                else:
+                    self.redshifts_exchangeable = None
+
             else:
+                #TODO: Currently enforcing the ref band to have all components. This is needed
+                # to be able to specifiy the fractions (IS IT??). Also ref band is currently used in the priors,
+                # though the magnitudes going to the priors either have to be in the reference band
+                # *OR* on their own, in which case no separation in necessary (like original BPZ case)
                 raise ValueError('The reference band must contain all components.')
 
     def lnLikelihood_col(self, model_colour):
@@ -108,12 +121,17 @@ class Base(ABC_meta):
         nblends = (len(params)+1)/2
         redshifts = params[:nblends]
         fracs = params[nblends:]
-        #Impose prior on redshifts being sorted/positive and fracs will (after f_nb) sum to 1
+        #Impose prior conditions
         if nblends>1:
-            redshifts_sorted = np.all(redshifts[1:] >= redshifts[:-1])
-            redshift_positive = np.all(redshifts >= 0.)
             frac_maximum = (np.sum(fracs) <= 1.)
-            prior_checks_okay = redshifts_sorted and redshift_positive and frac_maximum
+            #Only need sorted redshifts if redshifts are exchangable
+            # (depends on measurement_component_mapping)
+            if self.redshifts_exchangeable:
+                redshifts_sorted = np.all(redshifts[1:] >= redshifts[:-1])
+                redshift_positive = np.all(redshifts >= 0.)
+                prior_checks_okay = redshifts_sorted and redshift_positive and frac_maximum
+            else:
+                prior_checks_okay = frac_maximum
         else:
             #Single redshift case, only need to impose redshift being positive
             prior_checks_okay = np.all(redshifts >= 0.)
