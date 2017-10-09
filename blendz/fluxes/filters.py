@@ -3,10 +3,14 @@ import numpy as np
 from blendz.config import _config
 
 class Filters(object):
-    def __init__(self, filter_path=_config.filter_path, filter_names=_config.filters, file_extension=_config.filter_file_extension):
-        self.filter_path = filter_path
-        self.filter_names = filter_names
-        self.file_extension = file_extension
+    def __init__(self, config=None):
+        if config is None:
+            self.config = _config
+        else:
+            self.config = config
+        self.filter_path = self.config.filter_path
+        self.filter_names = self.config.filters
+        self.file_extension = self.config.filter_file_extension
         self.num_filters = len(self.filter_names)
 
         self._all_filters = {}
