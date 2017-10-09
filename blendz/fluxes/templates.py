@@ -5,8 +5,12 @@ from scipy.interpolate import interp1d
 from blendz.config import _config
 
 class Templates(object):
-    def __init__(self, template_dict=_config.template_dict):
-        self.template_dict = template_dict
+    def __init__(self, config=None):
+        if config is None:
+            self.config = _config
+        else:
+            self.config = config
+        self.template_dict = self.config.template_dict
         self.num_templates = len(self.template_dict)
         self.possible_types = set(tmp['type'] for tmp in self.template_dict.values())
 
