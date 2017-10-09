@@ -1,10 +1,5 @@
 import warnings
 import numpy as np
-from blendz.config import _config
-
-#TODO: What are the errors on the colour data? Should just be simple division to
-# propagate flux errors, but should actually calculate this rather than guessing
-# to make sure it's right.
 
 class PhotometryBase(object):
     def __init__(self):
