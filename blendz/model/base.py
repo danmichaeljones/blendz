@@ -1,5 +1,6 @@
 import sys
 import abc
+import warnings
 #Python 2 & 3 compatibility for abstract base classes, from
 #https://stackoverflow.com/questions/35673474/
 if sys.version_info >= (3, 4):
@@ -17,18 +18,45 @@ from blendz.photometry import Photometry
 
 
 class Base(ABC_meta):
-    def __init__(self, responses=None, photometry=None, load_state_path=None):
+    def __init__(self, responses=None, photometry=None, config=None, load_state_path=None):
         if load_state_path is not None:
             self.loadState(load_state_path)
         else:
-            if responses is None:
-                self.responses = Responses()
-            else:
+            #Warn user is config and either/or responses/photometry given that config ignored
+            if ((responses is not None and config is not None) or
+                    (photometry is not None and config is not None)):
+                warnings.warn("""A configuration object was provided to Model object
+                                as well as a Responses/Photometry object, though these
+                                should be mutually exclusive. The configuration
+                                provided will be ignored.""")
+            #Responses and photometry given, just check if configs are equal
+            if (responses is not None) and (photometry is not None):
+                if responses.config == photometry.config:
+                    self.config = responses.config
+                    self.responses = responses
+                    self.photometry = photometry
+                else:
+                    raise ValueError('Configuration of responses and photometry must be the same.')
+            #Only responses given, use its config to load photometry
+            elif (responses is not None) and (photometry is None):
+                self.config = responses.config
                 self.responses = responses
-            if photometry is None:
-                self.photometry = Photometry()
-            else:
+                self.photometry = Photometry(config=self.config)
+            #Only photometry given, use its config to load responses
+            elif (responses is None) and (photometry is not None):
+                self.config = photometry.config
                 self.photometry = photometry
+                self.responses = Responses(config=self.config)
+            #Neither given, load both from provided (or default, if None) config
+            else:
+                if config is None:
+                    warnings.warn('USING DEFAULT CONFIG IN PHOTOMETRY, USE THIS FOR TESTING PURPOSES ONLY!')
+                    self.config = _config
+                else:
+                    self.config = config
+                self.responses = Responses(config=self.config)
+                self.photometry = Photometry(config=self.config)
+
             self.num_templates = self.responses.templates.num_templates
             self.num_measurements = self.responses.filters.num_filters
             self.num_galaxies = self.photometry.num_galaxies
@@ -82,7 +110,7 @@ class Base(ABC_meta):
             for m in xrange(num_measurements):
                 measurement_component_mapping[specification[m], m] = 1.
 
-            if np.all(measurement_component_mapping[:, _config.ref_band] == 1.):
+            if np.all(measurement_component_mapping[:, self.config.ref_band] == 1.):
                 #Set the mapping
                 self.measurement_component_mapping = measurement_component_mapping
                 #Set whether the redshifts are exchangable and so need sorting condition
@@ -170,7 +198,7 @@ class Base(ABC_meta):
                 component_scaling_norm = 0.
                 for nb in xrange(nblends):
                     T = template_combo[nb]
-                    component_scaling = fracs[nb] / model_fluxes[T, _config.ref_band, nb]
+                    component_scaling = fracs[nb] / model_fluxes[T, self.config.ref_band, nb]
                     component_scaling_norm += component_scaling
                     blend_flux += model_fluxes[T, :, nb] * component_scaling * self.measurement_component_mapping[nb, :]
                     tmp += template_priors[nb, T]
@@ -182,7 +210,7 @@ class Base(ABC_meta):
                 tmp += redshift_correlation
                 tmp += frac_prior
                 if self.colour_likelihood:
-                    blend_colour = blend_flux / blend_flux[_config.ref_band]
+                    blend_colour = blend_flux / blend_flux[self.config.ref_band]
                     tmp += self.lnLikelihood_col(blend_colour)
                 else:
                     tmp += self.lnLikelihood_bpz(blend_flux)
@@ -200,7 +228,7 @@ class Base(ABC_meta):
         '''
         nblends = (len(params)+1)/2
         trans = np.ones(len(params))
-        trans[:nblends] = _config.z_hi
+        trans[:nblends] = self.config.z_hi
         return params * trans
 
     def sampleProgressUpdate(self, info):
@@ -227,7 +255,7 @@ class Base(ABC_meta):
         else:
             if measurement_component_mapping is not None:
                 #TODO: This is a time-saving hack to avoid dealing with multiple specifications
-                #The solution would probably be to rethink the overall api design
+                #The solution would probably be to rethink the overall design
                 raise ValueError('measurement_component_mapping cannot be set when sampling multiple numbers of components in one call. Do the separate cases separately.')
         self.setMeasurementComponentMapping(measurement_component_mapping)
 
