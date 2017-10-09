@@ -15,7 +15,7 @@ class Responses(object):
                             should be mutually exclusive. The configuration
                             provided will be ignored.""")
         #Both templates and filters given, just check if configs are equal
-        if ((templates is not None) and (filters is not None):
+        if (templates is not None) and (filters is not None):
             if templates.config == filters.config:
                 self.config = filters.config
                 self.templates = templates
