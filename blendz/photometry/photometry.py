@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from blendz.config import _config
 from blendz.photometry import PhotometryBase, Galaxy
@@ -7,11 +8,15 @@ from blendz.photometry import PhotometryBase, Galaxy
 # to make sure it's right.
 
 class Photometry(PhotometryBase):
-    def __init__(self, data_path=_config.data_path, zero_point_errors=_config.zero_point_errors):
+    def __init__(self, config=None):
         super(Photometry, self).__init__()
-
-        self.data_path = data_path
-        self.zero_point_errors = zero_point_errors
+        if self.config is None:
+            warnings.warn('USING DEFAULT CONFIG IN PHOTOMETRY, USE THIS FOR TESTING PURPOSES ONLY!')
+            self.config = _config
+        else:
+            self.config = config
+        self.data_path = self.config.data_path
+        self.zero_point_errors = self.config.zero_point_errors
 
         self.photo_data = np.loadtxt(self.data_path)
         self.num_to_load = np.shape(self.photo_data)[0]
@@ -21,6 +26,6 @@ class Photometry(PhotometryBase):
 
     def loadGalaxies(self):
         for g in xrange(self.num_to_load):
-            mag_data = self.photo_data[g, _config.mag_cols]
-            mag_sigma = self.photo_data[g, _config.sigma_cols]
-            self.galaxies.append(Galaxy(mag_data, mag_sigma, _config.ref_band, self.zero_point_frac, g))
+            mag_data = self.photo_data[g, self.config.mag_cols]
+            mag_sigma = self.photo_data[g, self.config.sigma_cols]
+            self.galaxies.append(Galaxy(mag_data, mag_sigma, self.config.ref_band, self.zero_point_frac, g))
