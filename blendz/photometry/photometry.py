@@ -10,7 +10,7 @@ from blendz.photometry import PhotometryBase, Galaxy
 class Photometry(PhotometryBase):
     def __init__(self, config=None):
         super(Photometry, self).__init__()
-        if self.config is None:
+        if config is None:
             warnings.warn('USING DEFAULT CONFIG IN PHOTOMETRY, USE THIS FOR TESTING PURPOSES ONLY!')
             self.config = _config
         else:

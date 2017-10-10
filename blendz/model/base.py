@@ -104,10 +104,11 @@ class Base(ABC_meta):
         If specification is given, the reference band must contain all components.
         '''
         if specification is None:
-            measurement_component_mapping = np.ones((num_components, self.num_measurements))
+            self.measurement_component_mapping = np.ones((num_components, self.num_measurements))
+            self.redshifts_exchangeable = True
         else:
             measurement_component_mapping = np.zeros((num_components, self.num_measurements))
-            for m in xrange(num_measurements):
+            for m in xrange(self.num_measurements):
                 measurement_component_mapping[specification[m], m] = 1.
 
             if np.all(measurement_component_mapping[:, self.config.ref_band] == 1.):
@@ -257,7 +258,6 @@ class Base(ABC_meta):
                 #TODO: This is a time-saving hack to avoid dealing with multiple specifications
                 #The solution would probably be to rethink the overall design
                 raise ValueError('measurement_component_mapping cannot be set when sampling multiple numbers of components in one call. Do the separate cases separately.')
-        self.setMeasurementComponentMapping(measurement_component_mapping)
 
         self.num_components_sampling = len(nblends)
 
@@ -286,6 +286,7 @@ class Base(ABC_meta):
                         rstate = np.random.RandomState(seed + gal.index)
 
                     num_param = (2 * nb) - 1
+                    self.setMeasurementComponentMapping(measurement_component_mapping, nb)
                     results = nestle.sample(self.lnPosterior, self.priorTransform,
                                             num_param, method='multi', npoints=npoints,
                                             rstate=rstate, callback=self.sampleProgressUpdate)
