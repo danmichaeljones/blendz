@@ -1,7 +1,7 @@
 import numpy as np
-from blendz.model import Base
+from blendz.model import ModelBase
 
-class LikelihoodOnly(Base):
+class LikelihoodOnly(ModelBase):
 
     def lnTemplatePrior(self, template_type, component_ref_mag):
         return 0.

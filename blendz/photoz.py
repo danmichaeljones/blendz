@@ -1,12 +1,5 @@
 import sys
-import abc
 import warnings
-#Python 2 & 3 compatibility for abstract base classes, from
-#https://stackoverflow.com/questions/35673474/
-if sys.version_info >= (3, 4):
-    ABC_meta = abc.ABC
-else:
-    ABC_meta = abc.ABCMeta('ABC', (), {})
 import itertools as itr
 import numpy as np
 import nestle
@@ -15,38 +8,42 @@ import dill
 from blendz.config import _config
 from blendz.fluxes import Responses
 from blendz.photometry import Photometry
+from blendz.model import BPZ
 
 
-class Model(ABC_meta):
-    def __init__(self, responses=None, photometry=None, config=None, load_state_path=None):
+class Photoz(object):
+    def __init__(self, model=None, photometry=None, config=None, load_state_path=None):
         if load_state_path is not None:
             self.loadState(load_state_path)
         else:
             #Warn user is config and either/or responses/photometry given that config ignored
-            if ((responses is not None and config is not None) or
+            if ((model is not None and config is not None) or
                     (photometry is not None and config is not None)):
-                warnings.warn("""A configuration object was provided to Model object
-                                as well as a Responses/Photometry object, though these
+                warnings.warn("""A configuration object was provided to Photoz object
+                                as well as a Model/Photometry object, though these
                                 should be mutually exclusive. The configuration
                                 provided will be ignored.""")
             #Responses and photometry given, just check if configs are equal
-            if (responses is not None) and (photometry is not None):
-                if responses.config == photometry.config:
-                    self.config = responses.config
-                    self.responses = responses
+            if (model is not None) and (photometry is not None):
+                if model.config == photometry.config:
+                    self.model = model
+                    self.config = self.model.config
+                    self.responses = self.model.responses
                     self.photometry = photometry
                 else:
                     raise ValueError('Configuration of responses and photometry must be the same.')
             #Only responses given, use its config to load photometry
-            elif (responses is not None) and (photometry is None):
-                self.config = responses.config
-                self.responses = responses
+            elif (model is not None) and (photometry is None):
+                self.model = model
+                self.config = self.model.config
+                self.responses = self.model.responses
                 self.photometry = Photometry(config=self.config)
             #Only photometry given, use its config to load responses
-            elif (responses is None) and (photometry is not None):
+            elif (model is None) and (photometry is not None):
                 self.config = photometry.config
                 self.photometry = photometry
-                self.responses = Responses(config=self.config)
+                self.model = BPZ(config=self.config)
+                self.responses = self.model.responses
             #Neither given, load both from provided (or default, if None) config
             else:
                 if config is None:
@@ -54,7 +51,8 @@ class Model(ABC_meta):
                     self.config = _config
                 else:
                     self.config = config
-                self.responses = Responses(config=self.config)
+                self.model = BPZ(config=self.config)
+                self.responses = self.model.responses
                 self.photometry = Photometry(config=self.config)
 
             self.num_templates = self.responses.templates.num_templates
@@ -182,9 +180,9 @@ class Model(ABC_meta):
             for T in xrange(self.num_templates):
                 tmpType = self.responses.templates.template_type(T)
                 for nb in xrange(nblends):
-                    template_priors[nb, T] = self.lnTemplatePrior(tmpType, component_ref_mags[nb])
-                    redshift_priors[nb, T] = self.lnRedshiftPrior(redshifts[nb], tmpType, component_ref_mags[nb])
-            redshift_correlation = np.log(1. + self.correlationFunction(redshifts))
+                    template_priors[nb, T] = self.model.lnTemplatePrior(tmpType, component_ref_mags[nb])
+                    redshift_priors[nb, T] = self.model.lnRedshiftPrior(redshifts[nb], tmpType, component_ref_mags[nb])
+            redshift_correlation = np.log(1. + self.model.correlationFunction(redshifts))
             frac_prior = self.lnFracPrior(fracs)
 
             #Loop over all templates - discrete marginalisation
@@ -298,15 +296,3 @@ class Model(ABC_meta):
                     self.gal_count += 1
                     self.blend_count += 1
                     self.pbar.update()
-
-    @abc.abstractmethod
-    def correlationFunction(self, redshifts):
-        pass
-
-    @abc.abstractmethod
-    def lnTemplatePrior(self, template_type, component_ref_mag):
-        pass
-
-    @abc.abstractmethod
-    def lnRedshiftPrior(self, redshift, template_type, component_ref_mag):
-        pass

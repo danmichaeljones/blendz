@@ -1,10 +1,10 @@
 import numpy as np
 from scipy.interpolate import interp1d
-from blendz.model import Base
+from blendz.model import ModelBase
 
-class BlendBPZ(Base):
+class BPZ(ModelBase):
     def __init__(self, prior_params=None, **kwargs):
-        super(BlendBPZ, self).__init__(**kwargs)
+        super(BPZ, self).__init__(**kwargs)
         #Default to the prior parameters given in Benitez 2000
         if prior_params is not None:
             self.prior_params = prior_params

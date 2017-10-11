@@ -1,1 +1,2 @@
-from blendz.model import BlendBPZ, LikelihoodOnly
+from .photoz import Photoz
+from blendz.model import BPZ, LikelihoodOnly
