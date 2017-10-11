@@ -41,3 +41,7 @@ class ModelBase(ABC_meta):
     @abc.abstractmethod
     def lnRedshiftPrior(self, redshift, template_type, component_ref_mag):
         pass
+
+    @abc.abstractmethod
+    def lnMagnitudePrior(self, magnitude):
+        pass

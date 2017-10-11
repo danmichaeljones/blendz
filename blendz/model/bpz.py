@@ -77,3 +77,7 @@ class BPZ(ModelBase):
         #Extra correlation between objects at z1 and z2
         #For now, assume no extra correlation, i.e., xi = 0
         return 0.
+
+    def lnMagnitudePrior(self, magnitude):
+        #Assume flat magnitude prior just for now
+        return 0.

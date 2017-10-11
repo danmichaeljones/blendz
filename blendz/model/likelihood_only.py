@@ -11,3 +11,6 @@ class LikelihoodOnly(ModelBase):
 
     def correlationFunction(self, redshifts):
         return 0.
+
+    def lnMagnitudePrior(self, magnitude):
+        return 0.
