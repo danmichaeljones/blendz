@@ -2,15 +2,17 @@ import warnings
 import numpy as np
 from blendz.config import _config
 from blendz.photometry import PhotometryBase, Galaxy
+from blendz.model import BPZ
 
 class SimulatedPhotometry(PhotometryBase):
-    def __init__(self, num_sims, config=None, num_components=1, max_redshift=6., max_scale=50., max_err_frac=0.1, responses=None, seed=None, measurement_component_specification=None):
+    def __init__(self, num_sims, config=None, num_components=1, max_redshift=6., max_scale=50., max_err_frac=0.1, model=None, seed=None, measurement_component_specification=None):
         super(SimulatedPhotometry, self).__init__()
 
-        if responses is not None:
-            #Set responses, take its config and warn user if config also provided
-            self.responses = responses
-            self.config = self.responses.config
+        if model is not None:
+            #Set model, take its config and warn user if config also provided
+            self.model = model
+            self.responses = self.model.responses
+            self.config = self.model.config
             if config is not None:
                 warnings.warn("""A configuration object was provided to
                                 SimulatedPhotometry as well as a Responses
@@ -21,7 +23,8 @@ class SimulatedPhotometry(PhotometryBase):
                 self.confif = _config
             else:
                 self.config = config
-            self.responses = Responses(config=self.config)
+            self.model = BPZ(config=self.config)
+            self.responses = self.model.responses
 
         self.num_sims = num_sims
         self.num_components = num_components
