@@ -17,7 +17,7 @@ from blendz.fluxes import Responses
 from blendz.photometry import Photometry
 
 
-class Base(ABC_meta):
+class Model(ABC_meta):
     def __init__(self, responses=None, photometry=None, config=None, load_state_path=None):
         if load_state_path is not None:
             self.loadState(load_state_path)
