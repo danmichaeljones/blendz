@@ -132,7 +132,7 @@ class SimulatedPhotometry(PhotometryBase):
             if c==0:
                 fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmpType, magnitudes[c]))
             else:
-                fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmpType, magnitudes[c])) *
+                fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmpType, magnitudes[c])) * \
                         (1. + self.model.correlationFunction(np.append(redshifts[:c], z)))
             rj = Rejection(fn)
             redshifts[c] = rj.sample(1, self.seed.next())
@@ -163,7 +163,7 @@ class SimulatedPhotometry(PhotometryBase):
     def randomBlend(self, num_components, max_redshift, max_scale, max_err_frac, magnitude_bounds=[20., 32.]):
         np.random.seed(self.seed.next())
         sim_err_frac = self.rstate.rand() * max_err_frac
-        sim_redshift, sim_scale, sim_template = drawBlendFromPrior(num_components, max_redshift, max_scale, max_err_frac, magnitude_bounds=magnitude_bounds):
+        sim_redshift, sim_scale, sim_template = drawBlendFromPrior(num_components, max_redshift, max_scale, max_err_frac, magnitude_bounds=magnitude_bounds)
 
         obs_mag, mag_err, fracs = self.generateBlendMagnitude(num_components, sim_redshift, sim_scale, sim_template, sim_err_frac)
 
