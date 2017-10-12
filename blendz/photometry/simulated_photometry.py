@@ -4,11 +4,11 @@ from samplepy import Rejection
 from blendz.config import _config
 from blendz.photometry import PhotometryBase, Galaxy
 from blendz.model import BPZ
-from blendz.utilities import incrementCount
+from blendz.utilities import incrementCount, Reject
 
 class SimulatedPhotometry(PhotometryBase):
-    def __init__(self, num_sims, config=None, num_components=1, max_redshift=6.,
-                max_scale=50., max_err_frac=0.1, model=None, seed=None,
+    def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
+                max_err_frac=0.1, model=None, seed=None,
                 measurement_component_specification=None, magnitude_bounds=[20., 32]):
         super(SimulatedPhotometry, self).__init__()
 
@@ -24,7 +24,7 @@ class SimulatedPhotometry(PhotometryBase):
                                 The configuration provided will be ignored.""")
         else:
             if config is None:
-                self.confif = _config
+                self.config = _config
             else:
                 self.config = config
             self.model = BPZ(config=self.config)
@@ -32,10 +32,13 @@ class SimulatedPhotometry(PhotometryBase):
 
         self.num_sims = num_sims
         self.num_components = num_components
-        self.max_redshift = max_redshift
-        self.max_scale = max_scale
         self.max_err_frac = max_err_frac
         self.num_measurements = self.responses.filters.num_filters
+        if max_redshift is None:
+            self.max_redshift = self.config.z_hi
+        else:
+            self.max_redshift = max_redshift
+        self.magnitude_bounds = magnitude_bounds
 
         self.zero_point_errors = self.config.zero_point_errors
         self.zero_point_frac = 10.**(0.4*self.zero_point_errors) - 1.
@@ -48,9 +51,10 @@ class SimulatedPhotometry(PhotometryBase):
             self.seed = incrementCount(seed)
 
         self.simulateRandomGalaxies(self.num_sims, self.num_components,
-                                    self.max_redshift, self.max_scale,
-                                    self.max_err_frac, measurement_component_specification,
-                                    magnitude_bounds=magnitude_bounds)
+                                    max_redshift=self.max_redshift,
+                                    max_err_frac=self.max_err_frac,
+                                    measurement_component_specification=measurement_component_specification,
+                                    magnitude_bounds=self.magnitude_bounds)
 
     def setMeasurementComponentMapping(self, specification, num_components):
         #MAKES MORE SENSE IN PHOTOMETRY????????
@@ -104,21 +108,27 @@ class SimulatedPhotometry(PhotometryBase):
         mag_err = np.log10((flux_err/obs_flux)+1.) / (-0.4)
         return obs_mag, mag_err, fracs
 
-    def drawBlendFromPrior(self, num_components, max_redshift, max_scale, max_err_frac, magnitude_bounds=[20., 32.]):
+    def drawBlendFromPrior(self, num_components, max_redshift=None, magnitude_bounds=None):
         '''
         Use the priors defined in the Model to draw a random blend of components.
 
         We don't use the magnitudes we sample to generate the photometric data
         but the true magnitudes we generate should match the ones drawn here - consistency test
         '''
+        if max_redshift is None:
+            max_redshift = self.max_redshift
+        if magnitude_bounds is None:
+            magnitude_bounds = self.magnitude_bounds
+
         magnitudes = np.zeros(num_components)
         templates = np.zeros(num_components, dtype=int)
         redshifts = np.zeros(num_components)
         true_ref_response = np.zeros(num_components)
         for c in xrange(num_components):
             #Sample magnitude
-            rj = Rejection(lambda m: np.exp(self.model.lnMagnitudePrior(m)), magnitude_bounds)
-            magnitudes[c] = rj.sample(1, self.seed.next())
+            rj = Reject(lambda m: np.exp(self.model.lnMagnitudePrior(m)), magnitude_bounds[0],
+                                         magnitude_bounds[1], seed=self.seed.next())
+            magnitudes[c] = rj.sample(1)
             #Sample template given magnitude
             rstate = np.random.RandomState(self.seed.next())
             tmp_prior = np.zeros(self.responses.templates.num_templates)
@@ -130,12 +140,12 @@ class SimulatedPhotometry(PhotometryBase):
             #Sample redshift, given template and magnitude
             #Include redshift (c+1)-point-correlation if other redshifts drawn
             if c==0:
-                fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmpType, magnitudes[c]))
+                fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmp_type, magnitudes[c]))
             else:
-                fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmpType, magnitudes[c])) * \
+                fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmp_type, magnitudes[c])) * \
                         (1. + self.model.correlationFunction(np.append(redshifts[:c], z)))
-            rj = Rejection(fn)
-            redshifts[c] = rj.sample(1, self.seed.next())
+            rj = Reject(fn, 0, max_redshift, seed=self.seed.next())
+            redshifts[c] = rj.sample(1)
             #Get flux response at these parameters in the reference band
             true_ref_response[c] = self.responses(templates[c], self.config.ref_band, redshifts[c]) # TODO: Measurment mapping???
         #The magnitudes that have been drawn deterministically set the reference-band flux fraction
@@ -160,10 +170,17 @@ class SimulatedPhotometry(PhotometryBase):
 
 
 
-    def randomBlend(self, num_components, max_redshift, max_scale, max_err_frac, magnitude_bounds=[20., 32.]):
+    def randomBlend(self, num_components, max_redshift=None, max_err_frac=None, magnitude_bounds=None):
+        if max_redshift is None:
+            max_redshift = self.max_redshift
+        if max_err_frac is None:
+            max_err_frac = self.max_err_frac
+        if magnitude_bounds is None:
+            magnitude_bounds = self.magnitude_bounds
+
         np.random.seed(self.seed.next())
-        sim_err_frac = self.rstate.rand() * max_err_frac
-        sim_redshift, sim_scale, sim_template = drawBlendFromPrior(num_components, max_redshift, max_scale, max_err_frac, magnitude_bounds=magnitude_bounds)
+        sim_err_frac = np.random.rand() * max_err_frac
+        sim_redshift, sim_scale, sim_template = self.drawBlendFromPrior(num_components, max_redshift=max_redshift, magnitude_bounds=magnitude_bounds)
 
         obs_mag, mag_err, fracs = self.generateBlendMagnitude(num_components, sim_redshift, sim_scale, sim_template, sim_err_frac)
 
@@ -175,10 +192,17 @@ class SimulatedPhotometry(PhotometryBase):
 
         return obs_mag, mag_err, truth
 
-    def simulateRandomGalaxies(self, num_sims, num_components, max_redshift, max_scale, max_err_frac, measurement_component_specification=None, magnitude_bounds=[20., 32.]):
+    def simulateRandomGalaxies(self, num_sims, num_components, max_redshift=None, max_err_frac=None, measurement_component_specification=None, magnitude_bounds=None):
+        if max_redshift is None:
+            max_redshift = self.max_redshift
+        if max_err_frac is None:
+            max_err_frac = self.max_err_frac
+        if magnitude_bounds is None:
+            magnitude_bounds = self.magnitude_bounds
+
         self.setMeasurementComponentMapping(measurement_component_specification, num_components)
         for g in xrange(num_sims):
-            mag_data, mag_sigma, truth = self.randomBlend(num_components, max_redshift, max_scale, max_err_frac, magnitude_bounds=magnitude_bounds)
+            mag_data, mag_sigma, truth = self.randomBlend(num_components, max_redshift, max_err_frac, magnitude_bounds=magnitude_bounds)
             new_galaxy = Galaxy(mag_data, mag_sigma, self.config.ref_band, self.zero_point_frac, g)
             new_galaxy.truth = truth
             self.galaxies.append(new_galaxy)
