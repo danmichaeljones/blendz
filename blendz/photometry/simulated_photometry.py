@@ -1,6 +1,5 @@
 import warnings
 import numpy as np
-from samplepy import Rejection
 from blendz.config import _config
 from blendz.photometry import PhotometryBase, Galaxy
 from blendz.model import BPZ
