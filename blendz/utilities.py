@@ -8,7 +8,7 @@ def incrementCount(start):
 
 
 class Reject(object):
-    def __init__(self, function, x_min, x_max, y_max=None, y_test_len=1000, seed=None):
+    def __init__(self, function, x_min, x_max, y_max=None, y_test_len=1000, extra_height_factor=1.1, seed=None):
         self.function = function
         self.x_min = x_min
         self.x_max = x_max
@@ -20,7 +20,7 @@ class Reject(object):
                 y_grid = self.function(x_grid)
             except:
                 y_grid = np.array([self.function(x) for x in x_grid])
-            self.y_max = np.max(y_grid)
+            self.y_max = np.max(y_grid) * extra_height_factor
         else:
             self.y_max = y_max
 
