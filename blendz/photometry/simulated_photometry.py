@@ -7,7 +7,7 @@ from blendz.utilities import incrementCount, Reject
 
 class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
-                max_err_frac=0.1, model=None, seed=None,
+                max_err_frac=0.1, model=None, seed=None, sort_redshifts=True,
                 measurement_component_specification=None, magnitude_bounds=[20., 32]):
         super(SimulatedPhotometry, self).__init__()
 
@@ -38,6 +38,7 @@ class SimulatedPhotometry(PhotometryBase):
         else:
             self.max_redshift = max_redshift
         self.magnitude_bounds = magnitude_bounds
+        self.sort_redshifts = sort_redshifts
 
         self.zero_point_errors = self.config.zero_point_errors
         self.zero_point_frac = 10.**(0.4*self.zero_point_errors) - 1.
@@ -161,27 +162,45 @@ class SimulatedPhotometry(PhotometryBase):
         #component scaling * source_normalisation, i.e., A*a_alpha
         component_normalisation = scales * source_normalisation
         #Sort component parameters we're returning by redshift
-        order = np.argsort(redshifts)
-        component_normalisation = component_normalisation[order]
-        templates = templates[order]
-        redshifts = redshifts[order]
+        #order = np.argsort(redshifts)
+        #component_normalisation = component_normalisation[order]
+        #templates = templates[order]
+        #redshifts = redshifts[order]
         return redshifts, component_normalisation, templates
 
 
 
-    def randomBlend(self, num_components, max_redshift=None, max_err_frac=None, magnitude_bounds=None):
+    def randomBlend(self, num_components, max_redshift=None, max_err_frac=None, \
+                    magnitude_bounds=None, sort_redshifts=None):
         if max_redshift is None:
             max_redshift = self.max_redshift
         if max_err_frac is None:
             max_err_frac = self.max_err_frac
         if magnitude_bounds is None:
             magnitude_bounds = self.magnitude_bounds
+        if sort_redshifts is None:
+            sort_redshifts = self.sort_redshifts
 
         np.random.seed(self.seed.next())
         sim_err_frac = np.random.rand() * max_err_frac
         sim_redshift, sim_scale, sim_template = self.drawBlendFromPrior(num_components, max_redshift=max_redshift, magnitude_bounds=magnitude_bounds)
 
         obs_mag, mag_err, fracs = self.generateBlendMagnitude(num_components, sim_redshift, sim_scale, sim_template, sim_err_frac)
+
+        #Order component truths before saving, either sort redshift...
+        if sort_redshifts:
+            order = np.argsort(sim_redshift)
+            sim_redshift = sim_redshift[order]
+            sim_scale = sim_scale[order]
+            sim_template = sim_template[order]
+            fracs = fracs[order]
+        #...or reverse-sort flux fractions
+        else:
+            order = np.argsort(fracs)[::-1]
+            sim_redshift = sim_redshift[order]
+            sim_scale = sim_scale[order]
+            sim_template = sim_template[order]
+            fracs = fracs[order]
 
         truth = {}
         truth['num_components'] = num_components

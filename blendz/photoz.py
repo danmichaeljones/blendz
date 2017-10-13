@@ -12,7 +12,8 @@ from blendz.model import BPZ
 
 
 class Photoz(object):
-    def __init__(self, model=None, photometry=None, config=None, load_state_path=None):
+    def __init__(self, model=None, photometry=None, config=None, load_state_path=None,\
+                 colour_likelihood=True, sort_redshifts=True):
         if load_state_path is not None:
             self.loadState(load_state_path)
         else:
@@ -58,7 +59,10 @@ class Photoz(object):
             self.num_templates = self.responses.templates.num_templates
             self.num_measurements = self.responses.filters.num_filters
             self.num_galaxies = self.photometry.num_galaxies
-            self.colour_likelihood = True
+
+            #Move these to config...?
+            self.colour_likelihood = colour_likelihood
+            self.sort_redshifts = sort_redshifts
 
             #Default to assuming single component, present in all measurements
             self.setMeasurementComponentMapping(None, 1)
@@ -82,7 +86,6 @@ class Photoz(object):
 
     def saveState(self, filepath):
         with open(filepath, 'wb') as f:
-            #Need to exclude the progress bar object as cannot pickle
             state = {key: val for key, val in self.__dict__.items() if key!='pbar'}
             dill.dump(state, f)
 
@@ -151,12 +154,19 @@ class Photoz(object):
         #Impose prior conditions
         if nblends>1:
             frac_maximum = (np.sum(fracs) <= 1.)
-            #Only need sorted redshifts if redshifts are exchangable
+            #Only need sorting condition if redshifts are exchangable
             # (depends on measurement_component_mapping)
             if self.redshifts_exchangeable:
-                redshifts_sorted = np.all(redshifts[1:] >= redshifts[:-1])
+                if self.sort_redshifts:
+                    sort_condition = np.all(redshifts[1:] >= redshifts[:-1])
+                else:
+                    #Otherwise, we sort by fraction. Here we need to check that
+                    #1 - The existing fractions are sorted
+                    #2 - The final fraction that will be appended to the end will be the smallest
+                    sort_condition = np.all(fracs[1:] <= fracs[:-1]) and ((1 - np.sum(fracs)) <= np.min(fracs))
+
                 redshift_positive = np.all(redshifts >= 0.)
-                prior_checks_okay = redshifts_sorted and redshift_positive and frac_maximum
+                prior_checks_okay = sort_condition and redshift_positive and frac_maximum
             else:
                 prior_checks_okay = frac_maximum
         else:
