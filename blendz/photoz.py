@@ -7,8 +7,9 @@ from tqdm import tqdm
 import dill
 from blendz.config import _config
 from blendz.fluxes import Responses
-from blendz.photometry import Photometry
+from blendz.photometry import Photometry, SimulatedPhotometry
 from blendz.model import BPZ
+from blendz.utilities import incrementCount
 
 
 class Photoz(object):
@@ -85,6 +86,11 @@ class Photoz(object):
                 self.template_priors[gal.index, T] = self.lnTemplatePrior(tmpType)
 
     def saveState(self, filepath):
+        #If the photometry is simulated, save the seed as a number rather
+        #than as a generator as that will not pickle
+        if isinstance(self.photometry, SimulatedPhotometry):
+            current_seed = self.photometry.seed.next()
+            self.photometry.seed = current_seed
         with open(filepath, 'wb') as f:
             state = {key: val for key, val in self.__dict__.items() if key!='pbar'}
             dill.dump(state, f)
@@ -92,6 +98,11 @@ class Photoz(object):
     def loadState(self, filepath):
         with open(filepath, 'r') as f:
             self.__dict__.update(dill.load(f))
+        #If the photometry is simulated, replace the seed currently saved as
+        #a number with the generator it was before saving
+        if isinstance(self.photometry, SimulatedPhotometry):
+            current_seed = self.photometry.seed
+            self.photometry.seed = incrementCount(current_seed)
 
     def setMeasurementComponentMapping(self, specification, num_components):
         '''
