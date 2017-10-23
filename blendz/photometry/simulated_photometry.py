@@ -46,9 +46,9 @@ class SimulatedPhotometry(PhotometryBase):
         #Use an incrementing counter for the seed to make sure its always
         #different between various different function calls
         if seed is None:
-            self.seed = incrementCount(np.random.randint(1e9))
+            self.sim_seed = incrementCount(np.random.randint(1e9))
         else:
-            self.seed = incrementCount(seed)
+            self.sim_seed = incrementCount(seed)
 
         self.simulateRandomGalaxies(self.num_sims, self.num_components,
                                     max_redshift=self.max_redshift,
@@ -127,10 +127,10 @@ class SimulatedPhotometry(PhotometryBase):
         for c in xrange(num_components):
             #Sample magnitude
             rj = Reject(lambda m: np.exp(self.model.lnMagnitudePrior(m)), magnitude_bounds[0],
-                                         magnitude_bounds[1], seed=self.seed.next())
+                                         magnitude_bounds[1], seed=self.sim_seed.next())
             magnitudes[c] = rj.sample(1)
             #Sample template given magnitude
-            rstate = np.random.RandomState(self.seed.next())
+            rstate = np.random.RandomState(self.sim_seed.next())
             tmp_prior = np.zeros(self.responses.templates.num_templates)
             for t in xrange(self.responses.templates.num_templates):
                 tmp_type_t = self.responses.templates.template_type(t)
@@ -144,7 +144,7 @@ class SimulatedPhotometry(PhotometryBase):
             else:
                 fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmp_type, magnitudes[c])) * \
                         (1. + self.model.correlationFunction(np.append(redshifts[:c], z)))
-            rj = Reject(fn, 0, max_redshift, seed=self.seed.next())
+            rj = Reject(fn, 0, max_redshift, seed=self.sim_seed.next())
             redshifts[c] = rj.sample(1)
             #Get flux response at these parameters in the reference band
             true_ref_response[c] = self.responses(templates[c], self.config.ref_band, redshifts[c]) # TODO: Measurment mapping???
@@ -181,7 +181,7 @@ class SimulatedPhotometry(PhotometryBase):
         if sort_redshifts is None:
             sort_redshifts = self.sort_redshifts
 
-        np.random.seed(self.seed.next())
+        np.random.seed(self.sim_seed.next())
         sim_err_frac = np.random.rand() * max_err_frac
         sim_redshift, sim_scale, sim_template = self.drawBlendFromPrior(num_components, max_redshift=max_redshift, magnitude_bounds=magnitude_bounds)
 

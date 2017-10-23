@@ -89,8 +89,11 @@ class Photoz(object):
         #If the photometry is simulated, save the seed as a number rather
         #than as a generator as that will not pickle
         if isinstance(self.photometry, SimulatedPhotometry):
-            current_seed = self.photometry.seed.next()
-            self.photometry.seed = current_seed
+            try:
+                current_seed = self.photometry.sim_seed.next()
+                self.photometry.sim_seed = current_seed
+            except:
+                warnings.warn('Unable to save the seed for simulated photometry. Cannot guarantee the random state was saved successfully.')
         with open(filepath, 'wb') as f:
             state = {key: val for key, val in self.__dict__.items() if key!='pbar'}
             dill.dump(state, f)
@@ -101,8 +104,11 @@ class Photoz(object):
         #If the photometry is simulated, replace the seed currently saved as
         #a number with the generator it was before saving
         if isinstance(self.photometry, SimulatedPhotometry):
-            current_seed = self.photometry.seed
-            self.photometry.seed = incrementCount(current_seed)
+            try:
+                current_seed = self.photometry.sim_seed
+                self.photometry.sim_seed = incrementCount(current_seed)
+            except:
+                warnings.warn('Unable to load the seed for simulated photometry. Cannot guarantee the random state was loaded successfully.')
 
     def setMeasurementComponentMapping(self, specification, num_components):
         '''
