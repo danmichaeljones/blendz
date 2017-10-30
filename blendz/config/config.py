@@ -16,7 +16,7 @@ class BlendzConfig(object):
         self.getConfigPaths(data_config_path, run_config_path, combined_config_path)
         self.readConfig()
         self.convertValuesFromString()
-        self.setDerivedValues()
+        #self.setDerivedValues()
 
     def getConfigPaths(self, data_config_path=None, run_config_path=None, combined_config_path=None):
         #Allow for either one combined config file, or split into run settings and data settings
@@ -50,13 +50,12 @@ class BlendzConfig(object):
 
     def convertValuesFromString(self):
         #Run config
-        self.z_lo = self.config.getfloat('Run', 'z_lo')
-        self.z_hi = self.config.getfloat('Run', 'z_hi')
-        self.z_len = self.config.getint('Run', 'z_len')
-        self.template_set = self.config.get('Run', 'template_set')
-        self.template_set_path = self.config.get('Run', 'template_set_path')
+        self._z_lo = self.config.getfloat('Run', 'z_lo')
+        self._z_hi = self.config.getfloat('Run', 'z_hi')
+        self._z_len = self.config.getint('Run', 'z_len')
+        self._template_set = self.config.get('Run', 'template_set')
+        self._template_set_path = self.config.get('Run', 'template_set_path')
 
-        self.template_path = None
         #Data config
         self.data_path = self.config.get('Data', 'data_path')
         self.mag_cols = [int(i) for i in self.config.get('Data', 'mag_cols').split(',')]
@@ -67,18 +66,82 @@ class BlendzConfig(object):
         self.filters = [f.strip() for f in self.config.get('Data', 'filters').split(',')]
         self.zero_point_errors = np.array([float(i) for i in self.config.get('Data', 'zero_point_errors').split(',')])
 
-    def setDerivedValues(self):
-        self.redshift_grid = np.linspace(self.z_lo, self.z_hi, self.z_len)
-        #Templates are a little different - main config points to an info file, which
-        #is itself a configuration file, containing the path and type of each template
-        self.template_config = ConfigParser.SafeConfigParser()
-        self.template_config.read(join(self.template_set_path, self.template_set))
-        self.template_dict = {}
-        for i, template_name in enumerate(self.template_config.sections()):
-            rel_path_t = self.template_config.get(template_name, 'path')
-            abs_path_t = join(self.template_set_path, rel_path_t)
-            type_t = self.template_config.get(template_name, 'type')
-            self.template_dict[i] = {'name':template_name, 'path':abs_path_t, 'type':type_t}
+    #Make the attributes controlling the redshift_grid properties so we can
+    #detect if they have changed and mark redshift_grid as needing recalculation
+    @property #getter
+    def z_lo(self):
+        return self._z_lo
+    @z_lo.setter
+    def z_lo(self, value):
+        self.recalculate_redshift_grid = True
+        self._z_lo = value
+
+    @property #getter
+    def z_hi(self):
+        return self._z_hi
+    @z_hi.setter
+    def z_hi(self, value):
+        self.recalculate_redshift_grid = True
+        self._z_hi = value
+
+    @property #getter
+    def z_len(self):
+        return self._z_len
+    @z_len.setter
+    def z_len(self, value):
+        self.recalculate_redshift_grid = True
+        self._z_len = value
+
+    @property #getter, no setter so read-only
+    def redshift_grid(self):
+        try:
+            recalc = self.recalculate_redshift_grid
+        except AttributeError:
+            recalc = True
+        if recalc:
+            self._redshift_grid = np.linspace(self.z_lo, self.z_hi, self.z_len)
+            self.recalculate_redshift_grid = False
+        return self._redshift_grid
+
+    #Do the same thing for the template_dict
+    #For the template_dict, main config points to an info file, which
+    #is itself a configuration file, containing the path and type of each template
+    @property #getter
+    def template_set(self):
+        return self._template_set
+    @template_set.setter
+    def template_set(self, value):
+        self.recalculate_template_dict = True
+        self._template_set = value
+
+    @property #getter
+    def template_set_path(self):
+        return self._template_set_path
+    @template_set_path.setter
+    def template_set_path(self, value):
+        self.recalculate_template_dict = True
+        self._template_set_path = value
+
+    @property #getter, no setter so read-only
+    def template_dict(self):
+        try:
+            recalc = self.recalculate_template_dict
+        except AttributeError:
+            recalc = True
+        if recalc:
+            #Use the path and name of the template set to load in the templates
+            #if we need to do it again (because one of those has changed)
+            template_config = ConfigParser.SafeConfigParser()
+            template_config.read(join(self.template_set_path, self.template_set))
+            self._template_dict = {}
+            for i, template_name in enumerate(template_config.sections()):
+                rel_path_t = template_config.get(template_name, 'path')
+                abs_path_t = join(self.template_set_path, rel_path_t)
+                type_t = template_config.get(template_name, 'type')
+                self._template_dict[i] = {'name':template_name, 'path':abs_path_t, 'type':type_t}
+            #Mark as not needing recalculating (unless of the properties changes)
+            self.recalculate_template_dict = False
+        return self._template_dict
 
     def __eq__(self, other):
         '''
