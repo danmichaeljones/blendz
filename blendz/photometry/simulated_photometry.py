@@ -7,7 +7,7 @@ from blendz.utilities import incrementCount, Reject
 
 class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
-                max_err_frac=0.1, model=None, seed=None, sort_redshifts=True,
+                max_err_frac=0.1, model=None, seed=None, sort_redshifts=True, random_err=True,
                 measurement_component_specification=None, magnitude_bounds=[20., 32]):
         super(SimulatedPhotometry, self).__init__()
 
@@ -32,6 +32,7 @@ class SimulatedPhotometry(PhotometryBase):
         self.num_sims = num_sims
         self.num_components = num_components
         self.max_err_frac = max_err_frac
+        self.random_err = random_err
         self.num_measurements = self.responses.filters.num_filters
         if max_redshift is None:
             self.max_redshift = self.config.z_hi
@@ -182,7 +183,10 @@ class SimulatedPhotometry(PhotometryBase):
             sort_redshifts = self.sort_redshifts
 
         np.random.seed(self.sim_seed.next())
-        sim_err_frac = np.random.rand() * max_err_frac
+        if self.random_err:
+            sim_err_frac = np.random.rand() * max_err_frac
+        else:
+            sim_err_frac = max_err_frac
         sim_redshift, sim_scale, sim_template = self.drawBlendFromPrior(num_components, max_redshift=max_redshift, magnitude_bounds=magnitude_bounds)
 
         obs_mag, mag_err, fracs = self.generateBlendMagnitude(num_components, sim_redshift, sim_scale, sim_template, sim_err_frac)
