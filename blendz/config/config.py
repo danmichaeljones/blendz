@@ -55,16 +55,40 @@ class BlendzConfig(object):
         self._z_len = self.config.getint('Run', 'z_len')
         self._template_set = self.config.get('Run', 'template_set')
         self._template_set_path = self.config.get('Run', 'template_set_path')
+        self.ref_mag_hi = self.config.getfloat('Run', 'ref_mag_hi')
+        self.ref_mag_lo = self.config.getfloat('Run', 'ref_mag_lo')
 
         #Data config
         self.data_path = self.config.get('Data', 'data_path')
         self.mag_cols = [int(i) for i in self.config.get('Data', 'mag_cols').split(',')]
         self.sigma_cols = [int(i) for i in self.config.get('Data', 'sigma_cols').split(',')]
-        self.ref_band = self.config.getint('Data', 'ref_band')
+        self._ref_band = self.config.getint('Data', 'ref_band')
         self.filter_path = self.config.get('Data', 'filter_path')
         self.filter_file_extension = self.config.get('Data', 'filter_file_extension')
         self.filters = [f.strip() for f in self.config.get('Data', 'filters').split(',')]
         self.zero_point_errors = np.array([float(i) for i in self.config.get('Data', 'zero_point_errors').split(',')])
+
+
+    #Derived attiribute -> property for ref_band and non_ref_bands indices
+    @property #getter
+    def ref_band(self):
+        return self._ref_band
+    @ref_band.setter
+    def ref_band(self, value):
+        self.recalculate_non_ref_bands = True
+        self._ref_band = value
+
+    @property #getter, no setter so read-only
+    def non_ref_bands(self):
+        try:
+            recalc = self.recalculate_non_ref_bands
+        except AttributeError:
+            recalc = True
+        if recalc:
+            self._non_ref_bands = np.ones(len(self.filters), dtype=bool)
+            self._non_ref_bands[self.ref_band] = False
+            self.recalculate_non_ref_bands = False
+        return self._non_ref_bands
 
     #Make the attributes controlling the redshift_grid properties so we can
     #detect if they have changed and mark redshift_grid as needing recalculation

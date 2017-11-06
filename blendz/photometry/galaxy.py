@@ -1,6 +1,8 @@
 import numpy as np
 from blendz.config import _config
 
+#TODO : Use a generic config file in galaxies, not just the default
+
 class Galaxy(object):
     def __init__(self, mag_data, mag_sigma, ref_band, zero_point_frac, index):
         self.mag_data = mag_data
@@ -48,3 +50,7 @@ class Galaxy(object):
         #Create attribute for the flux in the reference band
         self.ref_flux_data = self.flux_data[_config.ref_band]
         self.ref_flux_sigma = self.flux_sigma[_config.ref_band]
+
+        #Flux data and sigma, with the reference band removed
+        self.flux_data_noRef = self.flux_data[_config.non_ref_bands]
+        self.flux_sigma_noRef = self.flux_sigma[_config.non_ref_bands]
