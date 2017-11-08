@@ -7,5 +7,11 @@ setup(name = 'blendz',
       author_email = 'danmichaeljones@me.com',
       license = 'None',
       packages = find_packages(),
+      install_requires=[
+        'numpy',
+        'scipy',
+        'tqdm',
+        'nestle',
+      ],
       include_package_data = True)#,
 #      zip_safe = False)
