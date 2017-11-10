@@ -201,7 +201,7 @@ class SimulatedPhotometry(PhotometryBase):
             fracs = fracs[order]
         #...or magnitudes
         else:
-            order = np.argsort(sim_redshift)
+            order = np.argsort(sim_magnitude)
             sim_redshift = sim_redshift[order]
             sim_scale = sim_scale[order]
             sim_template = sim_template[order]
