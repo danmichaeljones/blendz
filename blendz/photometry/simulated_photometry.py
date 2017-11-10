@@ -167,7 +167,7 @@ class SimulatedPhotometry(PhotometryBase):
         #component_normalisation = component_normalisation[order]
         #templates = templates[order]
         #redshifts = redshifts[order]
-        return redshifts, component_normalisation, templates
+        return redshifts, component_normalisation, templates, magnitudes
 
 
 
@@ -187,7 +187,7 @@ class SimulatedPhotometry(PhotometryBase):
             sim_err_frac = np.random.rand() * max_err_frac
         else:
             sim_err_frac = max_err_frac
-        sim_redshift, sim_scale, sim_template = self.drawBlendFromPrior(num_components, max_redshift=max_redshift, magnitude_bounds=magnitude_bounds)
+        sim_redshift, sim_scale, sim_template, sim_magnitude = self.drawBlendFromPrior(num_components, max_redshift=max_redshift, magnitude_bounds=magnitude_bounds)
 
         obs_mag, mag_err, fracs = self.generateBlendMagnitude(num_components, sim_redshift, sim_scale, sim_template, sim_err_frac)
 
@@ -197,20 +197,22 @@ class SimulatedPhotometry(PhotometryBase):
             sim_redshift = sim_redshift[order]
             sim_scale = sim_scale[order]
             sim_template = sim_template[order]
+            sim_magnitude = sim_magnitude[order]
             fracs = fracs[order]
-        #...or reverse-sort flux fractions
+        #...or magnitudes
         else:
-            order = np.argsort(fracs)[::-1]
+            order = np.argsort(sim_redshift)
             sim_redshift = sim_redshift[order]
             sim_scale = sim_scale[order]
             sim_template = sim_template[order]
+            sim_magnitude = sim_magnitude[order]
             fracs = fracs[order]
 
         truth = {}
         truth['num_components'] = num_components
         for c in xrange(num_components):
             truth[c] = {'redshift': sim_redshift[c], 'scale': sim_scale[c],
-            'template': sim_template[c], 'fraction': fracs[c]}
+            'template': sim_template[c], 'fraction': fracs[c], 'magnitude': sim_magnitude[c]}
 
         return obs_mag, mag_err, truth
 

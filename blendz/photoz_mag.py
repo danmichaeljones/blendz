@@ -170,7 +170,14 @@ class PhotozMag(object):
             #Only need sorting condition if redshifts are exchangable
             # (depends on measurement_component_mapping)
             if self.redshifts_exchangeable:
-                sort_condition = np.all(redshifts[1:] >= redshifts[:-1])
+                #Either sort on redshifts...
+                if self.sort_redshifts:
+                    sort_condition = np.all(redshifts[1:] >= redshifts[:-1])
+                # ... or on magnitudes - 
+                # magnitudes sort in increasing *numerical* order like redshifts
+                # not in brightness!
+                else:
+                    sort_condition = np.all(magnitudes[1:] >= magnitudes[:-1])
                 prior_checks_okay = sort_condition and redshift_positive
             else:
                 prior_checks_okay = redshift_positive
