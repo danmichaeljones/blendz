@@ -63,6 +63,11 @@ class BlendzConfig(object):
         self.mag_cols = [int(i) for i in self.config.get('Data', 'mag_cols').split(',')]
         self.sigma_cols = [int(i) for i in self.config.get('Data', 'sigma_cols').split(',')]
         self._ref_band = self.config.getint('Data', 'ref_band')
+        #If spec_z_col is None, this gives ValueError, so set to None if it does
+        try:
+            self.spec_z_col = self.config.getint('Data', 'spec_z_col')
+        except:
+            self.spec_z_col = None
         self.filter_path = self.config.get('Data', 'filter_path')
         self.filter_file_extension = self.config.get('Data', 'filter_file_extension')
         self.filters = [f.strip() for f in self.config.get('Data', 'filters').split(',')]
