@@ -227,7 +227,7 @@ class SimulatedPhotometry(PhotometryBase):
         self.setMeasurementComponentMapping(measurement_component_specification, num_components)
         for g in xrange(num_sims):
             mag_data, mag_sigma, truth = self.randomBlend(num_components, max_redshift, max_err_frac, magnitude_bounds=magnitude_bounds)
-            new_galaxy = Galaxy(mag_data, mag_sigma, self.config.ref_band, self.zero_point_frac, g)
+            new_galaxy = Galaxy(mag_data, mag_sigma, self.config, self.zero_point_frac, g)
             new_galaxy.truth = truth
             self.galaxies.append(new_galaxy)
 
@@ -244,7 +244,7 @@ class SimulatedPhotometry(PhotometryBase):
                             'scale': scales[g][c],
                             'fraction': fracs[c],
                             'template': templates[g][c]}
-            new_galaxy = Galaxy(obs_mag, mag_err, self.config.ref_band,
+            new_galaxy = Galaxy(obs_mag, mag_err, self.config,
                                 self.zero_point_frac, g)
             new_galaxy.truth = truth
             self.galaxies.append(new_galaxy)

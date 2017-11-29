@@ -1,14 +1,16 @@
 import numpy as np
-from blendz.config import _config
 
 #TODO : Use a generic config file in galaxies, not just the default
 
 class Galaxy(object):
-    def __init__(self, mag_data, mag_sigma, ref_band, zero_point_frac, index):
+    def __init__(self, mag_data, mag_sigma, config, zero_point_frac, index):
         self.mag_data = mag_data
         self.mag_sigma = mag_sigma
-        self.ref_mag_data = self.mag_data[ref_band]
-        self.ref_mag_sigma = self.mag_sigma[ref_band]
+
+        self.config = config
+        self.ref_band = self.config.ref_band
+        self.ref_mag_data = self.mag_data[self.ref_band]
+        self.ref_mag_sigma = self.mag_sigma[self.ref_band]
         self.zero_point_frac = zero_point_frac
         self.index = index
 
@@ -44,13 +46,13 @@ class Galaxy(object):
 
         #Calculate colours
         #TODO: Check the colour sigmas!!!
-        self.colour_data = self.flux_data / self.flux_data[_config.ref_band]
-        self.colour_sigma = self.flux_sigma / self.flux_data[_config.ref_band]
+        self.colour_data = self.flux_data / self.flux_data[self.config.ref_band]
+        self.colour_sigma = self.flux_sigma / self.flux_data[self.config.ref_band]
 
         #Create attribute for the flux in the reference band
-        self.ref_flux_data = self.flux_data[_config.ref_band]
-        self.ref_flux_sigma = self.flux_sigma[_config.ref_band]
+        self.ref_flux_data = self.flux_data[self.config.ref_band]
+        self.ref_flux_sigma = self.flux_sigma[self.config.ref_band]
 
         #Flux data and sigma, with the reference band removed
-        self.flux_data_noRef = self.flux_data[_config.non_ref_bands]
-        self.flux_sigma_noRef = self.flux_sigma[_config.non_ref_bands]
+        self.flux_data_noRef = self.flux_data[self.config.non_ref_bands]
+        self.flux_sigma_noRef = self.flux_sigma[self.config.non_ref_bands]

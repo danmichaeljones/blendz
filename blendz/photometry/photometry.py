@@ -28,6 +28,6 @@ class Photometry(PhotometryBase):
         for g in xrange(self.num_to_load):
             mag_data = self.photo_data[g, self.config.mag_cols]
             mag_sigma = self.photo_data[g, self.config.sigma_cols]
-            self.galaxies.append(Galaxy(mag_data, mag_sigma, self.config.ref_band, self.zero_point_frac, g))
+            self.galaxies.append(Galaxy(mag_data, mag_sigma, self.config, self.zero_point_frac, g))
             if self.config.spec_z_col is not None:
                 self.galaxies[g].spec_redshift = self.photo_data[g, self.config.spec_z_col]
