@@ -156,8 +156,9 @@ class PhotozMag(object):
         chi_sq = -1. * np.sum((self.photometry.current_galaxy.flux_data_noRef - model_flux)**2 / self.photometry.current_galaxy.flux_sigma_noRef**2)
         return chi_sq
 
-    def lnLikelihood_mag(self, total_ref_mag):
-        chi_sq = -1. * np.sum((self.photometry.current_galaxy.ref_mag_data - total_ref_mag)**2 / self.photometry.current_galaxy.ref_mag_sigma**2)
+    def lnLikelihood_mag(self, total_ref_flux):
+        #chi_sq = -1. * np.sum((self.photometry.current_galaxy.ref_mag_data - total_ref_mag)**2 / self.photometry.current_galaxy.ref_mag_sigma**2)
+        chi_sq = -1. * np.sum((self.photometry.current_galaxy.ref_flux_data - total_ref_flux)**2 / self.photometry.current_galaxy.ref_flux_sigma**2)
         return chi_sq
 
     def lnPosterior(self, params):
@@ -173,7 +174,7 @@ class PhotozMag(object):
                 #Either sort on redshifts...
                 if self.sort_redshifts:
                     sort_condition = np.all(redshifts[1:] >= redshifts[:-1])
-                # ... or on magnitudes - 
+                # ... or on magnitudes -
                 # magnitudes sort in increasing *numerical* order like redshifts
                 # not in brightness!
                 else:
@@ -229,14 +230,16 @@ class PhotozMag(object):
 
                 #Get total magnitude in reference band
                 # = transform to flux, sum, transform to magnitudes
-                total_ref_mag = np.log10(np.sum(10.**(-0.4 * magnitudes))) / (-0.4)
+                ##total_ref_mag = np.log10(np.sum(10.**(-0.4 * magnitudes))) / (-0.4)
+                total_ref_flux = np.sum(10.**(-0.4 * magnitudes))
                 ################################################print('REF MAG')
                 ################################################print total_ref_mag
 
                 #Other terms only appear once per summation-step
                 tmp += redshift_correlation
                 tmp += self.lnLikelihood_flux(blend_flux)
-                tmp += self.lnLikelihood_mag(total_ref_mag)
+                ##tmp += self.lnLikelihood_mag(total_ref_mag)
+                tmp += self.lnLikelihood_mag(total_ref_flux)
                 tmp += joint_magnitude_prior
 
                 #logaddexp contribution from this template to marginalise
