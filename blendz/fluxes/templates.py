@@ -36,7 +36,7 @@ class Templates(object):
     def _get_interpolators(self):
         interpolators = {}
         for T in xrange(self.num_templates):
-            interpolators[T] = interp1d(self.wavelength(T), self.flux(T))
+            interpolators[T] = interp1d(self.wavelength(T), self.flux(T), bounds_error=False, fill_value='extrapolate')
         return interpolators
 
     def num_type(self, tmpType):
