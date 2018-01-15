@@ -12,6 +12,7 @@ setup(name = 'blendz',
         'scipy',
         'tqdm',
         'nestle',
+        'dill',
       ],
       include_package_data = True)#,
 #      zip_safe = False)
