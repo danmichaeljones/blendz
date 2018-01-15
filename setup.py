@@ -13,6 +13,7 @@ setup(name = 'blendz',
         'tqdm',
         'nestle',
         'dill',
+        'future',
       ],
       include_package_data = True)#,
 #      zip_safe = False)
