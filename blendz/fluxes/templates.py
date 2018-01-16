@@ -46,6 +46,8 @@ class Templates(object):
         except KeyError:
             warnings.warn('There are no templates of type {}, returning zero.'.format(tmpType))
             return 0
+        except TypeError:
+            raise TypeError('A value of type {} cannot be a template-type.'.format(type(tmpType)))
 
     def templateType(self, T):
         try:
