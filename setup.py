@@ -14,6 +14,8 @@ setup(name = 'blendz',
         'nestle',
         'dill',
         'future',
+        'pytest',
+        'pytest-cov',
       ],
       include_package_data = True)#,
 #      zip_safe = False)
