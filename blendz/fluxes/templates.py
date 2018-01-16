@@ -1,3 +1,4 @@
+from builtins import *
 from os.path import join
 import warnings
 import numpy as np
@@ -20,7 +21,7 @@ class Templates(object):
 
     def load_templates(self):
         self._all_templates = {}
-        for T in xrange(self.num_templates):
+        for T in range(self.num_templates):
             self._all_templates[T] = {}
             self._all_templates[T]['lambda'], self._all_templates[T]['flux'] = \
                         np.loadtxt(self.template_dict[T]['path'], unpack=True)
@@ -35,7 +36,7 @@ class Templates(object):
 
     def _get_interpolators(self):
         interpolators = {}
-        for T in xrange(self.num_templates):
+        for T in range(self.num_templates):
             interpolators[T] = interp1d(self.wavelength(T), self.flux(T), bounds_error=False, fill_value='extrapolate')
         return interpolators
 

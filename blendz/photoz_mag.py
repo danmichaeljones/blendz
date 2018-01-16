@@ -1,3 +1,4 @@
+from builtins import *
 import sys
 import warnings
 import itertools as itr
@@ -70,7 +71,7 @@ class PhotozMag(object):
             #Set up empty dictionaries to put results into
             self.sample_results = {}
             self.reweighted_samples = {}
-            for g in xrange(self.num_galaxies):
+            for g in range(self.num_galaxies):
                 #Each value is a dictionary which will be filled by sample function
                 #The keys of this inner dictionary will be the number of blends for run
                 self.sample_results[g] = {}
@@ -80,7 +81,7 @@ class PhotozMag(object):
     def precalculateTemplatePriors(self):
         self.template_priors = np.zeros((self.num_galaxies, self.num_templates))
         for gal in self.photometry:
-            for T in xrange(self.num_templates):
+            for T in range(self.num_templates):
                 tmpType = self.responses.templates.template_type(T)
                 self.template_priors[gal.index, T] = self.lnTemplatePrior(tmpType)
 
@@ -131,7 +132,7 @@ class PhotozMag(object):
             self.redshifts_exchangeable = True
         else:
             measurement_component_mapping = np.zeros((num_components, self.num_measurements))
-            for m in xrange(self.num_measurements):
+            for m in range(self.num_measurements):
                 measurement_component_mapping[specification[m], m] = 1.
 
             if np.all(measurement_component_mapping[:, self.config.ref_band] == 1.):
@@ -162,7 +163,7 @@ class PhotozMag(object):
         return chi_sq
 
     def lnPosterior(self, params):
-        nblends = len(params)/2
+        nblends = int(len(params) // 2)
         redshifts = params[:nblends]
         magnitudes = params[nblends:]
         #Impose prior conditions
@@ -195,9 +196,9 @@ class PhotozMag(object):
             #Single interp call -> Shape = (N_template, N_band, N_component)
             model_fluxes = self.responses.interp(redshifts)
 
-            for T in xrange(self.num_templates):
+            for T in range(self.num_templates):
                 tmpType = self.responses.templates.template_type(T)
-                for nb in xrange(nblends):
+                for nb in range(nblends):
                     template_priors[nb, T] = self.model.lnTemplatePrior(tmpType, magnitudes[nb])
                     redshift_priors[nb, T] = self.model.lnRedshiftPrior(redshifts[nb], tmpType, magnitudes[nb])
             redshift_correlation = np.log(1. + self.model.correlationFunction(redshifts))
@@ -209,12 +210,12 @@ class PhotozMag(object):
             lnProb = -np.inf
 
             #At each iteration template_combo is a tuple of (T_1, T_2... T_nblends)
-            for template_combo in itr.product(*itr.repeat(xrange(self.num_templates), nblends)):
+            for template_combo in itr.product(*itr.repeat(range(self.num_templates), nblends)):
                 #One redshift prior, template prior and model flux for each blend component
                 tmp = 0.
                 blend_flux = np.zeros(self.num_measurements)
                 component_scaling_norm = 0.
-                for nb in xrange(nblends):
+                for nb in range(nblends):
                     T = template_combo[nb]
                     component_scaling = 10.**(-0.4*magnitudes[nb]) / model_fluxes[T, self.config.ref_band, nb]
                     blend_flux += model_fluxes[T, :, nb] * component_scaling * self.measurement_component_mapping[nb, :]
@@ -253,7 +254,7 @@ class PhotozMag(object):
         where the min redshift is zero, max redshift is set in the configuration,
         and the min/max magnitudes (numerically, not brightness) are set by configuration.
         '''
-        nblends = len(params)/2
+        nblends = int(len(params) // 2)
 
         trans = np.ones(len(params))
         trans[:nblends] = self.config.z_hi

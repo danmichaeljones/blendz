@@ -1,3 +1,4 @@
+from builtins import *
 import numpy as np
 
 #TODO : Use a generic config file in galaxies, not just the default

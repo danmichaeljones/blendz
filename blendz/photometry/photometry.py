@@ -1,3 +1,4 @@
+from builtins import *
 import warnings
 import numpy as np
 from blendz.config import _config
@@ -25,7 +26,7 @@ class Photometry(PhotometryBase):
         self.loadGalaxies()
 
     def loadGalaxies(self):
-        for g in xrange(self.num_to_load):
+        for g in range(self.num_to_load):
             mag_data = self.photo_data[g, self.config.mag_cols]
             mag_sigma = self.photo_data[g, self.config.sigma_cols]
             self.galaxies.append(Galaxy(mag_data, mag_sigma, self.config, self.zero_point_frac, g))

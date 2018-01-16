@@ -1,3 +1,4 @@
+from builtins import *
 import warnings
 import numpy as np
 from blendz.config import _config
@@ -74,7 +75,7 @@ class SimulatedPhotometry(PhotometryBase):
             self.redshifts_exchangeable = True
         else:
             measurement_component_mapping = np.zeros((num_components, self.num_measurements))
-            for m in xrange(self.num_measurements):
+            for m in range(self.num_measurements):
                 measurement_component_mapping[specification[m], m] = 1.
 
             if np.all(measurement_component_mapping[:, self.config.ref_band] == 1.):
@@ -97,10 +98,10 @@ class SimulatedPhotometry(PhotometryBase):
 
     def generateBlendMagnitude(self, num_components, redshifts, scales, template_indices, err_frac):
         true_flux = np.zeros(self.responses.filters.num_filters)
-        for c in xrange(num_components):
+        for c in range(num_components):
             true_flux += self.responses(template_indices[c], None, redshifts[c]) * scales[c] * self.measurement_component_mapping[c, :]
         fracs = np.zeros(num_components)
-        for c in xrange(num_components):
+        for c in range(num_components):
             fracs[c] = ((self.responses(template_indices[c], None, redshifts[c]) * scales[c]) / true_flux)[self.config.ref_band]
         rand_err  = (np.random.rand(self.responses.filters.num_filters) * (true_flux * err_frac * 2)) - (true_flux * err_frac)
         obs_flux = true_flux + rand_err
@@ -125,7 +126,7 @@ class SimulatedPhotometry(PhotometryBase):
         templates = np.zeros(num_components, dtype=int)
         redshifts = np.zeros(num_components)
         true_ref_response = np.zeros(num_components)
-        for c in xrange(num_components):
+        for c in range(num_components):
             #Sample magnitude
             rj = Reject(lambda m: np.exp(self.model.lnMagnitudePrior(m)), magnitude_bounds[0],
                                          magnitude_bounds[1], seed=self.sim_seed.next())
@@ -133,7 +134,7 @@ class SimulatedPhotometry(PhotometryBase):
             #Sample template given magnitude
             rstate = np.random.RandomState(self.sim_seed.next())
             tmp_prior = np.zeros(self.responses.templates.num_templates)
-            for t in xrange(self.responses.templates.num_templates):
+            for t in range(self.responses.templates.num_templates):
                 tmp_type_t = self.responses.templates.template_type(t)
                 tmp_prior[t] = np.exp(self.model.lnTemplatePrior(tmp_type_t, magnitudes[c]))
             templates[c] = rstate.choice(self.responses.templates.num_templates, p=tmp_prior)
@@ -210,7 +211,7 @@ class SimulatedPhotometry(PhotometryBase):
 
         truth = {}
         truth['num_components'] = num_components
-        for c in xrange(num_components):
+        for c in range(num_components):
             truth[c] = {'redshift': sim_redshift[c], 'scale': sim_scale[c],
             'template': sim_template[c], 'fraction': fracs[c], 'magnitude': sim_magnitude[c]}
 
@@ -225,21 +226,21 @@ class SimulatedPhotometry(PhotometryBase):
             magnitude_bounds = self.magnitude_bounds
 
         self.setMeasurementComponentMapping(measurement_component_specification, num_components)
-        for g in xrange(num_sims):
+        for g in range(num_sims):
             mag_data, mag_sigma, truth = self.randomBlend(num_components, max_redshift, max_err_frac, magnitude_bounds=magnitude_bounds)
             new_galaxy = Galaxy(mag_data, mag_sigma, self.config, self.zero_point_frac, g)
             new_galaxy.truth = truth
             self.galaxies.append(new_galaxy)
 
     def simulateGalaxies(self, redshifts, scales, templates, err_frac):
-        for g in xrange(len(redshifts)):
+        for g in range(len(redshifts)):
             num_components = len(redshifts[g])
             obs_mag, mag_err, fracs = self.generateBlendMagnitude(
                                         num_components, redshifts[g], scales[g],
                                         templates[g], err_frac)
             truth = {}
             truth['num_components'] = num_components
-            for c in xrange(num_components):
+            for c in range(num_components):
                 truth[c] = {'redshift': redshifts[g][c],
                             'scale': scales[g][c],
                             'fraction': fracs[c],

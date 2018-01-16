@@ -1,3 +1,4 @@
+from builtins import *
 from os.path import join
 import numpy as np
 from blendz.config import _config
@@ -26,7 +27,7 @@ class Filters(object):
         if file_extension is None:
             file_extension = self.file_extension
 
-        for F in xrange(len(filenames)):
+        for F in range(len(filenames)):
             #Read from file
             self._all_filters[F] = {}
             self._all_filters[F]['lambda'], self._all_filters[F]['response'] = \

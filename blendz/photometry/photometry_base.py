@@ -1,3 +1,4 @@
+from builtins import *
 import warnings
 import numpy as np
 
@@ -16,7 +17,7 @@ class PhotometryBase(object):
 
     def __iter__(self):
         iterator = self.iterate()
-        for g in xrange(len(self.galaxies)):
+        for g in range(len(self.galaxies)):
             yield next(iterator)
         #Clean up by resetting current_galaxy to None when done
         self.current_galaxy = None

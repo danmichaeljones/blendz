@@ -1,3 +1,4 @@
+from builtins import *
 import numpy as np
 from scipy.interpolate import interp1d
 from blendz.model import ModelBase

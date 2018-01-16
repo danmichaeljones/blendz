@@ -1,3 +1,4 @@
+from builtins import *
 import warnings
 import numpy as np
 from scipy.interpolate import interp1d
@@ -90,19 +91,19 @@ class Responses(object):
 
     def _calculate_interpolators(self):
         self._interpolators = {}
-        for T in xrange(self.templates.num_templates):
+        for T in range(self.templates.num_templates):
             self._interpolators[T] = {}
-            for F in xrange(self.filters.num_filters):
+            for F in range(self.filters.num_filters):
                 self._interpolators[T][F] = interp1d(self.zGrid, self._all_responses[T, F, :],\
                                                      bounds_error=False, fill_value=0.)
 
     def _calculate_responses(self):
         #self._all_responses = {}
         self._all_responses = np.zeros((self.templates.num_templates, self.filters.num_filters, len(self.zGrid)))
-        for F in xrange(self.filters.num_filters):
+        for F in range(self.filters.num_filters):
             for iZ, Z in enumerate(self.zGrid):
                 extinction = self.etau_madau(self.filters.wavelength(F), Z)
-                for T in xrange(self.templates.num_templates):
+                for T in range(self.templates.num_templates):
                     shiftedTemplate = self.templates.interp(T, self.filters.wavelength(F) / (1+Z) )
                     # TODO:The multiply by lambda in here is a conversion
                     # from flux_nu (in the equation) to flux_lambda (how templates are defined)
@@ -126,11 +127,11 @@ class Responses(object):
             return np.array([self._interpolators[T][F](zz) for zz in Z])
         #Single template/redshift case, all filters
         elif isinstance(T, (int, np.integer)) and (F is None) and isinstance(Z, (float, np.floating)):
-            return np.array([self._interpolators[T][ff](Z) for ff in xrange(self.filters.num_filters)])
+            return np.array([self._interpolators[T][ff](Z) for ff in range(self.filters.num_filters)])
         #Single template, multiple redshift, all filters case
         elif isinstance(T, (int, np.integer)) and (F is None) and type(Z)==np.ndarray:
             return np.array([[self._interpolators[T][ff](zz) \
-                              for ff in xrange(self.filters.num_filters)]\
+                              for ff in range(self.filters.num_filters)]\
                               for zz in Z])
         else:
             raise TypeError('Incompatible types for arguments. Require T = int, \

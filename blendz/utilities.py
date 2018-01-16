@@ -1,3 +1,4 @@
+from builtins import *
 import numpy as np
 
 def incrementCount(start):
@@ -26,7 +27,7 @@ class Reject(object):
 
     def sample(self, N):
         out = np.zeros(N)
-        for n in xrange(N):
+        for n in range(N):
             accept = False
             while not accept:
                 rand_x = self.rstate.uniform(self.x_min, self.x_max)
