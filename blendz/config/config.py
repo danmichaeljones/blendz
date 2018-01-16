@@ -181,4 +181,9 @@ class Configuration(object):
         if self.__class__ != other.__class__:
             return False
         else:
-            return self.__dict__ == other.__dict__
+            all_true = True
+            for key in self.__dict__:
+                if key != 'config':
+                    all_true *= np.all(self.__dict__[key] == other.__dict__[key])
+            #return self.__dict__ == other.__dict__
+            return all_true
