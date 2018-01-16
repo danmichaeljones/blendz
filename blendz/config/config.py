@@ -9,7 +9,7 @@ except ImportError:
     import configparser as ConfigParser
 import numpy as np
 
-class BlendzConfig(object):
+class Configuration(object):
     def __init__(self, data_config_path=None, run_config_path=None, combined_config_path=None):
         self.blendz_path = join(dirname(__file__), '..')
         self.resource_path = abspath(join(self.blendz_path, 'resources'))
