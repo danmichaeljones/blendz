@@ -15,11 +15,11 @@ class Templates(object):
         self.num_templates = len(self.template_dict)
         self.possible_types = set(tmp['type'] for tmp in self.template_dict.values())
 
-        self.load_templates()
-        self._num_type = self._count_types()
-        self._interpolators = self._get_interpolators()
+        self.loadTemplates()
+        self._num_type = self._countTypes()
+        self._interpolators = self._getInterpolators()
 
-    def load_templates(self):
+    def loadTemplates(self):
         self._all_templates = {}
         for T in range(self.num_templates):
             self._all_templates[T] = {}
@@ -27,14 +27,14 @@ class Templates(object):
                         np.loadtxt(self.template_dict[T]['path'], unpack=True)
             self._all_templates[T]['name'] = self.template_dict[T]['name']
 
-    def _count_types(self):
+    def _countTypes(self):
         type_dict = {}
         for tmpType in self.possible_types:
             type_dict[tmpType] = len([tmp['type'] for tmp in self.template_dict.values()\
                                       if tmp['type']==tmpType])
         return type_dict
 
-    def _get_interpolators(self):
+    def _getInterpolators(self):
         interpolators = {}
         for T in range(self.num_templates):
             interpolators[T] = interp1d(self.wavelength(T), self.flux(T), bounds_error=False, fill_value='extrapolate')
@@ -71,8 +71,8 @@ class Templates(object):
         except (KeyError, TypeError):
             raise ValueError('Template may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_templates-1, type(T), T))
 
-    def interp(self, T, newLambda):
+    def interp(self, T, new_lambda):
         try:
-            return self._interpolators[T](newLambda)
+            return self._interpolators[T](new_lambda)
         except (KeyError, TypeError):
             raise ValueError('Template may be an integer [0...{}], but got a {} of value {} instead'.format(self.num_templates-1, type(T), T))
