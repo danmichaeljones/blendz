@@ -40,7 +40,7 @@ class Templates(object):
             interpolators[T] = interp1d(self.wavelength(T), self.flux(T), bounds_error=False, fill_value='extrapolate')
         return interpolators
 
-    def num_type(self, tmpType):
+    def numType(self, tmpType):
         try:
             return self._num_type[tmpType]
         except KeyError:

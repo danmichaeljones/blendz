@@ -35,14 +35,14 @@ class BPZ(ModelBase):
             mag0 = component_ref_mag
         #All include a scaling of 1/Number of templates of that type
         if template_type in ['early', 'late']:
-            Nt = self.responses.templates.num_type(template_type)
+            Nt = self.responses.templates.numType(template_type)
             coeff = np.log(self.prior_params['f_t'][template_type] / Nt)
             expon = self.prior_params['k_t'][template_type] * (mag0 - 20.)
             out = coeff - expon
         elif template_type == 'irr':
-            Nte = self.responses.templates.num_type('early')
-            Ntl = self.responses.templates.num_type('late')
-            Nti = self.responses.templates.num_type('irr')
+            Nte = self.responses.templates.numType('early')
+            Ntl = self.responses.templates.numType('late')
+            Nti = self.responses.templates.numType('irr')
             expone = self.prior_params['k_t']['early'] * (mag0 - 20.)
             exponl = self.prior_params['k_t']['late'] * (mag0 - 20.)
             early = self.prior_params['f_t']['early'] * np.exp(-expone)
