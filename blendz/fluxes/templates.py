@@ -47,7 +47,7 @@ class Templates(object):
             warnings.warn('There are no templates of type {}, returning zero.'.format(tmpType))
             return 0
 
-    def template_type(self, T):
+    def templateType(self, T):
         try:
             return self.template_dict[T]['type']
         except (KeyError, TypeError):

@@ -83,7 +83,7 @@ class Photoz(object):
         self.template_priors = np.zeros((self.num_galaxies, self.num_templates))
         for gal in self.photometry:
             for T in range(self.num_templates):
-                tmpType = self.responses.templates.template_type(T)
+                tmpType = self.responses.templates.templateType(T)
                 self.template_priors[gal.index, T] = self.lnTemplatePrior(tmpType)
 
     def saveState(self, filepath):
@@ -212,7 +212,7 @@ class Photoz(object):
             model_fluxes = self.responses.interp(redshifts)
 
             for T in range(self.num_templates):
-                tmpType = self.responses.templates.template_type(T)
+                tmpType = self.responses.templates.templateType(T)
                 for nb in range(nblends):
                     template_priors[nb, T] = self.model.lnTemplatePrior(tmpType, component_ref_mags[nb])
                     redshift_priors[nb, T] = self.model.lnRedshiftPrior(redshifts[nb], tmpType, component_ref_mags[nb])

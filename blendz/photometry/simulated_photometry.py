@@ -135,10 +135,10 @@ class SimulatedPhotometry(PhotometryBase):
             rstate = np.random.RandomState(self.sim_seed.next())
             tmp_prior = np.zeros(self.responses.templates.num_templates)
             for t in range(self.responses.templates.num_templates):
-                tmp_type_t = self.responses.templates.template_type(t)
+                tmp_type_t = self.responses.templates.templateType(t)
                 tmp_prior[t] = np.exp(self.model.lnTemplatePrior(tmp_type_t, magnitudes[c]))
             templates[c] = rstate.choice(self.responses.templates.num_templates, p=tmp_prior)
-            tmp_type = self.responses.templates.template_type(templates[c])
+            tmp_type = self.responses.templates.templateType(templates[c])
             #Sample redshift, given template and magnitude
             #Include redshift (c+1)-point-correlation if other redshifts drawn
             if c==0:
