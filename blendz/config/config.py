@@ -8,16 +8,15 @@ except ImportError:
     #Python 3
     import configparser as ConfigParser
 import numpy as np
+import blendz
 
 class Configuration(object):
     def __init__(self, config_path=None, **kwargs):
-        self.blendz_path = join(dirname(__file__), '..')
-        self.resource_path = abspath(join(self.blendz_path, 'resources'))
         self.kwargs = kwargs
 
         if config_path is None:
-            default_run_path = join(self.resource_path, 'config/defaultRunConfig.txt')
-            default_data_path = join(self.resource_path, 'config/defaultDataConfig.txt')
+            default_run_path = join(blendz.RESOURCE_PATH, 'config/defaultRunConfig.txt')
+            default_data_path = join(blendz.RESOURCE_PATH, 'config/defaultDataConfig.txt')
             self.configs_to_read = [default_run_path, default_data_path]
         else:
             self.configs_to_read = config_path
@@ -28,7 +27,7 @@ class Configuration(object):
     def readConfig(self):
         self.config = ConfigParser.SafeConfigParser()
         #Add the resourse_path to the ConfigParser so that it can be referenced in the config files
-        self.config.set('DEFAULT', 'resource_path', self.resource_path)
+        self.config.set('DEFAULT', 'resource_path', blendz.RESOURCE_PATH)
         self.config.read(self.configs_to_read)
 
     def maybeGet(self, section, key):
