@@ -1,5 +1,6 @@
 from builtins import *
 from os.path import join
+import pytest
 import blendz
 
 
@@ -37,3 +38,14 @@ class TestPhotometry(object):
         for i, gal in enumerate(photo.iterate(start=1, stop=-1, step=2)):
             pass
         assert photo.current_galaxy is None
+
+    def test_slice_index(self):
+        photo = self.loadPhotometry()
+        for i in range(photo.num_galaxies):
+            assert photo[i].index == i
+            assert photo.current_galaxy is None
+
+    def test_slice_listWarning(self):
+        photo = self.loadPhotometry()
+        with pytest.warns(UserWarning):
+            test = photo[0:2]
