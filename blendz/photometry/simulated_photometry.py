@@ -230,7 +230,7 @@ class SimulatedPhotometry(PhotometryBase):
             mag_data, mag_sigma, truth = self.randomBlend(num_components, max_redshift, max_err_frac, magnitude_bounds=magnitude_bounds)
             new_galaxy = Galaxy(mag_data, mag_sigma, self.config, self.zero_point_frac, g)
             new_galaxy.truth = truth
-            self.galaxies.append(new_galaxy)
+            self.all_galaxies.append(new_galaxy)
 
     def simulateGalaxies(self, redshifts, scales, templates, err_frac):
         for g in range(len(redshifts)):
@@ -248,4 +248,4 @@ class SimulatedPhotometry(PhotometryBase):
             new_galaxy = Galaxy(obs_mag, mag_err, self.config,
                                 self.zero_point_frac, g)
             new_galaxy.truth = truth
-            self.galaxies.append(new_galaxy)
+            self.all_galaxies.append(new_galaxy)

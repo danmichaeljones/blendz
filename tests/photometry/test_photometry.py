@@ -39,13 +39,23 @@ class TestPhotometry(object):
             pass
         assert photo.current_galaxy is None
 
-    def test_slice_index(self):
+    def test_slice_indexAndWarning(self):
         photo = self.loadPhotometry()
         for i in range(photo.num_galaxies):
-            assert photo[i].index == i
+            with pytest.warns(UserWarning):
+                assert photo[i].index == i
             assert photo.current_galaxy is None
 
-    def test_slice_listWarning(self):
+    def test_slice_listAndWarning(self):
         photo = self.loadPhotometry()
         with pytest.warns(UserWarning):
             test = photo[0:2]
+
+    def test_contextManager(self):
+        photo = self.loadPhotometry()
+        for i in range(photo.num_galaxies):
+            assert photo.current_galaxy is None
+            with photo.galaxy(i) as gal:
+                assert gal.index == i
+                assert photo.current_galaxy.index == i
+            assert photo.current_galaxy is None
