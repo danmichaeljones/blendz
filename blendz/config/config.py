@@ -15,9 +15,8 @@ class Configuration(object):
         self.kwargs = kwargs
 
         if config_path is None:
-            default_run_path = join(blendz.RESOURCE_PATH, 'config/defaultRunConfig.txt')
-            default_data_path = join(blendz.RESOURCE_PATH, 'config/defaultDataConfig.txt')
-            self.configs_to_read = [default_run_path, default_data_path]
+            default_path = join(blendz.RESOURCE_PATH, 'config/defaultConfig.txt')
+            self.configs_to_read = default_path
         else:
             self.configs_to_read = config_path
 
