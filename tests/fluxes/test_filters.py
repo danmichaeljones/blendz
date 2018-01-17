@@ -9,7 +9,7 @@ class TestFilters(object):
         default_config = blendz.config.Configuration()
         data_path = join(default_config.resource_path, 'config/testDataConfig.txt')
         run_path = join(default_config.resource_path, 'config/testRunConfig.txt')
-        test_config = blendz.config.Configuration(path=[data_path, run_path])
+        test_config = blendz.config.Configuration(config_path=[data_path, run_path])
         test_filters = blendz.fluxes.Filters(config=test_config)
         return test_filters
 

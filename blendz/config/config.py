@@ -10,19 +10,20 @@ except ImportError:
 import numpy as np
 
 class Configuration(object):
-    def __init__(self, path=None):
+    def __init__(self, config_path=None, **kwargs):
         self.blendz_path = join(dirname(__file__), '..')
         self.resource_path = abspath(join(self.blendz_path, 'resources'))
+        self.kwargs = kwargs
 
-        if path is None:
+        if config_path is None:
             default_run_path = join(self.resource_path, 'config/defaultRunConfig.txt')
             default_data_path = join(self.resource_path, 'config/defaultDataConfig.txt')
             self.configs_to_read = [default_run_path, default_data_path]
         else:
-            self.configs_to_read = path
+            self.configs_to_read = config_path
 
         self.readConfig()
-        self.convertValuesFromString()
+        self.saveAndConvertValues()
 
     def readConfig(self):
         self.config = ConfigParser.SafeConfigParser()
@@ -30,30 +31,48 @@ class Configuration(object):
         self.config.set('DEFAULT', 'resource_path', self.resource_path)
         self.config.read(self.configs_to_read)
 
-    def convertValuesFromString(self):
+    def maybeGet(self, section, key):
+        if key in self.kwargs:
+            return self.kwargs[key]
+        else:
+            return self.config.get(section, key)
+
+    def maybeGetFloat(self, section, key):
+        if key in self.kwargs:
+            return float(self.kwargs[key])
+        else:
+            return self.config.getfloat(section, key)
+
+    def maybeGetInt(self, section, key):
+        if key in self.kwargs:
+            return int(self.kwargs[key])
+        else:
+            return self.config.getint(section, key)
+
+    def saveAndConvertValues(self):
         #Run config
-        self._z_lo = self.config.getfloat('Run', 'z_lo')
-        self._z_hi = self.config.getfloat('Run', 'z_hi')
-        self._z_len = self.config.getint('Run', 'z_len')
-        self._template_set = self.config.get('Run', 'template_set')
-        self._template_set_path = self.config.get('Run', 'template_set_path')
-        self.ref_mag_hi = self.config.getfloat('Run', 'ref_mag_hi')
-        self.ref_mag_lo = self.config.getfloat('Run', 'ref_mag_lo')
+        self._z_lo = self.maybeGetFloat('Run', 'z_lo')
+        self._z_hi = self.maybeGetFloat('Run', 'z_hi')
+        self._z_len = self.maybeGetInt('Run', 'z_len')
+        self._template_set = self.maybeGet('Run', 'template_set')
+        self._template_set_path = self.maybeGet('Run', 'template_set_path')
+        self.ref_mag_hi = self.maybeGetFloat('Run', 'ref_mag_hi')
+        self.ref_mag_lo = self.maybeGetFloat('Run', 'ref_mag_lo')
 
         #Data config
-        self.data_path = self.config.get('Data', 'data_path')
-        self.mag_cols = [int(i) for i in self.config.get('Data', 'mag_cols').split(',')]
-        self.sigma_cols = [int(i) for i in self.config.get('Data', 'sigma_cols').split(',')]
-        self._ref_band = self.config.getint('Data', 'ref_band')
+        self.data_path = self.maybeGet('Data', 'data_path')
+        self.mag_cols = [int(i) for i in self.maybeGet('Data', 'mag_cols').split(',')]
+        self.sigma_cols = [int(i) for i in self.maybeGet('Data', 'sigma_cols').split(',')]
+        self._ref_band = self.maybeGetInt('Data', 'ref_band')
         #If spec_z_col is None, this gives ValueError, so set to None if it does
         try:
-            self.spec_z_col = self.config.getint('Data', 'spec_z_col')
+            self.spec_z_col = self.maybeGetInt('Data', 'spec_z_col')
         except ValueError:
             self.spec_z_col = None
-        self.filter_path = self.config.get('Data', 'filter_path')
-        self.filter_file_extension = self.config.get('Data', 'filter_file_extension')
-        self.filters = [f.strip() for f in self.config.get('Data', 'filters').split(',')]
-        self.zero_point_errors = np.array([float(i) for i in self.config.get('Data', 'zero_point_errors').split(',')])
+        self.filter_path = self.maybeGet('Data', 'filter_path')
+        self.filter_file_extension = self.maybeGet('Data', 'filter_file_extension')
+        self.filters = [f.strip() for f in self.maybeGet('Data', 'filters').split(',')]
+        self.zero_point_errors = np.array([float(i) for i in self.maybeGet('Data', 'zero_point_errors').split(',')])
 
 
     #Derived attiribute -> property for ref_band and non_ref_bands indices
