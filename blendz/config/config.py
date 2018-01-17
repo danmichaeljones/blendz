@@ -10,38 +10,19 @@ except ImportError:
 import numpy as np
 
 class Configuration(object):
-    def __init__(self, data_config_path=None, run_config_path=None, combined_config_path=None):
+    def __init__(self, path=None):
         self.blendz_path = join(dirname(__file__), '..')
         self.resource_path = abspath(join(self.blendz_path, 'resources'))
 
-        self.getConfigPaths(data_config_path, run_config_path, combined_config_path)
+        if path is None:
+            default_run_path = join(self.resource_path, 'config/defaultRunConfig.txt')
+            default_data_path = join(self.resource_path, 'config/defaultDataConfig.txt')
+            self.configs_to_read = [default_run_path, default_data_path]
+        else:
+            self.configs_to_read = path
+
         self.readConfig()
         self.convertValuesFromString()
-        #self.setDerivedValues()
-
-    def getConfigPaths(self, data_config_path=None, run_config_path=None, combined_config_path=None):
-        #Allow for either one combined config file, or split into run settings and data settings
-        if combined_config_path is not None:
-            #Warn user  if they try to set all three config paths - only combined is used in that case
-            if (run_config_path is not None) or (data_config_path is not None):
-                warnings.warn('Reading from the combined configuration file only. \
-                               Ignoring the run and data configuration files, even \
-                               though at least one of them has been set.')
-
-            self.combined_config_path = combined_config_path
-            self.configs_to_read = [self.combined_config_path]
-        #Two-config-files case - If nothing is set, we use the two default config files
-        else:
-            self.combined_config_path = combined_config_path
-            if run_config_path is None:
-                self.run_config_path = join(self.resource_path, 'config/defaultRunConfig.txt')
-            else:
-                self.run_config_path = run_config_path
-            if data_config_path is None:
-                self.data_config_path = join(self.resource_path, 'config/defaultDataConfig.txt')
-            else:
-                self.data_config_path = data_config_path
-            self.configs_to_read = [self.run_config_path, self.data_config_path]
 
     def readConfig(self):
         self.config = ConfigParser.SafeConfigParser()
