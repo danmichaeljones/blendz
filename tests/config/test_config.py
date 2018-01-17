@@ -1,5 +1,6 @@
 from builtins import *
 from os.path import join
+import numpy as np
 import blendz
 
 
@@ -36,8 +37,27 @@ class TestConfiguration(object):
         cfg2 = self.loadConfig()
         assert cfg1 == cfg2
 
-    def test_eq_notEqual(self):
+    def test_eq_notEqualSameClass(self):
         cfg1 = self.loadConfig()
         cfg2 = self.loadConfig()
         cfg2.z_len = cfg1.z_len + 1
         assert cfg1 != cfg2
+
+    def test_eq_notEqualDifferentClass(self):
+        cfg1 = self.loadConfig()
+        cfg2 = [1,2,3]
+        assert cfg1 != cfg2
+
+    def test_redshift_grid_start(self):
+        cfg = self.loadConfig()
+        grid = cfg.redshift_grid
+        assert np.all(grid == np.linspace(cfg.z_lo, cfg.z_hi, cfg.z_len))
+
+    def test_redshift_grid_change(self):
+        cfg = self.loadConfig()
+        cfg.z_lo = cfg.z_lo + 1
+        cfg.z_hi = cfg.z_hi + 1
+        cfg.z_len = cfg.z_len + 1
+
+        grid = cfg.redshift_grid
+        assert np.all(grid == np.linspace(cfg.z_lo, cfg.z_hi, cfg.z_len))
