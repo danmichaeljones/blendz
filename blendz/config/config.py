@@ -67,7 +67,7 @@ class Configuration(object):
         #If spec_z_col is None, this gives ValueError, so set to None if it does
         try:
             self.spec_z_col = self.config.getint('Data', 'spec_z_col')
-        except:
+        except ValueError:
             self.spec_z_col = None
         self.filter_path = self.config.get('Data', 'filter_path')
         self.filter_file_extension = self.config.get('Data', 'filter_file_extension')
@@ -187,3 +187,7 @@ class Configuration(object):
                     all_true *= np.all(self.__dict__[key] == other.__dict__[key])
             #return self.__dict__ == other.__dict__
             return all_true
+
+    def __ne__(self, other):
+        #https://stackoverflow.com/a/30676267
+        return not self == other
