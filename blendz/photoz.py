@@ -13,7 +13,7 @@ from blendz.model import BPZ
 from blendz.utilities import incrementCount
 
 
-class PhotozMag(object):
+class Photoz(object):
     def __init__(self, model=None, photometry=None, config=None,\
                  load_state_path=None, sort_redshifts=True):
         if load_state_path is not None:
