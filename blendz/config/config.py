@@ -11,66 +11,147 @@ import numpy as np
 import blendz
 
 class Configuration(object):
-    def __init__(self, config_path=None, **kwargs):
+    def __init__(self, config_path=None, fallback_to_default=True, **kwargs):
         self.kwargs = kwargs
 
-        if config_path is None:
-            default_path = join(blendz.RESOURCE_PATH, 'config/defaultConfig.txt')
-            self.configs_to_read = default_path
+        if fallback_to_default:
+            self.configs_to_read = [join(blendz.RESOURCE_PATH, 'config/defaultConfig.txt')]
         else:
-            self.configs_to_read = config_path
+            self.configs_to_read = []
+        #Add (maybe list of) user configs onto list to read
+        if config_path is not None:
+            if isinstance(config_path, list):
+                self.configs_to_read.extend(config_path)
+            else:
+                self.configs_to_read.append(config_path)
 
         self.readConfig()
         self.saveAndConvertValues()
 
     def readConfig(self):
+        '''
+        Set up the configparser and read the configuration file from disk. The
+        default file is read first then (optionally) overwritten by a user
+        supplied configuration.
+        '''
         self.config = ConfigParser.SafeConfigParser()
         #Add the resourse_path to the ConfigParser so that it can be referenced in the config files
         self.config.set('DEFAULT', 'resource_path', blendz.RESOURCE_PATH)
         self.config.read(self.configs_to_read)
 
-    def maybeGet(self, section, key):
+    def maybeGet(self, section, key, typeFn):
+        '''
+        Return a setting `key` from section `section`, where `typeFn` converts
+        a string into the desired type. Settings are checked for first in the
+        keyword arguments to the Configuration class, and then read from
+        configuration files.
+        '''
         if key in self.kwargs:
-            return self.kwargs[key]
+            return typeFn(self.kwargs[key])
         else:
-            return self.config.get(section, key)
+            return typeFn(self.config.get(section, key))
 
-    def maybeGetFloat(self, section, key):
+    def maybeGetList(self, section, key, typeFn):
+        '''
+        Return a setting `key` from section `section`, where the setting is a
+        list values of a single type, and `typeFn` converts a string into that
+        desired type. Settings are checked for first in the keyword arguments
+        to the Configuration class, and then read from configuration files.
+        '''
         if key in self.kwargs:
-            return float(self.kwargs[key])
+            return [typeFn(v) for v in self.kwargs[key]]
         else:
-            return self.config.getfloat(section, key)
-
-    def maybeGetInt(self, section, key):
-        if key in self.kwargs:
-            return int(self.kwargs[key])
-        else:
-            return self.config.getint(section, key)
+            return [typeFn(v.strip()) for v in self.config.get(section, key).split(',')]
 
     def saveAndConvertValues(self):
         #Run config
-        self._z_lo = self.maybeGetFloat('Run', 'z_lo')
-        self._z_hi = self.maybeGetFloat('Run', 'z_hi')
-        self._z_len = self.maybeGetInt('Run', 'z_len')
-        self._template_set = self.maybeGet('Run', 'template_set')
-        self._template_set_path = self.maybeGet('Run', 'template_set_path')
-        self.ref_mag_hi = self.maybeGetFloat('Run', 'ref_mag_hi')
-        self.ref_mag_lo = self.maybeGetFloat('Run', 'ref_mag_lo')
+        try:
+            self._z_lo = self.maybeGet('Run', 'z_lo', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self._z_hi = self.maybeGet('Run', 'z_hi', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self._z_len = self.maybeGet('Run', 'z_len', int)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self._template_set = self.maybeGet('Run', 'template_set', str)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self._template_set_path = self.maybeGet('Run', 'template_set_path', str)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.ref_mag_hi = self.maybeGet('Run', 'ref_mag_hi', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.ref_mag_lo = self.maybeGet('Run', 'ref_mag_lo', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
 
         #Data config
-        self.data_path = self.maybeGet('Data', 'data_path')
-        self.mag_cols = [int(i) for i in self.maybeGet('Data', 'mag_cols').split(',')]
-        self.sigma_cols = [int(i) for i in self.maybeGet('Data', 'sigma_cols').split(',')]
-        self._ref_band = self.maybeGetInt('Data', 'ref_band')
+        try:
+            self.data_path = self.maybeGet('Data', 'data_path', str)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            #self.mag_cols = [int(i) for i in self.maybeGet('Data', 'mag_cols').split(',')]
+            self.mag_cols = self.maybeGetList('Data', 'mag_cols', int)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            #self.sigma_cols = [int(i) for i in self.maybeGet('Data', 'sigma_cols').split(',')]
+            self.sigma_cols = self.maybeGetList('Data', 'sigma_cols', int)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self._ref_band = self.maybeGet('Data', 'ref_band', int)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
         #If spec_z_col is None, this gives ValueError, so set to None if it does
         try:
-            self.spec_z_col = self.maybeGetInt('Data', 'spec_z_col')
-        except ValueError:
+            self.spec_z_col = self.maybeGet('Data', 'spec_z_col', int)
+        except TypeError:
             self.spec_z_col = None
-        self.filter_path = self.maybeGet('Data', 'filter_path')
-        self.filter_file_extension = self.maybeGet('Data', 'filter_file_extension')
-        self.filters = [f.strip() for f in self.maybeGet('Data', 'filters').split(',')]
-        self.zero_point_errors = np.array([float(i) for i in self.maybeGet('Data', 'zero_point_errors').split(',')])
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.filter_path = self.maybeGet('Data', 'filter_path', str)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.filter_file_extension = self.maybeGet('Data', 'filter_file_extension', str)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            #self.filters = [f.strip() for f in self.maybeGet('Data', 'filters').split(',')]
+            self.filters = self.maybeGetList('Data', 'filters', str)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            #self.zero_point_errors = np.array([float(i) for i in self.maybeGet('Data', 'zero_point_errors').split(',')])
+            self.zero_point_errors = np.array(self.maybeGetList('Data', 'zero_point_errors', float))
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
 
 
     #Derived attiribute -> property for ref_band and non_ref_bands indices
@@ -176,14 +257,27 @@ class Configuration(object):
         Check for equality of configurations. This will return True if all the settings are the
         same in both configurations, even if they are different objects.
         '''
+        no_check = ['config', 'configs_to_read', 'kwargs']
         if self.__class__ != other.__class__:
             return False
         else:
             all_true = True
             for key in self.__dict__:
-                if key != 'config':
-                    all_true *= np.all(self.__dict__[key] == other.__dict__[key])
-            #return self.__dict__ == other.__dict__
+                if key not in no_check:
+                    try:
+                        all_true *= np.all(self.__dict__[key] == other.__dict__[key])
+                    except KeyError:
+                        #KeyError means a setting in self is not in other, so we
+                        #know that the configs aren't equal.
+                        all_true = False
+            for key in other.__dict__:
+                if key not in no_check:
+                    try:
+                        all_true *= np.all(self.__dict__[key] == other.__dict__[key])
+                    except KeyError:
+                        #KeyError means a setting in self is not in other, so we
+                        #know that the configs aren't equal.
+                        all_true = False
             return all_true
 
     def __ne__(self, other):
