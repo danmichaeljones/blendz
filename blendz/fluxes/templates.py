@@ -3,14 +3,16 @@ from os.path import join
 import warnings
 import numpy as np
 from scipy.interpolate import interp1d
-from blendz.config import _config
+from blendz import Configuration
 
 class Templates(object):
-    def __init__(self, config=None):
-        if config is None:
-            self.config = _config
-        else:
+    def __init__(self, config=None, **kwargs):
+        if config is not None:
             self.config = config
+        else:
+            self.config = Configuration()
+        self.config.update(kwargs)
+
         self.template_dict = self.config.template_dict
         self.num_templates = len(self.template_dict)
         self.possible_types = set(tmp['type'] for tmp in self.template_dict.values())

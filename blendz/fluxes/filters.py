@@ -1,14 +1,16 @@
 from builtins import *
 from os.path import join
 import numpy as np
-from blendz.config import _config
+from blendz import Configuration
 
 class Filters(object):
-    def __init__(self, config=None):
-        if config is None:
-            self.config = _config
-        else:
+    def __init__(self, config=None, **kwargs):
+        if config is not None:
             self.config = config
+        else:
+            self.config = Configuration()
+        self.config.update(kwargs)
+
         self.filter_path = self.config.filter_path
         self.filter_names = self.config.filters
         self.file_extension = self.config.filter_file_extension
