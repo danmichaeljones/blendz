@@ -3,7 +3,7 @@ from os.path import join
 import blendz
 
 
-class TestPhotozMag(object):
+class TestPhotoz(object):
     def loadConfig(self):
         data_path = join(blendz.RESOURCE_PATH, 'config/testDataConfig.txt')
         run_path = join(blendz.RESOURCE_PATH, 'config/testRunConfig.txt')
