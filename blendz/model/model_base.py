@@ -7,11 +7,11 @@ if sys.version_info >= (3, 4):
     ABC_meta = abc.ABC
 else:
     ABC_meta = abc.ABCMeta('ABC', (), {})
-from blendz.config import _config
+from blendz import Configuration
 from blendz.fluxes import Responses
 
 class ModelBase(ABC_meta):
-    def __init__(self, responses=None, config=None):
+    def __init__(self, responses=None, config=None, **kwargs):
         #Warn user is config and responses given that config ignored
         if ((responses is not None) and (config is not None)):
             warnings.warn("""A configuration was provided to Model object
@@ -28,7 +28,8 @@ class ModelBase(ABC_meta):
             if config is not None:
                 self.config = config
             else:
-                self.config = _config
+                self.config = Configuration()
+            self.config.update(kwargs)
             self.responses = Responses(config=self.config)
 
     @abc.abstractmethod
