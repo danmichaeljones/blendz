@@ -12,5 +12,5 @@ class TestPhotoz(object):
 
     def test_sample(self):
         test_config = self.loadConfig()
-        pz = blendz.PhotozMag(config=test_config)
+        pz = blendz.Photoz(config=test_config)
         pz.sample(1, galaxy=0)
