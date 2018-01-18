@@ -17,7 +17,7 @@ class TestConfiguration(object):
                                 join(blendz.RESOURCE_PATH, 'config/testComboConfig.txt'))
 
         made_config = blendz.config.Configuration(
-                        data_path=join(blendz.RESOURCE_PATH, 'data/path/bpz/UDFtest.cat'),
+                        data_path=join(blendz.RESOURCE_PATH, 'data/bpz/UDFtest.cat'),
                         mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
                         spec_z_col=None, ref_band=2, filter_file_extension='.res',
                         filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
