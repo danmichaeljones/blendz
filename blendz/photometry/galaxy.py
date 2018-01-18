@@ -1,7 +1,6 @@
 from builtins import *
 import numpy as np
 
-#TODO : Use a generic config file in galaxies, not just the default
 
 class Galaxy(object):
     def __init__(self, mag_data, mag_sigma, config, zero_point_frac, index):
@@ -44,11 +43,6 @@ class Galaxy(object):
         self.flux_sigma = np.where(seen, np.sqrt(self.flux_sigma*self.flux_sigma+(self.zero_point_frac*self.flux_data)**2.), self.flux_sigma)[0]
         #Handle objects not seen differently to observed objects
         self.flux_sigma = np.where(notSeen, np.sqrt(self.flux_sigma*self.flux_sigma+(self.zero_point_frac*(self.flux_sigma/2.))**2), self.flux_sigma)[0]
-
-        #Calculate colours
-        #TODO: Check the colour sigmas!!!
-        self.colour_data = self.flux_data / self.flux_data[self.config.ref_band]
-        self.colour_sigma = self.flux_sigma / self.flux_data[self.config.ref_band]
 
         #Create attribute for the flux in the reference band
         self.ref_flux_data = self.flux_data[self.config.ref_band]
