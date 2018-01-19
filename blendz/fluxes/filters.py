@@ -4,6 +4,9 @@ import numpy as np
 from blendz import Configuration
 
 class Filters(object):
+    '''
+    Definitions of the photometric filter bands observations have been made with. 
+    '''
     def __init__(self, config=None, **kwargs):
         self.config = Configuration(**kwargs)
         if config is not None:

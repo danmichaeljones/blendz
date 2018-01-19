@@ -11,7 +11,16 @@ import numpy as np
 import blendz
 from blendz.config import DefaultConfiguration
 
+
+'''
+Config class description text.
+'''
+
 class Configuration(DefaultConfiguration):
+    '''
+    Container for every setting.
+    '''
+
     def __init__(self, config_path=None, fallback_to_default=True, **kwargs):
         super(Configuration, self).__init__()
         self.default = DefaultConfiguration()
@@ -35,12 +44,14 @@ class Configuration(DefaultConfiguration):
     def mergeFromOther(self, other_config, overwrite_default_settings=True,
                        overwrite_any_setting=False):
         '''
-        Merge another configuration object into this one. If a setting in the
-        other object is not in this one, it is always merged. If it is, whether
-        is is merged or not is controlled by `overwrite_default_settings` or
-        `overwrite_nondefault_settings`, depending on whether the setting in
-        this object is currently set to the default value. If a setting is in
-        both objects but the other is a default, a merge is not attempted.
+        Safely merge another configuration object into this one.
+
+        If a setting in the other object is not in this one, it is always merged.
+        If it is, whether is is merged or not is controlled by
+        `overwrite_default_settings` or `overwrite_nondefault_settings`,
+        depending on whether the setting in this object is currently set to
+        the default value. If a setting is in both objects but the other is a
+        default, a merge is not attempted.
         '''
         no_compare = ['config', 'configs_to_read', 'kwargs', 'default']
         if self.default != other_config.default:
