@@ -6,7 +6,7 @@ import numpy as np
 import nestle
 from tqdm import tqdm
 import dill
-from blendz.config import _config
+from blendz import Configuration
 from blendz.fluxes import Responses
 from blendz.photometry import Photometry, SimulatedPhotometry
 from blendz.model import BPZ
@@ -15,7 +15,7 @@ from blendz.utilities import incrementCount
 
 class Photoz(object):
     def __init__(self, model=None, photometry=None, config=None,\
-                 load_state_path=None, sort_redshifts=True):
+                 load_state_path=None, sort_redshifts=True, **kwargs):
         if load_state_path is not None:
             self.loadState(load_state_path)
         else:
@@ -28,32 +28,31 @@ class Photoz(object):
                                 provided will be ignored.""")
             #Responses and photometry given, just check if configs are equal
             if (model is not None) and (photometry is not None):
-                if model.config == photometry.config:
-                    self.model = model
-                    self.config = self.model.config
-                    self.responses = self.model.responses
-                    self.photometry = photometry
-                else:
-                    raise ValueError('Configuration of responses and photometry must be the same.')
+                self.config = Configuration(**kwargs)
+                self.config.mergeFromOther(model.config)
+                self.model = model
+                self.responses = self.model.responses
+                self.photometry = photometry
             #Only responses given, use its config to load photometry
             elif (model is not None) and (photometry is None):
+                self.config = Configuration(**kwargs)
+                self.config.mergeFromOther(model.config)
                 self.model = model
-                self.config = self.model.config
                 self.responses = self.model.responses
                 self.photometry = Photometry(config=self.config)
             #Only photometry given, use its config to load responses
             elif (model is None) and (photometry is not None):
-                self.config = photometry.config
+                self.config = Configuration(**kwargs)
+                self.config.mergeFromOther(photometry.config)
                 self.photometry = photometry
                 self.model = BPZ(config=self.config)
                 self.responses = self.model.responses
             #Neither given, load both from provided (or default, if None) config
             else:
-                if config is None:
-                    warnings.warn('USING DEFAULT CONFIG IN PHOTOMETRY, USE THIS FOR TESTING PURPOSES ONLY!')
-                    self.config = _config
-                else:
-                    self.config = config
+                self.config = Configuration(**kwargs)
+                if config is not None:
+                    self.config.mergeFromOther(config)
+
                 self.model = BPZ(config=self.config)
                 self.responses = self.model.responses
                 self.photometry = Photometry(config=self.config)

@@ -22,13 +22,12 @@ class ModelBase(ABC_meta):
         if responses is not None:
             self.responses = responses
             self.config = self.responses.config
-        #Otherwise use config to create a responses object,
-        #loading from default if no config given
+        #Otherwise use config to create a responses object
         else:
+            self.config = Configuration(**kwargs)
             if config is not None:
-                self.config = config
-            else:
-                self.config = Configuration(**kwargs)
+                self.config.mergeFromOther(config)
+
             self.responses = Responses(config=self.config)
 
     @abc.abstractmethod

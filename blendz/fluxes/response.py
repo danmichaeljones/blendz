@@ -2,12 +2,12 @@ from builtins import *
 import warnings
 import numpy as np
 from scipy.interpolate import interp1d
-from blendz.config import _config
+from blendz import Configuration
 from blendz.fluxes import Templates
 from blendz.fluxes import Filters
 
 class Responses(object):
-    def __init__(self, templates=None, filters=None, config=None):
+    def __init__(self, templates=None, filters=None, config=None, **kwargs):
         #Warn user is config and either/or templates given that config ignored
         if ((templates is not None and config is not None) or
                 (filters is not None and config is not None)):
@@ -15,30 +15,31 @@ class Responses(object):
                             as well as a Template/Filter object, though these
                             should be mutually exclusive. The configuration
                             provided will be ignored.""")
-        #Both templates and filters given, just check if configs are equal
+        #Both templates and filters given, merge with default+kwargs
         if (templates is not None) and (filters is not None):
-            if templates.config == filters.config:
-                self.config = filters.config
-                self.templates = templates
-                self.filters = filters
-            else:
-                raise ValueError('Configuration of templates and filters must be the same.')
-        #Templates given but filters not, load filters using templates config
+            self.config = Configuration(**kwargs)
+            self.config.mergeFromOther(templates.config)
+            self.config.mergeFromOther(filters.config)
+            self.templates = templates
+            self.filters = filters
+        #Templates given but filters not, load filters using default+kwargs+templates config
         elif (templates is not None) and (filters is None):
-            self.config = templates.config
+            self.config = Configuration(**kwargs)
+            self.config.mergeFromOther(templates.config)
             self.templates = templates
             self.filters = Filters(config=self.config)
-        #Filters given but templates not, load templates using filters config
+        #Filters given but templates not, load templates using default+kwargs+filters config
         elif (templates is None) and (filters is not None):
-            self.config = filters.config
+            self.config = Configuration(**kwargs)
+            self.config.mergeFromOther(filters.config)
             self.filters = filters
             self.templates = Templates(config=self.config)
         #Neither given, load both from provided (or default, if None) config
         else:
-            if config is None:
-                self.config = _config
-            else:
-                self.config = config
+            self.config = Configuration(**kwargs)
+            if config is not None:
+                self.config.mergeFromOther(config)
+
             self.templates = Templates(config=self.config)
             self.filters = Filters(config=self.config)
 

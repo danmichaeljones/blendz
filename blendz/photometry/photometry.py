@@ -8,10 +8,9 @@ class Photometry(PhotometryBase):
     def __init__(self, config=None, **kwargs):
         super(Photometry, self).__init__()
 
+        self.config = Configuration(**kwargs)
         if config is not None:
-            self.config = config
-        else:
-            self.config = Configuration(**kwargs)
+            self.config.mergeFromOther(config)
 
         self.data_path = self.config.data_path
         self.zero_point_errors = self.config.zero_point_errors

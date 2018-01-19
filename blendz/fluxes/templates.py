@@ -7,10 +7,9 @@ from blendz import Configuration
 
 class Templates(object):
     def __init__(self, config=None, **kwargs):
+        self.config = Configuration(**kwargs)
         if config is not None:
-            self.config = config
-        else:
-            self.config = Configuration(**kwargs)
+            self.config.mergeFromOther(config)
 
         self.template_dict = self.config.template_dict
         self.num_templates = len(self.template_dict)

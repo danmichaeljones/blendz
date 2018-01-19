@@ -5,10 +5,9 @@ from blendz import Configuration
 
 class Filters(object):
     def __init__(self, config=None, **kwargs):
+        self.config = Configuration(**kwargs)
         if config is not None:
-            self.config = config
-        else:
-            self.config = Configuration(**kwargs)
+            self.config.mergeFromOther(config)
 
         self.filter_path = self.config.filter_path
         self.filter_names = self.config.filters
