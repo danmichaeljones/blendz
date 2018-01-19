@@ -1,14 +1,8 @@
-Welcome to blendz's documentation!
-==================================
+.. include:: ../../README.rst
 
-Section
---------
 
-This is a paragraph.
-
-This is another.
-
-And this is a third.
+Documentation Contents
+----------------------
 
 .. toctree::
    :maxdepth: 3
