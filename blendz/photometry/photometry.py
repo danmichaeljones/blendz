@@ -11,8 +11,7 @@ class Photometry(PhotometryBase):
         if config is not None:
             self.config = config
         else:
-            self.config = Configuration()
-        self.config.update(kwargs)
+            self.config = Configuration(**kwargs)
 
         self.data_path = self.config.data_path
         self.zero_point_errors = self.config.zero_point_errors

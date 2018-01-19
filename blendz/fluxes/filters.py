@@ -8,8 +8,7 @@ class Filters(object):
         if config is not None:
             self.config = config
         else:
-            self.config = Configuration()
-        self.config.update(kwargs)
+            self.config = Configuration(**kwargs)
 
         self.filter_path = self.config.filter_path
         self.filter_names = self.config.filters

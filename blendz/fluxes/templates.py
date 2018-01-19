@@ -10,8 +10,7 @@ class Templates(object):
         if config is not None:
             self.config = config
         else:
-            self.config = Configuration()
-        self.config.update(kwargs)
+            self.config = Configuration(**kwargs)
 
         self.template_dict = self.config.template_dict
         self.num_templates = len(self.template_dict)

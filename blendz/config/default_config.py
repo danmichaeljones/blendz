@@ -19,23 +19,6 @@ class DefaultConfiguration(object):
         self.readConfigFiles()
         self.saveAndConvertValues()
 
-    def update(self, new_settings):
-        '''
-        Update the current configuration with a dictionary.
-        If `config_path` is given, read settings from that. Any new settings
-        will override previous settings, even if they were not defaults.
-        '''
-        #Check whether one of the new settings is a new config file to read
-        if 'config_path' in new_settings:
-            if isinstance(new_settings['config_path'], list):
-                self.configs_to_read.extend(new_settings['config_path'])
-            else:
-                self.configs_to_read.append(new_settings['config_path'])
-            self.readConfigFiles()
-
-        self.kwargs.update(new_settings)
-        self.saveAndConvertValues()
-
     def readConfigFiles(self):
         '''
         Set up the configparser and read the configuration file from disk. The

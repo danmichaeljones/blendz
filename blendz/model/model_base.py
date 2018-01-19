@@ -28,8 +28,7 @@ class ModelBase(ABC_meta):
             if config is not None:
                 self.config = config
             else:
-                self.config = Configuration()
-            self.config.update(kwargs)
+                self.config = Configuration(**kwargs)
             self.responses = Responses(config=self.config)
 
     @abc.abstractmethod
