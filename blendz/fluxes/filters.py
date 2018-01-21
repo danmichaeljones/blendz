@@ -4,9 +4,19 @@ import numpy as np
 from blendz import Configuration
 
 class Filters(object):
-    '''
-    Definitions of the photometric filter bands observations have been made with. 
-    '''
+    """Definitions of the photometric filter bands observations have been made with.
+
+    More description of filters would presumably go here.
+
+    Args:
+        config (blendz.Configuratio): Description of parameter `config`. Defaults to None.
+        
+        kwargs : Description of parameter `kwargs`.
+
+    Returns:
+        type: Description of returned object.
+
+    """
     def __init__(self, config=None, **kwargs):
         self.config = Configuration(**kwargs)
         if config is not None:

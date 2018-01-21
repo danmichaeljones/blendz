@@ -5,7 +5,9 @@ Documentation Contents
 ----------------------
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 1
 
-   intro
+   gettingStarted/gettingStarted
+   settingConfig/settingConfig
+   allOptions
    api

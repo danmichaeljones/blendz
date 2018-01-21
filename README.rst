@@ -7,15 +7,30 @@ blendz
     :target: https://arxiv.org/abs/1234.5678
 
 
-This is a paragraph.
+``blendz`` is a python module for estimating photometric redshifts of (possibly)
+blended sources.
 
-This is another.
 
-And this is a third.
 
+Installation
+------------
+
+``blendz`` can be installed from the command line using  `pip <http://www.pip-installer.org/>`_:
+
+.. code:: bash
+
+    >> pip install blendz
+
+To download from source instead, clone `the repository <https://github.com/danmichaeljones/blendz>`_ and install from there:
+
+.. code:: bash
+
+    >> git clone https://github.com/danmichaeljones/blendz.git
+    >> cd blendz
+    >> python setup.py install
 
 Citation
-----------
+--------
 
 If you use this code in your research, please attribute `this paper <https://arxiv.org/abs/1234.5678>`_:
 

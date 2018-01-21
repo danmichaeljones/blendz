@@ -41,6 +41,16 @@ extensions = [
 #https://stackoverflow.com/a/28778969
 suppress_warnings = ['image.nonlocal_uri']
 
+#Wrap tables to prevent very vide columns
+# https://rackerlabs.github.io/docs-rackspace/tools/rtd-tables.html
+html_static_path = ['_static']
+html_context = {
+    'css_files': [
+        '_static/theme_overrides.css',  # override wide tables in RTD theme
+        ],
+     }
+
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 
