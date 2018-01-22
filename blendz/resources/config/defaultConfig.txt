@@ -1,6 +1,7 @@
 [Data]
 
 filter_path = %(resource_path)s/filters/bpz
+spec_z_col = None
 
 [Run]
 
