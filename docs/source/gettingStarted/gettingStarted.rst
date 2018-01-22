@@ -17,6 +17,7 @@ The simplest way to use ``blendz`` is to create a ``Photoz`` object.
                        sigma_cols = [2, 4, 6, 8, 10, 12],
                        ref_band = 2, ref_mag_lo = 20, ref_mag_hi = 32,
                        zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
+                       template_set='BPZ6',
                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', \
                                 'HST_ACS_WFC_F775W', 'HST_ACS_WFC_F850LP', \
                                 'nic3_f110w', 'nic3_f160w'])

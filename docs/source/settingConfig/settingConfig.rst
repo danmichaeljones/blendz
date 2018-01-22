@@ -36,8 +36,10 @@ keyword arguments:
                                         sigma_cols = [23, 25, 27, 29, 31, 33],
                                         ref_band = 2,
                                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
-                                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
-                                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'])
+                                        template_set='BPZ8',
+                                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', \
+                                                 'HST_ACS_WFC_F775W', 'HST_ACS_WFC_F850LP', \
+                                                 'nic3_f110w', 'nic3_f160w'])
 
 
 
@@ -96,3 +98,4 @@ An example of a configuration file (leaving some settings as default) is given b
   z_hi = 2
   ref_mag_lo = 20
   ref_mag_hi = 32
+  template_set = BPZ6

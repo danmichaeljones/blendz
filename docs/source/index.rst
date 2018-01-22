@@ -9,7 +9,9 @@ Documentation Contents
 
    gettingStarted/gettingStarted
    settingConfig/settingConfig
+   sampleResults
    specifyFilters
    specifyTemplates
    allOptions
+   newPriors
    api
