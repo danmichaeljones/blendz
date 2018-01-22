@@ -66,7 +66,7 @@ class Configuration(DefaultConfiguration):
                     if key in other_config.default.__dict__:
                         self.default.__dict__[key] = other_config.default.__dict__[key]
                 #If they're already equal it doesn't matter
-                elif self.__dict__[key] = other_config.__dict__[key]:
+                elif self.__dict__[key] == other_config.__dict__[key]:
                     continue
                 #Prevent error if other_config is a default setting and is
                 #different to one already here (don't overwrite with defaults)
