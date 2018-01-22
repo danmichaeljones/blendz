@@ -34,7 +34,8 @@ extensions = [
     'sphinx.ext.autodoc',
 #    'sphinx.ext.autosummary',
     'sphinx.ext.mathjax',
-    'sphinx.ext.viewcode']
+    'sphinx.ext.viewcode',
+    'sphinx.ext.intersphinx']
 #autosummary_generate = False
 
 #Don't complain about images from web

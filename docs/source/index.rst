@@ -9,5 +9,7 @@ Documentation Contents
 
    gettingStarted/gettingStarted
    settingConfig/settingConfig
+   specifyFilters
+   specifyTemplates
    allOptions
    api
