@@ -11,22 +11,26 @@ Included templates
 -------------------
 
 The ``blendz`` installation includes the 8 templates from
-`BPZ <http://www.stsci.edu/~dcoe/BPZ/>`_. These can be easily used by setting the
-``template_set`` configuration option to either ``BPZ8`` or ``BPZ6``, where the latter
+`BPZ <http://www.stsci.edu/~dcoe/BPZ/>`_. The ``template_set_path``
+configuration option points to the folder where these are stored by default.
+As a result, these can be easily used by setting the ``template_set`` configuration
+option to either ``BPZ8`` or ``BPZ6``, where the latter
 excludes the two starburst templates added to BPZ by
 `Coe et al. 2006 <http://adsabs.harvard.edu/abs/2006AJ....132..926C>`_.
 
 A set of only a single template can also be specified using one of the following options:
 
+========================            ===========================================
 
-``single/El_B2004a``
-``single/Sbc_B2004a``
-``single/Scd_B2004a``
-``single/Im_B2004a``
-``single/SB2_B2004a``
-``single/SB3_B2004a``
-``single/ssp_5Myr_z008``
-``single/ssp_25Myr_z008``
+``single/El_B2004a``                    ``single/Sbc_B2004a``
+
+``single/Scd_B2004a``                     ``single/Im_B2004a``
+
+``single/SB2_B2004a``                      ``single/SB3_B2004a``
+
+``single/ssp_5Myr_z008``                      ``single/ssp_25Myr_z008``
+
+========================            ===========================================
 
 
 
@@ -54,8 +58,13 @@ An example layout of a template set is given below:
   path = path/to/template1.txt
   type = late
 
-Each template is then specified by a plaintext file of two columns, wavelength (Angstroms) in the
-first, and spectral flux density (in **UNITS**) in the second, separated by whitespace, e.g.
+When using custom templates, the configuration option ``template_set_path`` should point
+to the folder containing your ntemplate set file, and ``template_set`` should be the
+full filename, including the file extension.
+
+Each template refered to in the template set file is then specified by a plaintext
+file of two columns, wavelength (Angstroms) in the first, and spectral flux
+density (in **UNITS**) in the second, separated by whitespace, e.g.
 
 .. code:: ini
 
@@ -70,5 +79,3 @@ first, and spectral flux density (in **UNITS**) in the second, separated by whit
   990.0  0.0355717998991
   1000.0  0.0358573156287
   1010.0  0.0361306346606
-
-  etc ...

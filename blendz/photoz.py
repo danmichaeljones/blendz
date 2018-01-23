@@ -65,7 +65,7 @@ class Photoz(object):
             self.sort_redshifts = sort_redshifts
 
             #Default to assuming single component, present in all measurements
-            self.setMeasurementComponentMapping(None, 1)
+            self._setMeasurementComponentMapping(None, 1)
 
             #Set up empty dictionaries to put results into
             self.sample_results = {}
@@ -76,17 +76,15 @@ class Photoz(object):
                 self.sample_results[g] = {}
                 self.reweighted_samples[g] = {}
 
-
-    def precalculateTemplatePriors(self):
-        self.template_priors = np.zeros((self.num_galaxies, self.num_templates))
-        for gal in self.photometry:
-            for T in range(self.num_templates):
-                tmpType = self.responses.templates.templateType(T)
-                self.template_priors[gal.index, T] = self.lnTemplatePrior(tmpType)
-
     def saveState(self, filepath):
-        #If the photometry is simulated, save the seed as a number rather
-        #than as a generator as that will not pickle
+        """Save this entire Photoz instance to file.
+
+        This saves the exact state of the current object, including all data and any
+        reults from sampling.
+
+        Args:
+            filepath (str): Path to file to save to.
+        """
         if isinstance(self.photometry, SimulatedPhotometry):
             try:
                 current_seed = self.photometry.sim_seed.next()
@@ -115,7 +113,7 @@ class Photoz(object):
             except:
                 warnings.warn('SimulatedPhotometry seed not loaded.')
 
-    def setMeasurementComponentMapping(self, specification, num_components):
+    def _setMeasurementComponentMapping(self, specification, num_components):
         '''
         Construct the measurement-component mapping matrix from the specification.
 
@@ -152,22 +150,22 @@ class Photoz(object):
                 # *OR* on their own, in which case no separation in necessary (like original BPZ case)
                 raise ValueError('The reference band must contain all components.')
 
-    def lnLikelihood_flux(self, model_flux):
+    def _lnLikelihood_flux(self, model_flux):
         chi_sq = -1. * np.sum((self.photometry.current_galaxy.flux_data_noRef - model_flux)**2 / self.photometry.current_galaxy.flux_sigma_noRef**2)
         return chi_sq
 
-    def lnLikelihood_mag(self, total_ref_flux):
+    def _lnLikelihood_mag(self, total_ref_flux):
         #chi_sq = -1. * np.sum((self.photometry.current_galaxy.ref_mag_data - total_ref_mag)**2 / self.photometry.current_galaxy.ref_mag_sigma**2)
         chi_sq = -1. * np.sum((self.photometry.current_galaxy.ref_flux_data - total_ref_flux)**2 / self.photometry.current_galaxy.ref_flux_sigma**2)
         return chi_sq
 
-    def lnPosterior(self, params):
-        nblends = int(len(params) // 2)
-        redshifts = params[:nblends]
-        magnitudes = params[nblends:]
+    def _lnPosterior(self, params):
+        num_components = int(len(params) // 2)
+        redshifts = params[:num_components]
+        magnitudes = params[num_components:]
         #Impose prior conditions
         redshift_positive = np.all(redshifts >= 0.)
-        if nblends>1:
+        if num_components>1:
             #Only need sorting condition if redshifts are exchangable
             # (depends on measurement_component_mapping)
             if self.redshifts_exchangeable:
@@ -190,14 +188,14 @@ class Photoz(object):
             return -np.inf
         else:
             #Precalculate all quantities we'll need in the template loop
-            template_priors = np.zeros((nblends, self.num_templates))
-            redshift_priors = np.zeros((nblends, self.num_templates))
+            template_priors = np.zeros((num_components, self.num_templates))
+            redshift_priors = np.zeros((num_components, self.num_templates))
             #Single interp call -> Shape = (N_template, N_band, N_component)
             model_fluxes = self.responses.interp(redshifts)
 
             for T in range(self.num_templates):
                 tmpType = self.responses.templates.templateType(T)
-                for nb in range(nblends):
+                for nb in range(num_components):
                     template_priors[nb, T] = self.model.lnTemplatePrior(tmpType, magnitudes[nb])
                     redshift_priors[nb, T] = self.model.lnRedshiftPrior(redshifts[nb], tmpType, magnitudes[nb])
             redshift_correlation = np.log(1. + self.model.correlationFunction(redshifts))
@@ -208,13 +206,13 @@ class Photoz(object):
             #All log probabilities so (multiply -> add) and (add -> logaddexp)
             lnProb = -np.inf
 
-            #At each iteration template_combo is a tuple of (T_1, T_2... T_nblends)
-            for template_combo in itr.product(*itr.repeat(range(self.num_templates), nblends)):
+            #At each iteration template_combo is a tuple of (T_1, T_2... T_num_components)
+            for template_combo in itr.product(*itr.repeat(range(self.num_templates), num_components)):
                 #One redshift prior, template prior and model flux for each blend component
                 tmp = 0.
                 blend_flux = np.zeros(self.num_measurements)
                 component_scaling_norm = 0.
-                for nb in range(nblends):
+                for nb in range(num_components):
                     T = template_combo[nb]
                     component_scaling = 10.**(-0.4*magnitudes[nb]) / model_fluxes[T, self.config.ref_band, nb]
                     blend_flux += model_fluxes[T, :, nb] * component_scaling * self.measurement_component_mapping[nb, :]
@@ -237,9 +235,9 @@ class Photoz(object):
 
                 #Other terms only appear once per summation-step
                 tmp += redshift_correlation
-                tmp += self.lnLikelihood_flux(blend_flux)
-                ##tmp += self.lnLikelihood_mag(total_ref_mag)
-                tmp += self.lnLikelihood_mag(total_ref_flux)
+                tmp += self._lnLikelihood_flux(blend_flux)
+                ##tmp += self._lnLikelihood_mag(total_ref_mag)
+                tmp += self._lnLikelihood_mag(total_ref_flux)
                 tmp += joint_magnitude_prior
 
                 #logaddexp contribution from this template to marginalise
@@ -247,23 +245,23 @@ class Photoz(object):
 
             return lnProb
 
-    def priorTransform(self, params): #CHANGE THIS FROM FRACS TO MAGNITUDES!!!!!!!!!!!!!!!!!!!!!!!!!!1
+    def _priorTransform(self, params):
         '''
         Transform params from [0, 1] uniform random to [min, max] uniform random,
         where the min redshift is zero, max redshift is set in the configuration,
         and the min/max magnitudes (numerically, not brightness) are set by configuration.
         '''
-        nblends = int(len(params) // 2)
+        num_components = int(len(params) // 2)
 
         trans = np.ones(len(params))
-        trans[:nblends] = self.config.z_hi
-        trans[nblends:] = self.config.ref_mag_hi - self.config.ref_mag_lo
+        trans[:num_components] = self.config.z_hi
+        trans[num_components:] = self.config.ref_mag_hi - self.config.ref_mag_lo
 
         shift = np.zeros(len(params))
-        shift[nblends:] = self.config.ref_mag_lo
+        shift[num_components:] = self.config.ref_mag_lo
         return (params * trans) + shift
 
-    def sampleProgressUpdate(self, info):
+    def _sampleProgressUpdate(self, info):
         if info['it']%100.==0:
             self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
                                                                                    self.num_galaxies_sampling,
@@ -272,25 +270,48 @@ class Photoz(object):
                                                                                    info['it']))
             self.pbar.refresh()
 
-    def sample(self, nblends, galaxy=None, npoints=150, resample=None, seed=None, colour_likelihood=True, measurement_component_mapping=None):
-        '''
-        nblends should be int, or could be a list so that multiple
-        different nb's can be done and compared for evidence etc.
+    def sample(self, num_components, galaxy=None, resample=10000, seed=None, measurement_component_mapping=None, npoints=150):
+        """Sample the posterior for a particular number of components.
 
-        galaxy should be an int choosing which galaxy of all in photometry
-        to estimate the redshift of. If none, do all of them.
-        '''
-        self.colour_likelihood = colour_likelihood
+        What happens to the results?
 
-        if isinstance(nblends, int):
-            nblends = [nblends]
+        Args:
+            num_components (int):
+                Sample the posterior defined for this number of components in the source.
+
+            galaxy (int or None):
+                Index of the galaxy to sample. If None, sample every galaxy in the
+                photometry. Defaults to None.
+
+            resample (int or None):
+                Number of non-weighted samples to sample from the weighted samples
+                distribution from Nested Sampling. Defaults to 10000.
+
+            seed (bool or int):
+                Random seed for sampling to ensure deterministic results when
+                ampling again. If False, do not seed. If True, seed with value
+                derived from galaxy index. If int, seed with specific value.
+
+            measurement_component_mapping (None or list of tuples):
+                If None, sample from the fully blended posterior. For a partially
+                blended posterior, this should be a list of tuples (length = number of
+                measurements), where each tuples contains the (zero-based) indices of
+                the components that measurement contains. Defaults to None.
+
+            npoints (int):
+                Number of live points for the Nested Sampling algorithm. Defaults to 150.
+
+        """
+
+        if isinstance(num_components, int):
+            num_components = [num_components]
         else:
             if measurement_component_mapping is not None:
                 #TODO: This is a time-saving hack to avoid dealing with multiple specifications
                 #The solution would probably be to rethink the overall design
                 raise ValueError('measurement_component_mapping cannot be set when sampling multiple numbers of components in one call. Do the separate cases separately.')
 
-        self.num_components_sampling = len(nblends)
+        self.num_components_sampling = len(num_components)
 
         if galaxy is None:
             start = None
@@ -307,9 +328,9 @@ class Photoz(object):
             self.gal_count = 1
             for gal in self.photometry.iterate(start, stop):
                 self.blend_count = 1
-                for nb in nblends:
+                for nb in num_components:
 
-                    if seed is None:
+                    if seed is False:
                         rstate = np.random.RandomState()
                     elif seed is True:
                         rstate = np.random.RandomState(gal.index)
@@ -317,10 +338,10 @@ class Photoz(object):
                         rstate = np.random.RandomState(seed + gal.index)
 
                     num_param = 2 * nb
-                    self.setMeasurementComponentMapping(measurement_component_mapping, nb)
-                    results = nestle.sample(self.lnPosterior, self.priorTransform,
+                    self._setMeasurementComponentMapping(measurement_component_mapping, nb)
+                    results = nestle.sample(self._lnPosterior, self._priorTransform,
                                             num_param, method='multi', npoints=npoints,
-                                            rstate=rstate, callback=self.sampleProgressUpdate)
+                                            rstate=rstate, callback=self._sampleProgressUpdate)
                     self.sample_results[gal.index][nb] = results
                     if resample is not None:
                         #self.reweighted_samples[gal.index][nb] = nestle.resample_equal(results.samples, results.weights)

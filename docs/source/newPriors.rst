@@ -30,11 +30,11 @@ Your new class should have the following basic layout:
           return 0.
 
       def correlationFunction(self, redshifts):
-          #Definition of xi(z1, z1...)
+          #Definition of xi({z})
           return 0.
 
       def lnMagnitudePrior(self, magnitude):
-          #Definition of P(m0)
+          #Definition of P({m0})
           return 0.
 
 A few things to note:
