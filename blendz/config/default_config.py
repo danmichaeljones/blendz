@@ -119,8 +119,9 @@ class DefaultConfiguration(object):
             self.spec_z_col = self.maybeGet('Data', 'spec_z_col', int)
         except TypeError:
             self.spec_z_col = None
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            pass
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError,
+                TypeError, ValueError):
+            self.spec_z_col = None
 
         try:
             self.filter_path = self.maybeGet('Data', 'filter_path', str)
