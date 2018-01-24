@@ -68,6 +68,25 @@ class ModelBase(ABC_meta):
             else:
                 self.redshifts_exchangeable = None
 
+    def _obeyPriorConditions(self, redshifts, magnitudes):
+        '''Check that the (arrays of) redshift and magnitude have sensible
+        values and that they obey the sorting conditions.
+        '''
+        num_components = len(redshifts)
+        redshift_positive = np.all(redshifts >= 0.)
+        #Only need sorting condition if redshifts are exchangable
+        # (depends on measurement_component_mapping) and if there's
+        # multiple components
+        if num_components>1 and self.redshifts_exchangeable:
+            if self.config.sort_redshifts:
+                sort_condition = np.all(redshifts[1:] >= redshifts[:-1])
+            else:
+                sort_condition = np.all(magnitudes[1:] >= magnitudes[:-1])
+            prior_checks_okay = sort_condition and redshift_positive
+        else:
+            prior_checks_okay = redshift_positive
+        return prior_checks_okay
+
     @abc.abstractmethod
     def correlationFunction(self, redshifts):
         pass

@@ -123,28 +123,8 @@ class Photoz(object):
         num_components = int(len(params) // 2)
         redshifts = params[:num_components]
         magnitudes = params[num_components:]
-        #Impose prior conditions
-        redshift_positive = np.all(redshifts >= 0.)
-        if num_components>1:
-            #Only need sorting condition if redshifts are exchangable
-            # (depends on measurement_component_mapping)
-            if self.model.redshifts_exchangeable:
-                #Either sort on redshifts...
-                if self.config.sort_redshifts:
-                    sort_condition = np.all(redshifts[1:] >= redshifts[:-1])
-                # ... or on magnitudes -
-                # magnitudes sort in increasing *numerical* order like redshifts
-                # not in brightness!
-                else:
-                    sort_condition = np.all(magnitudes[1:] >= magnitudes[:-1])
-                prior_checks_okay = sort_condition and redshift_positive
-            else:
-                prior_checks_okay = redshift_positive
-        else:
-            #Single redshift case, only need to impose redshift being positive
-            prior_checks_okay = redshift_positive
 
-        if not prior_checks_okay:
+        if not self.model._obeyPriorConditions(redshifts, magnitudes):
             return -np.inf
         else:
             #Precalculate all quantities we'll need in the template loop
