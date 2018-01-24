@@ -21,21 +21,23 @@ Your new class should have the following basic layout:
           super(MyNewModel, self).__init__(**kwargs)
           #Do some other setup with your new_prior_parameters
 
-      def lnTemplatePrior(self, template_type, component_ref_mag):
-          #Definition of P(t | m0)
+      def lnRedshiftPrior(self, redshift, template_type, component_ref_mag):
+          #Definition of P(z_a | t_a, m_0a)
           return 0.
 
-      def lnRedshiftPrior(self, redshift, template_type, component_ref_mag):
-          #Definition of P(z | t, m0)
+      def lnTemplatePrior(self, template_type, component_ref_mag):
+          #Definition of P(t_a | m_0a)
+          return 0.
+
+      def lnMagnitudePrior(self, magnitude):
+          #Definition of P(m_0a)
           return 0.
 
       def correlationFunction(self, redshifts):
           #Definition of xi({z})
           return 0.
 
-      def lnMagnitudePrior(self, magnitude):
-          #Definition of P({m0})
-          return 0.
+
 
 A few things to note:
 
@@ -47,7 +49,7 @@ A few things to note:
 
 - The ``template_type`` argument passed to ``lnTemplatePrior`` and ``lnRedshiftPrior`` is a string specifying the template type as defined in the template set file. While the default priors are only defined for ``"early"``, ``"late"`` and ``"irr"`` types, you can support any types your templates use - you need to define your priors for at least these three if you use the default templates.
 
-- The ``redshift`` and ``component_ref_mag`` arguments passed to ``lnTemplatePrior`` and ``lnRedshiftPrior`` are floats, while the ``redshifts`` argument in ``correlationFunction`` and the ``magnitude`` argument in ``lnMagnitudePrior`` are 1D ``numpy`` arrays.
+- The ``redshift``, ``magnitude`` and ``component_ref_mag`` arguments passed to natural-log prior functions are floats, while the ``redshifts`` argument in ``correlationFunction`` is a 1D ``numpy`` array.
 
 
 
