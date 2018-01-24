@@ -87,6 +87,45 @@ class ModelBase(ABC_meta):
             prior_checks_okay = redshift_positive
         return prior_checks_okay
 
+    def _totalPrior(self, params):
+        ''' Total prior given array of parameters.
+
+        This returns
+
+        p({z}, {t}, {m0}) = [1 + xi({z})] Prod_a  Lambda_a P(z_a | t_z, m_0a) P(t_a | m_0a) P(m_0a)
+
+        i.e., it EXCLUDES the selection effect, and is NOT marginalised over template.
+
+        Parameter array is given in order
+        [z1, z2... t1_continuous, t2_continuous... m0_1, m0_2...] where tn_continuous
+        is a continuous parameter 0:num_templates that gets rounded to an int
+        for discrete template.
+        '''
+        num_components = int(len(params) // 3)
+
+        redshifts = params[:num_components]
+        templates_cont = params[num_components:2*num_components]
+        magnitudes = params[2*num_components:]
+        templates_disc = np.around(templates_cont).asdtype(int)
+
+        #Prior conditions
+        template_positive = np.all(templates_disc >= 0.)
+        template_within_bounds = np.all(templates_disc <= self.responses.templates.num_templates - 1)
+        template_okay = template_positive and template_within_bounds
+        redshift_magnitude_okay = self._obeyPriorConditions(redshifts, magnitudes)
+
+        if not (template_okay and redshift_magnitude_okay):
+            return -np.inf
+        else:
+            lnPrior = np.log(1. + self.correlationFunction(redshifts))
+            for a in range(num_components):
+                tmp_type_a = self.responses.templates.template_type(templates_disc[a])
+                lnPrior += self.lnRedshiftPrior(redshifts[a], tmp_type_a, magnitudes[a])
+                lnPrior += self.lnTemplatePrior(tmp_type_a, magnitudes[a])
+                lnPrior += self.lnMagnitudePrior(magnitudes[a])
+
+            return lnPrior
+
     @abc.abstractmethod
     def correlationFunction(self, redshifts):
         pass
