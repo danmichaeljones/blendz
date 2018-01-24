@@ -62,7 +62,7 @@ class Photoz(object):
             self.num_galaxies = self.photometry.num_galaxies
 
             #Default to assuming single component, present in all measurements
-            self._setMeasurementComponentMapping(None, 1)
+            self.model._setMeasurementComponentMapping(None, 1)
 
             #Set up empty dictionaries to put results into
             self.sample_results = {}
@@ -110,43 +110,6 @@ class Photoz(object):
             except:
                 warnings.warn('SimulatedPhotometry seed not loaded.')
 
-    def _setMeasurementComponentMapping(self, specification, num_components):
-        '''
-        Construct the measurement-component mapping matrix from the specification.
-
-        If specification is None, it is assumed that all measurements contain
-        num_components components. Otherwise, specification should be a list of
-        num_measurements tuples, where each tuples contains the (zero-based)
-        indices of the components that measurement contains.
-
-        If specification is given, the reference band must contain all components.
-        '''
-        if specification is None:
-            self.measurement_component_mapping = np.ones((num_components, self.num_measurements))
-            self.redshifts_exchangeable = True
-        else:
-            measurement_component_mapping = np.zeros((num_components, self.num_measurements))
-            for m in range(self.num_measurements):
-                measurement_component_mapping[specification[m], m] = 1.
-
-            if np.all(measurement_component_mapping[:, self.config.ref_band] == 1.):
-                #Set the mapping
-                self.measurement_component_mapping = measurement_component_mapping
-                #Set whether the redshifts are exchangable and so need sorting condition
-                #Only need to check if there's more than one component
-                if num_components > 1:
-                    self.redshifts_exchangeable = np.all(measurement_component_mapping[1:, :] ==
-                                                         measurement_component_mapping[:-1, :])
-                else:
-                    self.redshifts_exchangeable = None
-
-            else:
-                #TODO: Currently enforcing the ref band to have all components. This is needed
-                # to be able to specifiy the fractions (IS IT??). Also ref band is currently used in the priors,
-                # though the magnitudes going to the priors either have to be in the reference band
-                # *OR* on their own, in which case no separation in necessary (like original BPZ case)
-                raise ValueError('The reference band must contain all components.')
-
     def _lnLikelihood_flux(self, model_flux):
         chi_sq = -1. * np.sum((self.photometry.current_galaxy.flux_data_noRef - model_flux)**2 / self.photometry.current_galaxy.flux_sigma_noRef**2)
         return chi_sq
@@ -165,7 +128,7 @@ class Photoz(object):
         if num_components>1:
             #Only need sorting condition if redshifts are exchangable
             # (depends on measurement_component_mapping)
-            if self.redshifts_exchangeable:
+            if self.model.redshifts_exchangeable:
                 #Either sort on redshifts...
                 if self.config.sort_redshifts:
                     sort_condition = np.all(redshifts[1:] >= redshifts[:-1])
@@ -212,7 +175,7 @@ class Photoz(object):
                 for nb in range(num_components):
                     T = template_combo[nb]
                     component_scaling = 10.**(-0.4*magnitudes[nb]) / model_fluxes[T, self.config.ref_band, nb]
-                    blend_flux += model_fluxes[T, :, nb] * component_scaling * self.measurement_component_mapping[nb, :]
+                    blend_flux += model_fluxes[T, :, nb] * component_scaling * self.model.measurement_component_mapping[nb, :]
                     tmp += template_priors[nb, T]
                     tmp += redshift_priors[nb, T]
                     #################################################print('SCALING')
@@ -336,7 +299,7 @@ class Photoz(object):
                         rstate = np.random.RandomState(seed + gal.index)
 
                     num_param = 2 * nb
-                    self._setMeasurementComponentMapping(measurement_component_mapping, nb)
+                    self.model._setMeasurementComponentMapping(measurement_component_mapping, nb)
                     results = nestle.sample(self._lnPosterior, self._priorTransform,
                                             num_param, method='multi', npoints=npoints,
                                             rstate=rstate, callback=self._sampleProgressUpdate)
