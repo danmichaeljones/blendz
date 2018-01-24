@@ -137,7 +137,7 @@ class SimulatedPhotometry(PhotometryBase):
 
 
     def randomBlend(self, num_components, max_redshift=None, max_err_frac=None, \
-                    magnitude_bounds=None):
+                    magnitude_bounds=None, sort_redshifts=None):
         if max_redshift is None:
             max_redshift = self.max_redshift
         if max_err_frac is None:
