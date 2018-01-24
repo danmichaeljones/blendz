@@ -15,7 +15,7 @@ from blendz.utilities import incrementCount
 
 class Photoz(object):
     def __init__(self, model=None, photometry=None, config=None,\
-                 load_state_path=None, sort_redshifts=True, **kwargs):
+                 load_state_path=None, **kwargs):
         if load_state_path is not None:
             self.loadState(load_state_path)
         else:
@@ -60,9 +60,6 @@ class Photoz(object):
             self.num_templates = self.responses.templates.num_templates
             self.num_measurements = self.responses.filters.num_filters
             self.num_galaxies = self.photometry.num_galaxies
-
-            #Move these to config...?
-            self.sort_redshifts = sort_redshifts
 
             #Default to assuming single component, present in all measurements
             self._setMeasurementComponentMapping(None, 1)
@@ -170,7 +167,7 @@ class Photoz(object):
             # (depends on measurement_component_mapping)
             if self.redshifts_exchangeable:
                 #Either sort on redshifts...
-                if self.sort_redshifts:
+                if self.config.sort_redshifts:
                     sort_condition = np.all(redshifts[1:] >= redshifts[:-1])
                 # ... or on magnitudes -
                 # magnitudes sort in increasing *numerical* order like redshifts

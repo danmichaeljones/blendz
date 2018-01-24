@@ -20,3 +20,4 @@ ref_mag_lo = 20
 ref_mag_hi = 32
 template_set_path = %(resource_path)s/templates/
 template_set = BPZ8
+sort_redshifts = False

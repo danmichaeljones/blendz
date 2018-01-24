@@ -8,7 +8,7 @@ from blendz.utilities import incrementCount, Reject
 
 class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
-                max_err_frac=0.1, model=None, seed=None, sort_redshifts=True, random_err=True,
+                max_err_frac=0.1, model=None, seed=None, random_err=True,
                 measurement_component_specification=None, magnitude_bounds=[20., 32], **kwargs):
         super(SimulatedPhotometry, self).__init__()
 
@@ -43,7 +43,6 @@ class SimulatedPhotometry(PhotometryBase):
         else:
             self.max_redshift = max_redshift
         self.magnitude_bounds = magnitude_bounds
-        self.sort_redshifts = sort_redshifts
 
         self.zero_point_errors = self.config.zero_point_errors
         self.zero_point_frac = 10.**(0.4*self.zero_point_errors) - 1.
@@ -176,7 +175,7 @@ class SimulatedPhotometry(PhotometryBase):
 
 
     def randomBlend(self, num_components, max_redshift=None, max_err_frac=None, \
-                    magnitude_bounds=None, sort_redshifts=None):
+                    magnitude_bounds=None):
         if max_redshift is None:
             max_redshift = self.max_redshift
         if max_err_frac is None:
@@ -184,7 +183,7 @@ class SimulatedPhotometry(PhotometryBase):
         if magnitude_bounds is None:
             magnitude_bounds = self.magnitude_bounds
         if sort_redshifts is None:
-            sort_redshifts = self.sort_redshifts
+            sort_redshifts = self.config.sort_redshifts
 
         np.random.seed(self.sim_seed.next())
         if self.random_err:

@@ -39,6 +39,10 @@ class DefaultConfiguration(object):
         '''
         if key in self.kwargs:
             return typeFn(self.kwargs[key])
+        #Put special behaviour for if typeFn is bool, as bool() on any
+        #non-empty string returns True, even if that string is "False"
+        elif typeFn==bool:
+            return self.config.getboolean(section, key)
         else:
             return typeFn(self.config.get(section, key))
 
@@ -78,6 +82,11 @@ class DefaultConfiguration(object):
 
         try:
             self._template_set_path = self.maybeGet('Run', 'template_set_path', str)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.sort_redshifts = self.maybeGet('Run', 'sort_redshifts', bool)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
