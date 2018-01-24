@@ -262,7 +262,7 @@ class Photoz(object):
         return (params * trans) + shift
 
     def _sampleProgressUpdate(self, info):
-        if info['it']%100.==0:
+        if info['it']%self.num_between_print==0:
             self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
                                                                                    self.num_galaxies_sampling,
                                                                                    self.blend_count,
@@ -270,7 +270,7 @@ class Photoz(object):
                                                                                    info['it']))
             self.pbar.refresh()
 
-    def sample(self, num_components, galaxy=None, resample=10000, seed=None, measurement_component_mapping=None, npoints=150):
+    def sample(self, num_components, galaxy=None, resample=10000, seed=False, measurement_component_mapping=None, npoints=150, num_between_print=100):
         """Sample the posterior for a particular number of components.
 
         What happens to the results?
@@ -312,6 +312,7 @@ class Photoz(object):
                 raise ValueError('measurement_component_mapping cannot be set when sampling multiple numbers of components in one call. Do the separate cases separately.')
 
         self.num_components_sampling = len(num_components)
+        self.num_between_print = float(round(num_between_print))
 
         if galaxy is None:
             start = None
