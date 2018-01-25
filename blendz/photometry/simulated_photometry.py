@@ -179,7 +179,10 @@ class SimulatedPhotometry(PhotometryBase):
             all_truths.append(truth)
         return all_truths
 
-    def simulateRandomGalaxies(self, num_sims, num_components, max_redshift=None, max_err_frac=None, measurement_component_specification=None, magnitude_bounds=None):
+    def simulateRandomGalaxies(self, num_components, num_galaxies, max_redshift=None,
+                               max_err_frac=None, measurement_component_specification=None,
+                               magnitude_bounds=None, burn_len=10000, num_walkers = 100,
+                               min_err_frac=0.):
         if max_redshift is None:
             max_redshift = self.max_redshift
         if max_err_frac is None:
@@ -188,10 +191,14 @@ class SimulatedPhotometry(PhotometryBase):
             magnitude_bounds = self.magnitude_bounds
 
         self.model._setMeasurementComponentMapping(measurement_component_specification, num_components)
-        for g in range(num_sims):
-            mag_data, mag_sigma, truth = self.randomBlend(num_components, max_redshift, max_err_frac, magnitude_bounds=magnitude_bounds)
-            new_galaxy = Galaxy(mag_data, mag_sigma, self.config, self.zero_point_frac, g)
-            new_galaxy.truth = truth
+
+        prior_parameters = self.drawParametersFromPrior(num_components, num_galaxies, burn_len=burn_len, num_walkers = num_walkers)
+        all_mag_data, all_mag_sigma = self.generateObservables(prior_parameters, max_err_frac, min_err_frac=min_err_frac)
+        all_truths = self.createTruthDicts(prior_parameters)
+
+        for g in range(num_galaxies):
+            new_galaxy = Galaxy(all_mag_data[g, :], all_mag_sigma[g, :], self.config, self.zero_point_frac, g)
+            new_galaxy.truth = all_truths[g]
             self.all_galaxies.append(new_galaxy)
 
     def simulateGalaxies(self, redshifts, scales, templates, err_frac):
