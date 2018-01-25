@@ -10,7 +10,7 @@ from blendz.model import BPZ
 from blendz.utilities import incrementCount, Reject
 
 class SimulatedPhotometry(PhotometryBase):
-    def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
+    def __init__(self, num_galaxies, config=None, num_components=1, max_redshift=None,
                 max_err_frac=0.1, model=None, seed=None, random_err=True,
                 measurement_component_specification=None, magnitude_bounds=[20., 32], **kwargs):
         super(SimulatedPhotometry, self).__init__()
@@ -36,7 +36,7 @@ class SimulatedPhotometry(PhotometryBase):
             self.model = BPZ(config=self.config)
             self.responses = self.model.responses
 
-        self.num_sims = num_sims
+        self.num_galaxies = num_galaxies
         self.num_components = num_components
         self.max_err_frac = max_err_frac
         self.random_err = random_err
@@ -57,7 +57,7 @@ class SimulatedPhotometry(PhotometryBase):
         else:
             self.sim_seed = incrementCount(seed)
 
-        self.simulateRandomGalaxies(self.num_sims, self.num_components,
+        self.simulateRandomGalaxies(self.num_components, self.num_galaxies,
                                     max_redshift=self.max_redshift,
                                     max_err_frac=self.max_err_frac,
                                     measurement_component_specification=measurement_component_specification,
