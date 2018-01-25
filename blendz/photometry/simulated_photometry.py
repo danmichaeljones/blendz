@@ -121,7 +121,8 @@ class SimulatedPhotometry(PhotometryBase):
         array of observed fluxes and array of errors, both of shape
         (num_galaxies, num_filters)
         '''
-        num_galaxies = np.shape(params)[0]
+        num_galaxies, num_params = np.shape(params)
+        num_components = num_params // 3
         out_shape = (num_galaxies, self.responses.filters.num_filters)
         true_flux = np.zeros(out_shape)
         for g in range(num_galaxies):
