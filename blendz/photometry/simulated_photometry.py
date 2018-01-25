@@ -144,51 +144,40 @@ class SimulatedPhotometry(PhotometryBase):
         mag_err = np.log10((flux_err/obs_flux)+1.) / 0.4
         return obs_mag, mag_err
 
+    def createTruthDicts(self, params):
+        '''
+        Use array of params shape (num_galaxies, 3*num_components) to generate
+        list of truth dictionaries.
+        '''
+        num_galaxies, num_params = np.shape(params)
+        num_components = num_params // 3
 
-    def randomBlend(self, num_components, max_redshift=None, max_err_frac=None, \
-                    magnitude_bounds=None, sort_redshifts=None):
-        if max_redshift is None:
-            max_redshift = self.max_redshift
-        if max_err_frac is None:
-            max_err_frac = self.max_err_frac
-        if magnitude_bounds is None:
-            magnitude_bounds = self.magnitude_bounds
-        if sort_redshifts is None:
-            sort_redshifts = self.config.sort_redshifts
+        all_truths = []
+        for g in range(num_galaxies):
+            redshifts = params[:num_components]
+            templates = params[num_components:2*num_components]
+            magnitudes = params[2*num_components:]
+            #Order component truths before saving, either by redshift...
+            if self.config.sort_redshifts:
+                order = np.argsort(redshifts)
+                redshifts = redshifts[order]
+                templates = templates[order]
+                magnitudes = magnitudes[order]
+            #...or magnitudes
+            else:
+                order = np.argsort(magnitudes)
+                redshifts = redshifts[order]
+                templates = templates[order]
+                magnitudes = magnitudes[order]
 
-        np.random.seed(self.sim_seed.next())
-        if self.random_err:
-            sim_err_frac = np.random.rand() * max_err_frac
-        else:
-            sim_err_frac = max_err_frac
-        sim_redshift, sim_scale, sim_template, sim_magnitude = self.drawBlendFromPrior(num_components, max_redshift=max_redshift, magnitude_bounds=magnitude_bounds)
-
-        obs_mag, mag_err, fracs = self.generateObservables(num_components, sim_redshift, sim_scale, sim_template, sim_err_frac)
-
-        #Order component truths before saving, either sort redshift...
-        if sort_redshifts:
-            order = np.argsort(sim_redshift)
-            sim_redshift = sim_redshift[order]
-            sim_scale = sim_scale[order]
-            sim_template = sim_template[order]
-            sim_magnitude = sim_magnitude[order]
-            fracs = fracs[order]
-        #...or magnitudes
-        else:
-            order = np.argsort(sim_magnitude)
-            sim_redshift = sim_redshift[order]
-            sim_scale = sim_scale[order]
-            sim_template = sim_template[order]
-            sim_magnitude = sim_magnitude[order]
-            fracs = fracs[order]
-
-        truth = {}
-        truth['num_components'] = num_components
-        for c in range(num_components):
-            truth[c] = {'redshift': sim_redshift[c], 'scale': sim_scale[c],
-            'template': sim_template[c], 'fraction': fracs[c], 'magnitude': sim_magnitude[c]}
-
-        return obs_mag, mag_err, truth
+            truth = {}
+            truth['num_components'] = num_components
+            for c in range(num_components):
+                truth[c] = {'redshift': redshifts[c],
+                            'template': templates[c],
+                            'magnitude': magnitudes[c]}
+            all_truths.append(truth)
+        return all_truths
 
     def simulateRandomGalaxies(self, num_sims, num_components, max_redshift=None, max_err_frac=None, measurement_component_specification=None, magnitude_bounds=None):
         if max_redshift is None:
