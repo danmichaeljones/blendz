@@ -87,7 +87,7 @@ class ModelBase(ABC_meta):
             prior_checks_okay = redshift_positive
         return prior_checks_okay
 
-    def _totalPrior(self, params):
+    def _lnTotalPrior(self, params):
         ''' Total prior given array of parameters.
 
         This returns
