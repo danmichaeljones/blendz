@@ -18,7 +18,7 @@ class SimulatedPhotometry(PhotometryBase):
         if model is not None:
             #Set model, take default+kwargs+model config and warn user if config also provided
             self.config = Configuration(**kwargs)
-            self.config.mergeFromOther(self.model.config)
+            self.config.mergeFromOther(model.config)
             self.model = model
             self.responses = self.model.responses
 
