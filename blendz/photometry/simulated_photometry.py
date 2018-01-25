@@ -63,8 +63,15 @@ class SimulatedPhotometry(PhotometryBase):
                                     measurement_component_specification=measurement_component_specification,
                                     magnitude_bounds=self.magnitude_bounds)
 
-    def generateObservables(self, num_components, redshifts, scales, template_indices, err_frac):
-        true_flux = np.zeros(self.responses.filters.num_filters)
+    def generateObservables(self, params, err_frac):
+        '''
+        Use array of params shape (num_galaxies, 3*num_components) to generate
+        array of observed fluxes and array of errors, both of shape
+        (num_galaxies, num_filters)
+        '''
+        num_galaxies = np.shape(params)[0]
+        true_flux = np.zeros((num_galaxies, self.responses.filters.num_filters))
+        
         for c in range(num_components):
             true_flux += self.responses(template_indices[c], None, redshifts[c]) * scales[c] * self.model.measurement_component_mapping[c, :]
         fracs = np.zeros(num_components)
