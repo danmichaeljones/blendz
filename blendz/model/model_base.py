@@ -106,7 +106,7 @@ class ModelBase(ABC_meta):
         redshifts = params[:num_components]
         templates_cont = params[num_components:2*num_components]
         magnitudes = params[2*num_components:]
-        templates_disc = np.around(templates_cont).asdtype(int)
+        templates_disc = np.around(templates_cont).astype(int)
 
         #Prior conditions
         template_positive = np.all(templates_disc >= 0.)
@@ -119,7 +119,7 @@ class ModelBase(ABC_meta):
         else:
             lnPrior = np.log(1. + self.correlationFunction(redshifts))
             for a in range(num_components):
-                tmp_type_a = self.responses.templates.template_type(templates_disc[a])
+                tmp_type_a = self.responses.templates.templateType(templates_disc[a])
                 lnPrior += self.lnRedshiftPrior(redshifts[a], tmp_type_a, magnitudes[a])
                 lnPrior += self.lnTemplatePrior(tmp_type_a, magnitudes[a])
                 lnPrior += self.lnMagnitudePrior(magnitudes[a])

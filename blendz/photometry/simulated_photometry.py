@@ -10,7 +10,7 @@ from blendz.model import BPZ
 from blendz.utilities import incrementCount, Reject
 
 class SimulatedPhotometry(PhotometryBase):
-    def __init__(self, num_galaxies, config=None, num_components=1, max_redshift=None,
+    def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
                 max_err_frac=0.1, model=None, seed=None, random_err=True,
                 measurement_component_specification=None, magnitude_bounds=[20., 32], **kwargs):
         super(SimulatedPhotometry, self).__init__()
@@ -36,7 +36,7 @@ class SimulatedPhotometry(PhotometryBase):
             self.model = BPZ(config=self.config)
             self.responses = self.model.responses
 
-        self.num_galaxies = num_galaxies
+        self.num_sims = num_sims
         self.num_components = num_components
         self.max_err_frac = max_err_frac
         self.random_err = random_err
@@ -57,18 +57,18 @@ class SimulatedPhotometry(PhotometryBase):
         else:
             self.sim_seed = incrementCount(seed)
 
-        self.simulateRandomGalaxies(self.num_components, self.num_galaxies,
+        self.simulateRandomGalaxies(self.num_components, self.num_sims,
                                     max_redshift=self.max_redshift,
                                     max_err_frac=self.max_err_frac,
                                     measurement_component_specification=measurement_component_specification,
                                     magnitude_bounds=self.magnitude_bounds)
 
-    def drawParametersFromPrior(self, num_components, num_galaxies, burn_len=10000, num_walkers = 100):
+    def drawParametersFromPrior(self, num_components, num_sims, burn_len=10000, num_walkers = 100):
         '''
-        Use mcmc to draw ``num_galaxies`` sets of source parameters for
+        Use mcmc to draw ``num_sims`` sets of source parameters for
         sources of ``num_components`` components.
 
-        Parameters are returned as an array shape (num_galaxies, 3*num_components)
+        Parameters are returned as an array shape (num_sims, 3*num_components)
         where the second axis is ordered [z1, z2... t1, t2... m0_1, m0_2...].
         Because it's a single array, the template indices are floats, not ints,
         though they have been rounded.
@@ -108,28 +108,28 @@ class SimulatedPhotometry(PhotometryBase):
         burn_pos, burn_prob, burn_state = sampler.run_mcmc(start_pos, burn_sample_len)
         sampler.reset()
         #Sample our parameters
-        main_sample_len = int(ceil(num_galaxies / float(num_walkers)))
+        main_sample_len = int(ceil(num_sims / float(num_walkers)))
         sampler.run_mcmc(burn_pos, main_sample_len)
         #Extract array of source parameters
-        params = sampler.flatchain[-num_galaxies:, :]
+        params = sampler.flatchain[-num_sims:, :]
         params[:, num_components:2*num_components] = np.around(params[:, num_components:2*num_components])
         return params
 
     def generateObservables(self, params, max_err_frac, min_err_frac=0.):
         '''
-        Use array of params shape (num_galaxies, 3*num_components) to generate
+        Use array of params shape (num_sims, 3*num_components) to generate
         array of observed fluxes and array of errors, both of shape
-        (num_galaxies, num_filters)
+        (num_sims, num_filters)
         '''
-        num_galaxies, num_params = np.shape(params)
+        num_sims, num_params = np.shape(params)
         num_components = num_params // 3
-        out_shape = (num_galaxies, self.responses.filters.num_filters)
+        out_shape = (num_sims, self.responses.filters.num_filters)
         true_flux = np.zeros(out_shape)
-        for g in range(num_galaxies):
+        for g in range(num_sims):
             for c in range(num_components):
-                zc = params[c]
-                tc = params[num_components + c]
-                mc = params[(2*num_components) + c]
+                zc = params[g, c]
+                tc = int(params[g, num_components + c])
+                mc = params[g, (2*num_components) + c]
                 resp_c = self.responses(tc, None, zc)
                 norm = (10.**(-0.4 * mc)) / resp_c[self.config.ref_band]
                 true_flux[g, :] += resp_c * norm * self.model.measurement_component_mapping[c, :]
@@ -146,17 +146,17 @@ class SimulatedPhotometry(PhotometryBase):
 
     def createTruthDicts(self, params):
         '''
-        Use array of params shape (num_galaxies, 3*num_components) to generate
+        Use array of params shape (num_sims, 3*num_components) to generate
         list of truth dictionaries.
         '''
-        num_galaxies, num_params = np.shape(params)
+        num_sims, num_params = np.shape(params)
         num_components = num_params // 3
 
         all_truths = []
-        for g in range(num_galaxies):
-            redshifts = params[:num_components]
-            templates = params[num_components:2*num_components]
-            magnitudes = params[2*num_components:]
+        for g in range(num_sims):
+            redshifts = params[g, :num_components]
+            templates = params[g, num_components:2*num_components].astype(int)
+            magnitudes = params[g, 2*num_components:]
             #Order component truths before saving, either by redshift...
             if self.config.sort_redshifts:
                 order = np.argsort(redshifts)
@@ -179,7 +179,7 @@ class SimulatedPhotometry(PhotometryBase):
             all_truths.append(truth)
         return all_truths
 
-    def simulateRandomGalaxies(self, num_components, num_galaxies, max_redshift=None,
+    def simulateRandomGalaxies(self, num_components, num_sims, max_redshift=None,
                                max_err_frac=None, measurement_component_specification=None,
                                magnitude_bounds=None, burn_len=10000, num_walkers = 100,
                                min_err_frac=0.):
@@ -192,11 +192,11 @@ class SimulatedPhotometry(PhotometryBase):
 
         self.model._setMeasurementComponentMapping(measurement_component_specification, num_components)
 
-        prior_parameters = self.drawParametersFromPrior(num_components, num_galaxies, burn_len=burn_len, num_walkers = num_walkers)
+        prior_parameters = self.drawParametersFromPrior(num_components, num_sims, burn_len=burn_len, num_walkers = num_walkers)
         all_mag_data, all_mag_sigma = self.generateObservables(prior_parameters, max_err_frac, min_err_frac=min_err_frac)
         all_truths = self.createTruthDicts(prior_parameters)
 
-        for g in range(num_galaxies):
+        for g in range(num_sims):
             new_galaxy = Galaxy(all_mag_data[g, :], all_mag_sigma[g, :], self.config, self.zero_point_frac, g)
             new_galaxy.truth = all_truths[g]
             self.all_galaxies.append(new_galaxy)
