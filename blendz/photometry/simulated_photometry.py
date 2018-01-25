@@ -63,26 +63,33 @@ class SimulatedPhotometry(PhotometryBase):
                                     measurement_component_specification=measurement_component_specification,
                                     magnitude_bounds=self.magnitude_bounds)
 
-    def generateObservables(self, params, err_frac):
+    def generateObservables(self, params, max_err_frac, min_err_frac=0.):
         '''
         Use array of params shape (num_galaxies, 3*num_components) to generate
         array of observed fluxes and array of errors, both of shape
         (num_galaxies, num_filters)
         '''
         num_galaxies = np.shape(params)[0]
-        true_flux = np.zeros((num_galaxies, self.responses.filters.num_filters))
-        
-        for c in range(num_components):
-            true_flux += self.responses(template_indices[c], None, redshifts[c]) * scales[c] * self.model.measurement_component_mapping[c, :]
-        fracs = np.zeros(num_components)
-        for c in range(num_components):
-            fracs[c] = ((self.responses(template_indices[c], None, redshifts[c]) * scales[c]) / true_flux)[self.config.ref_band]
-        rand_err  = (np.random.rand(self.responses.filters.num_filters) * (true_flux * err_frac * 2)) - (true_flux * err_frac)
+        out_shape = (num_galaxies, self.responses.filters.num_filters)
+        true_flux = np.zeros(out_shape)
+        for g in range(num_galaxies):
+            for c in range(num_components):
+                zc = params[c]
+                tc = params[num_components + c]
+                mc = params[(2*num_components) + c]
+                resp_c = self.responses(tc, None, zc)
+                norm = (10.**(-0.4 * mc)) / resp_c[self.config.ref_band]
+                true_flux[g, :] += resp_c * norm * self.model.measurement_component_mapping[c, :]
+        err_frac_range = max_err_frac - min_err_frac
+        rand_err_frac = (np.random.rand(*out_shape) * err_frac_range) + min_err_frac
+        rand_err_sign = (np.random.randint(2, size=out_shape) * 2.) - 1.
+        rand_err  = rand_err_frac * rand_err_sign * true_flux
         obs_flux = true_flux + rand_err
-        flux_err = true_flux * err_frac
-        obs_mag = np.log10(obs_flux) / (-0.4)
-        mag_err = np.log10((flux_err/obs_flux)+1.) / (-0.4)
-        return obs_mag, mag_err, fracs
+        flux_err = true_flux * max_err_frac
+
+        obs_mag = np.log10(obs_flux) / (-0.4) 
+        mag_err = np.log10((flux_err/obs_flux)+1.) / 0.4
+        return obs_mag, mag_err
 
     def drawParametersFromPrior(self, num_components, num_galaxies, burn_len=10000, num_walkers = 100):
         '''
