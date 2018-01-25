@@ -62,7 +62,10 @@ class BPZ(ModelBase):
                 mag0 = 20.
             else:
                 mag0 = component_ref_mag
-            first = (self.prior_params['alpha_t'][template_type] * np.log(redshift))
+            if redshift==0:
+                first = -np.inf
+            else:
+                first = (self.prior_params['alpha_t'][template_type] * np.log(redshift))
             second = self.prior_params['z_0t'][template_type] + (self.prior_params['k_mt'][template_type] * (mag0 - 20.))
             out = first - (redshift / second)**self.prior_params['alpha_t'][template_type]
         except KeyError:
