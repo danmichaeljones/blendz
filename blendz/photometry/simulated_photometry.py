@@ -63,34 +63,6 @@ class SimulatedPhotometry(PhotometryBase):
                                     measurement_component_specification=measurement_component_specification,
                                     magnitude_bounds=self.magnitude_bounds)
 
-    def generateObservables(self, params, max_err_frac, min_err_frac=0.):
-        '''
-        Use array of params shape (num_galaxies, 3*num_components) to generate
-        array of observed fluxes and array of errors, both of shape
-        (num_galaxies, num_filters)
-        '''
-        num_galaxies = np.shape(params)[0]
-        out_shape = (num_galaxies, self.responses.filters.num_filters)
-        true_flux = np.zeros(out_shape)
-        for g in range(num_galaxies):
-            for c in range(num_components):
-                zc = params[c]
-                tc = params[num_components + c]
-                mc = params[(2*num_components) + c]
-                resp_c = self.responses(tc, None, zc)
-                norm = (10.**(-0.4 * mc)) / resp_c[self.config.ref_band]
-                true_flux[g, :] += resp_c * norm * self.model.measurement_component_mapping[c, :]
-        err_frac_range = max_err_frac - min_err_frac
-        rand_err_frac = (np.random.rand(*out_shape) * err_frac_range) + min_err_frac
-        rand_err_sign = (np.random.randint(2, size=out_shape) * 2.) - 1.
-        rand_err  = rand_err_frac * rand_err_sign * true_flux
-        obs_flux = true_flux + rand_err
-        flux_err = true_flux * max_err_frac
-
-        obs_mag = np.log10(obs_flux) / (-0.4) 
-        mag_err = np.log10((flux_err/obs_flux)+1.) / 0.4
-        return obs_mag, mag_err
-
     def drawParametersFromPrior(self, num_components, num_galaxies, burn_len=10000, num_walkers = 100):
         '''
         Use mcmc to draw ``num_galaxies`` sets of source parameters for
@@ -143,66 +115,33 @@ class SimulatedPhotometry(PhotometryBase):
         params[:, num_components:2*num_components] = np.around(params[:, num_components:2*num_components])
         return params
 
-    def drawBlendFromPrior(self, num_components, max_redshift=None, magnitude_bounds=None):
+    def generateObservables(self, params, max_err_frac, min_err_frac=0.):
         '''
-        Use the priors defined in the Model to draw a random blend of components.
-
-        We don't use the magnitudes we sample to generate the photometric data
-        but the true magnitudes we generate should match the ones drawn here - consistency test
+        Use array of params shape (num_galaxies, 3*num_components) to generate
+        array of observed fluxes and array of errors, both of shape
+        (num_galaxies, num_filters)
         '''
-        if max_redshift is None:
-            max_redshift = self.max_redshift
-        if magnitude_bounds is None:
-            magnitude_bounds = self.magnitude_bounds
+        num_galaxies = np.shape(params)[0]
+        out_shape = (num_galaxies, self.responses.filters.num_filters)
+        true_flux = np.zeros(out_shape)
+        for g in range(num_galaxies):
+            for c in range(num_components):
+                zc = params[c]
+                tc = params[num_components + c]
+                mc = params[(2*num_components) + c]
+                resp_c = self.responses(tc, None, zc)
+                norm = (10.**(-0.4 * mc)) / resp_c[self.config.ref_band]
+                true_flux[g, :] += resp_c * norm * self.model.measurement_component_mapping[c, :]
+        err_frac_range = max_err_frac - min_err_frac
+        rand_err_frac = (np.random.rand(*out_shape) * err_frac_range) + min_err_frac
+        rand_err_sign = (np.random.randint(2, size=out_shape) * 2.) - 1.
+        rand_err  = rand_err_frac * rand_err_sign * true_flux
+        obs_flux = true_flux + rand_err
+        flux_err = true_flux * max_err_frac
 
-        magnitudes = np.zeros(num_components)
-        templates = np.zeros(num_components, dtype=int)
-        redshifts = np.zeros(num_components)
-        true_ref_response = np.zeros(num_components)
-        for c in range(num_components):
-            #Sample magnitude
-            rj = Reject(lambda m: np.exp(self.model.lnMagnitudePrior(m)), magnitude_bounds[0],
-                                         magnitude_bounds[1], seed=self.sim_seed.next())
-            magnitudes[c] = rj.sample(1)
-            #Sample template given magnitude
-            rstate = np.random.RandomState(self.sim_seed.next())
-            tmp_prior = np.zeros(self.responses.templates.num_templates)
-            for t in range(self.responses.templates.num_templates):
-                tmp_type_t = self.responses.templates.templateType(t)
-                tmp_prior[t] = np.exp(self.model.lnTemplatePrior(tmp_type_t, magnitudes[c]))
-            templates[c] = rstate.choice(self.responses.templates.num_templates, p=tmp_prior)
-            tmp_type = self.responses.templates.templateType(templates[c])
-            #Sample redshift, given template and magnitude
-            #Include redshift (c+1)-point-correlation if other redshifts drawn
-            if c==0:
-                fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmp_type, magnitudes[c]))
-            else:
-                fn = lambda z: np.exp(self.model.lnRedshiftPrior(z, tmp_type, magnitudes[c])) * \
-                        (1. + self.model.correlationFunction(np.append(redshifts[:c], z)))
-            rj = Reject(fn, 0, max_redshift, seed=self.sim_seed.next())
-            redshifts[c] = rj.sample(1)
-            #Get flux response at these parameters in the reference band
-            true_ref_response[c] = self.responses(templates[c], self.config.ref_band, redshifts[c]) # TODO: Measurment mapping???
-        #The magnitudes that have been drawn deterministically set the reference-band flux fraction
-        fluxes = 10.**(-0.4*magnitudes)
-        total_flux = np.sum(fluxes)
-        fractions = fluxes / total_flux
-        #The fraction and the template responses together give the component scaling
-        scales = fractions / true_ref_response
-        scales /= np.sum(scales)
-        #The source normalisation is set by the scaled responses
-        #and the sum (in linear, not log space) of the drawn magnitudes
-        source_normalisation = total_flux / np.sum(scales * true_ref_response)
-        #Finally, the component normalisation used to generate the data is the
-        #component scaling * source_normalisation, i.e., A*a_alpha
-        component_normalisation = scales * source_normalisation
-        #Sort component parameters we're returning by redshift
-        #order = np.argsort(redshifts)
-        #component_normalisation = component_normalisation[order]
-        #templates = templates[order]
-        #redshifts = redshifts[order]
-        return redshifts, component_normalisation, templates, magnitudes
-
+        obs_mag = np.log10(obs_flux) / (-0.4)
+        mag_err = np.log10((flux_err/obs_flux)+1.) / 0.4
+        return obs_mag, mag_err
 
 
     def randomBlend(self, num_components, max_redshift=None, max_err_frac=None, \
