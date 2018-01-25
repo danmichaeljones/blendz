@@ -1,6 +1,9 @@
 from builtins import *
 import warnings
+from math import ceil
+from itertools import repeat
 import numpy as np
+import emcee
 from blendz.config import Configuration
 from blendz.photometry import PhotometryBase, Galaxy
 from blendz.model import BPZ
@@ -60,7 +63,7 @@ class SimulatedPhotometry(PhotometryBase):
                                     measurement_component_specification=measurement_component_specification,
                                     magnitude_bounds=self.magnitude_bounds)
 
-    def generateBlendMagnitude(self, num_components, redshifts, scales, template_indices, err_frac):
+    def generateObservables(self, num_components, redshifts, scales, template_indices, err_frac):
         true_flux = np.zeros(self.responses.filters.num_filters)
         for c in range(num_components):
             true_flux += self.responses(template_indices[c], None, redshifts[c]) * scales[c] * self.model.measurement_component_mapping[c, :]
@@ -73,6 +76,58 @@ class SimulatedPhotometry(PhotometryBase):
         obs_mag = np.log10(obs_flux) / (-0.4)
         mag_err = np.log10((flux_err/obs_flux)+1.) / (-0.4)
         return obs_mag, mag_err, fracs
+
+    def drawParametersFromPrior(self, num_components, num_galaxies, burn_len=10000, num_walkers = 100):
+        '''
+        Use mcmc to draw ``num_galaxies`` sets of source parameters for
+        sources of ``num_components`` components.
+
+        Parameters are returned as an array shape (num_galaxies, 3*num_components)
+        where the second axis is ordered [z1, z2... t1, t2... m0_1, m0_2...].
+        Because it's a single array, the template indices are floats, not ints,
+        though they have been rounded.
+        '''
+        #Prior boundary parameters
+        z_range = self.config.z_hi - self.config.z_lo
+        z_shift = self.config.z_lo
+        mag_range = self.config.ref_mag_hi - self.config.ref_mag_lo
+        mag_shift = self.config.ref_mag_lo
+        tmp_range = self.responses.templates.num_templates - 1.
+        tmp_shift = 0.
+        #Set up emcee sampler
+        ndim = int(3 * num_components)
+
+        all_ranges = [z for z in repeat(z_range, num_components)] + \
+                     [t for t in repeat(tmp_range, num_components)] + \
+                     [m for m in repeat(mag_range, num_components)]
+
+        all_shifts = [z for z in repeat(z_shift, num_components)] + \
+                     [t for t in repeat(tmp_shift, num_components)] + \
+                     [m for m in repeat(mag_shift, num_components)]
+
+        start_pos = [(np.random.random(ndim) * np.array(all_ranges)) + \
+                    np.array(all_shifts) for i in range(num_walkers)]
+
+        for w in range(num_walkers):
+            if self.config.sort_redshifts:
+                #Force sorted redshifts
+                start_pos[w][:num_components] = np.sort(start_pos[w][:num_components])
+            else:
+                #Force sorted magnitudes
+                start_pos[w][-num_components:] = np.sort(start_pos[w][-num_components:])
+
+        sampler = emcee.EnsembleSampler(num_walkers, ndim, self.model._lnTotalPrior)
+        #Run burn in
+        burn_sample_len = int(ceil(burn_len / float(num_walkers)))
+        burn_pos, burn_prob, burn_state = sampler.run_mcmc(start_pos, burn_sample_len)
+        sampler.reset()
+        #Sample our parameters
+        main_sample_len = int(ceil(num_galaxies / float(num_walkers)))
+        sampler.run_mcmc(burn_pos, main_sample_len)
+        #Extract array of source parameters
+        params = sampler.flatchain[-num_galaxies:, :]
+        params[:, num_components:2*num_components] = np.around(params[:, num_components:2*num_components])
+        return params
 
     def drawBlendFromPrior(self, num_components, max_redshift=None, magnitude_bounds=None):
         '''
@@ -154,7 +209,7 @@ class SimulatedPhotometry(PhotometryBase):
             sim_err_frac = max_err_frac
         sim_redshift, sim_scale, sim_template, sim_magnitude = self.drawBlendFromPrior(num_components, max_redshift=max_redshift, magnitude_bounds=magnitude_bounds)
 
-        obs_mag, mag_err, fracs = self.generateBlendMagnitude(num_components, sim_redshift, sim_scale, sim_template, sim_err_frac)
+        obs_mag, mag_err, fracs = self.generateObservables(num_components, sim_redshift, sim_scale, sim_template, sim_err_frac)
 
         #Order component truths before saving, either sort redshift...
         if sort_redshifts:
@@ -199,7 +254,7 @@ class SimulatedPhotometry(PhotometryBase):
     def simulateGalaxies(self, redshifts, scales, templates, err_frac):
         for g in range(len(redshifts)):
             num_components = len(redshifts[g])
-            obs_mag, mag_err, fracs = self.generateBlendMagnitude(
+            obs_mag, mag_err, fracs = self.generateObservables(
                                         num_components, redshifts[g], scales[g],
                                         templates[g], err_frac)
             truth = {}
