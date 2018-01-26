@@ -194,10 +194,11 @@ class Photoz(object):
         num_components = int(len(params) // 2)
 
         trans = np.ones(len(params))
-        trans[:num_components] = self.config.z_hi
+        trans[:num_components] = self.config.z_hi - self.config.z_lo
         trans[num_components:] = self.config.ref_mag_hi - self.config.ref_mag_lo
 
         shift = np.zeros(len(params))
+        shift[:num_components] = self.config.z_lo
         shift[num_components:] = self.config.ref_mag_lo
         return (params * trans) + shift
 
