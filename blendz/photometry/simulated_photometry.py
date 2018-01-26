@@ -7,7 +7,7 @@ import emcee
 from blendz.config import Configuration
 from blendz.photometry import PhotometryBase, Galaxy
 from blendz.model import BPZ
-from blendz.utilities import incrementCount, Reject
+from blendz.utilities import incrementCount
 
 class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
@@ -29,7 +29,7 @@ class SimulatedPhotometry(PhotometryBase):
                                 The configuration provided will be ignored.""")
         else:
             #Config given, take default+kwargs+given config
-            #which is loaded in in PhotometryBase 
+            #which is loaded in in PhotometryBase
             self.model = BPZ(config=self.config)
             self.responses = self.model.responses
 
