@@ -100,6 +100,26 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        try:
+            self.omega_mat = self.maybeGet('Run', 'omega_mat', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.omega_lam = self.maybeGet('Run', 'omega_lam', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.omega_k = self.maybeGet('Run', 'omega_k', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.hubble = self.maybeGet('Run', 'hubble', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
         #Data config
         try:
             self.data_path = self.maybeGet('Data', 'data_path', str)

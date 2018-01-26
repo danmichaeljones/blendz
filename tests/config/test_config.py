@@ -23,7 +23,8 @@ class TestConfiguration(object):
                         filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
                                  'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
-                        ref_mag_lo = 20, ref_mag_hi = 32, sort_redshifts=True)
+                        ref_mag_lo = 20, ref_mag_hi = 32, sort_redshifts=True,
+                        magnitude_limit=32)
 
 
         return loaded_config, loaded_combo_config, made_config
@@ -55,6 +56,11 @@ class TestConfiguration(object):
             assert isinstance(cfg.filters, list)
             assert isinstance(cfg.zero_point_errors, np.ndarray)
             assert isinstance(cfg.sort_redshifts, bool)
+            assert isinstance(cfg.magnitude_limit, float)
+            assert isinstance(cfg.omega_k, float)
+            assert isinstance(cfg.omega_lam, float)
+            assert isinstance(cfg.omega_mat, float)
+            assert isinstance(cfg.hubble, float)
 
     def test_sort_redshifts(self):
         cfg1, _, cfg2 = self.loadAndMakeConfig()
