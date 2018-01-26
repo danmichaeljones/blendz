@@ -6,12 +6,7 @@ from blendz.photometry import PhotometryBase, Galaxy
 
 class Photometry(PhotometryBase):
     def __init__(self, config=None, **kwargs):
-        super(Photometry, self).__init__()
-
-        self.config = Configuration(**kwargs)
-        if config is not None:
-            self.config.mergeFromOther(config)
-
+        super(Photometry, self).__init__(config=config, **kwargs)
         self.data_path = self.config.data_path
         self.zero_point_errors = self.config.zero_point_errors
         self.photo_data = np.loadtxt(self.data_path)

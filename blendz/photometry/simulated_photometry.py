@@ -13,7 +13,7 @@ class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
                 max_err_frac=0.1, model=None, seed=None, random_err=True,
                 measurement_component_specification=None, magnitude_bounds=[20., 32], **kwargs):
-        super(SimulatedPhotometry, self).__init__()
+        super(SimulatedPhotometry, self).__init__(config=config, **kwargs)
 
         if model is not None:
             #Set model, take default+kwargs+model config and warn user if config also provided
@@ -29,10 +29,7 @@ class SimulatedPhotometry(PhotometryBase):
                                 The configuration provided will be ignored.""")
         else:
             #Config given, take default+kwargs+given config
-            self.config = Configuration(**kwargs)
-            if config is not None:
-                self.config.mergeFromOther(config)
-
+            #which is loaded in in PhotometryBase 
             self.model = BPZ(config=self.config)
             self.responses = self.model.responses
 
@@ -81,7 +78,7 @@ class SimulatedPhotometry(PhotometryBase):
         tmp_range = self.responses.templates.num_templates - 1.
         tmp_shift = 0.
         #Set up emcee sampler
-        ndim = int(3 * num_components)
+        num_pars = int(3 * num_components)
 
         all_ranges = [z for z in repeat(z_range, num_components)] + \
                      [t for t in repeat(tmp_range, num_components)] + \
@@ -91,7 +88,7 @@ class SimulatedPhotometry(PhotometryBase):
                      [t for t in repeat(tmp_shift, num_components)] + \
                      [m for m in repeat(mag_shift, num_components)]
 
-        start_pos = [(np.random.random(ndim) * np.array(all_ranges)) + \
+        start_pos = [(np.random.random(num_pars) * np.array(all_ranges)) + \
                     np.array(all_shifts) for i in range(num_walkers)]
 
         for w in range(num_walkers):
@@ -102,17 +99,30 @@ class SimulatedPhotometry(PhotometryBase):
                 #Force sorted magnitudes
                 start_pos[w][-num_components:] = np.sort(start_pos[w][-num_components:])
 
-        sampler = emcee.EnsembleSampler(num_walkers, ndim, self.model._lnTotalPrior)
+        sampler = emcee.EnsembleSampler(num_walkers, num_pars, self.model._lnTotalPrior)
         #Run burn in
         burn_sample_len = int(ceil(burn_len / float(num_walkers)))
         burn_pos, burn_prob, burn_state = sampler.run_mcmc(start_pos, burn_sample_len)
-        sampler.reset()
-        #Sample our parameters
-        main_sample_len = int(ceil(num_sims / float(num_walkers)))
-        sampler.run_mcmc(burn_pos, main_sample_len)
-        #Extract array of source parameters
-        params = sampler.flatchain[-num_sims:, :]
-        params[:, num_components:2*num_components] = np.around(params[:, num_components:2*num_components])
+        #Sample our parameters until we have enough selected sources
+        num_selected = 0
+        #Sample in batches of num_sims samples, plus a bit more
+        #because some are lost due to not making the selection criteria
+        main_sample_len = int(ceil(num_sims / float(num_walkers))*1.2)
+        params = np.zeros((num_sims, num_pars))
+        #Fill up the return params array with samples from the chain
+        #that obey the magnitude selection criteria
+        while num_selected < num_sims:
+            sampler.reset()
+            sampler.run_mcmc(burn_pos, main_sample_len)
+            chain = sampler.flatchain
+            for i in range(np.shape(chain)[0]):
+                sample_i = chain[-i, :]
+                if num_selected<num_sims and self._fluxDataWithinSelection(sample_i):
+                    params[num_selected, :] = sample_i
+                    params[num_selected, num_components:2*num_components] = \
+                        np.around(params[num_selected, num_components:2*num_components])
+                    num_selected += 1
+
         return params
 
     def generateObservables(self, params, max_err_frac, min_err_frac=0.):

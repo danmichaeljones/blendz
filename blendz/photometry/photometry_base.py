@@ -2,11 +2,16 @@ from builtins import *
 import warnings
 from contextlib import contextmanager
 import numpy as np
+from blendz import Configuration
 
 class PhotometryBase(object):
-    def __init__(self):
+    def __init__(self, config=None, **kwargs):
         self.all_galaxies = []
         self.current_galaxy = None
+
+        self.config = Configuration(**kwargs)
+        if config is not None:
+            self.config.mergeFromOther(config)
 
     def iterate(self, start=None, stop=None, step=None):
         out_list = self.all_galaxies[start:stop:step]
@@ -43,3 +48,10 @@ class PhotometryBase(object):
         Read only attribute returning the number of galaxies contained in the photometry data set.
         '''
         return len(self.all_galaxies)
+
+    def _fluxDataWithinSelection(self, flux_data):
+        '''Take in an array of flux data and return a bool of whether
+        is is within the selection criteria
+        '''
+        ref_band_mag = np.log10(flux_data[self.config.ref_band]) / (-0.4)
+        return ref_band_mag <= self.config.magnitude_limit
