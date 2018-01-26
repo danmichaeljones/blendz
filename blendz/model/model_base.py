@@ -70,10 +70,15 @@ class ModelBase(ABC_meta):
 
     def _obeyPriorConditions(self, redshifts, magnitudes):
         '''Check that the (arrays of) redshift and magnitude have sensible
-        values and that they obey the sorting conditions.
+        values (within bounds set by config) and that they obey the sorting conditions.
         '''
         num_components = len(redshifts)
-        redshift_positive = np.all(redshifts >= 0.)
+        redshifts_in_bounds = np.all(redshifts >= 0.) \
+                              and np.all(redshifts >= self.config.z_lo) \
+                              and np.all(redshifts <= self.config.z_hi)
+        magnitudes_in_bounds = np.all(magnitudes >= self.config.ref_mag_lo) \
+                               and np.all(magnitudes <= self.config.ref_mag_hi)
+        bounds_check = redshifts_in_bounds and magnitudes_in_bounds
         #Only need sorting condition if redshifts are exchangable
         # (depends on measurement_component_mapping) and if there's
         # multiple components
@@ -82,9 +87,9 @@ class ModelBase(ABC_meta):
                 sort_condition = np.all(redshifts[1:] >= redshifts[:-1])
             else:
                 sort_condition = np.all(magnitudes[1:] >= magnitudes[:-1])
-            prior_checks_okay = sort_condition and redshift_positive
+            prior_checks_okay = sort_condition and bounds_check
         else:
-            prior_checks_okay = redshift_positive
+            prior_checks_okay = bounds_check
         return prior_checks_okay
 
     def _lnTotalPrior(self, params):
