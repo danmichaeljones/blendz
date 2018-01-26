@@ -83,5 +83,4 @@ class BPZ(ModelBase):
         return 0.
 
     def lnMagnitudePrior(self, magnitude):
-        #Assume flat magnitude prior just for now
-        return 0.
+        return 0.6*(magnitude - self.config.ref_mag_hi) * np.log(10.)
