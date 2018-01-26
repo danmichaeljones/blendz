@@ -9,3 +9,4 @@ ref_band = 2
 filters = HST_ACS_WFC_F435W, HST_ACS_WFC_F606W, HST_ACS_WFC_F775W, HST_ACS_WFC_F850LP, nic3_f110w, nic3_f160w
 filter_file_extension = .res
 zero_point_errors = 0.01, 0.01, 0.01, 0.01, 0.01, 0.01
+magnitude_limit = 32

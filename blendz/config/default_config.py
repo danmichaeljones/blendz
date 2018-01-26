@@ -123,11 +123,10 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
-        #If spec_z_col is None, this gives ValueError, so set to None if it does
+        #spec_z_col is never allowed to not be set, force it to None if not set
+        #reading None can cause exceptions too, so catch them and set to None
         try:
             self.spec_z_col = self.maybeGet('Data', 'spec_z_col', int)
-        except TypeError:
-            self.spec_z_col = None
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError,
                 TypeError, ValueError):
             self.spec_z_col = None
@@ -143,17 +142,19 @@ class DefaultConfiguration(object):
             pass
 
         try:
-            #self.filters = [f.strip() for f in self.maybeGet('Data', 'filters').split(',')]
             self.filters = self.maybeGetList('Data', 'filters', str)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
         try:
-            #self.zero_point_errors = np.array([float(i) for i in self.maybeGet('Data', 'zero_point_errors').split(',')])
             self.zero_point_errors = np.array(self.maybeGetList('Data', 'zero_point_errors', float))
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        try:
+            self.magnitude_limit = self.maybeGet('Data', 'magnitude_limit', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
 
     #Derived attiribute -> property for ref_band and non_ref_bands indices
     @property #getter
