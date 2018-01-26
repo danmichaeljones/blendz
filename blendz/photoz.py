@@ -3,6 +3,7 @@ import sys
 import warnings
 import itertools as itr
 import numpy as np
+from scipy.special import erf
 import nestle
 from tqdm import tqdm
 import dill
@@ -119,6 +120,12 @@ class Photoz(object):
         chi_sq = -1. * np.sum((self.photometry.current_galaxy.ref_flux_data - total_ref_flux)**2 / self.photometry.current_galaxy.ref_flux_sigma**2)
         return chi_sq
 
+    def _lnSelection(self, flux):
+        flim = 10.**(-0.4*self.config.magnitude_limit)
+        sigma = self.photometry.current_galaxy.ref_flux_sigma
+        selection = 0.5 - (0.5 * erf((flim - flux) / (sigma * np.sqrt(2))))
+        return np.log(selection)
+
     def _lnPosterior(self, params):
         num_components = int(len(params) // 2)
         redshifts = params[:num_components]
@@ -139,8 +146,12 @@ class Photoz(object):
                     template_priors[nb, T] = self.model.lnTemplatePrior(tmpType, magnitudes[nb])
                     redshift_priors[nb, T] = self.model.lnRedshiftPrior(redshifts[nb], tmpType, magnitudes[nb])
             redshift_correlation = np.log(1. + self.model.correlationFunction(redshifts))
+
             #We assume independent magnitudes, so sum over log priors for joint prior
             joint_magnitude_prior = np.sum([self.model.lnMagnitudePrior(m) for m in magnitudes])
+            #Get total flux in reference band  = transform to flux & sum
+            total_ref_flux = np.sum(10.**(-0.4 * magnitudes))
+            selection_effect = self._lnSelection(total_ref_flux)
 
             #Loop over all templates - discrete marginalisation
             #All log probabilities so (multiply -> add) and (add -> logaddexp)
@@ -166,19 +177,13 @@ class Photoz(object):
                 #likelihood, not the flux likelihood
                 blend_flux = blend_flux[self.config.non_ref_bands]
 
-                #Get total magnitude in reference band
-                # = transform to flux, sum, transform to magnitudes
-                ##total_ref_mag = np.log10(np.sum(10.**(-0.4 * magnitudes))) / (-0.4)
-                total_ref_flux = np.sum(10.**(-0.4 * magnitudes))
-                ################################################print('REF MAG')
-                ################################################print total_ref_mag
 
                 #Other terms only appear once per summation-step
                 tmp += redshift_correlation
                 tmp += self._lnLikelihood_flux(blend_flux)
-                ##tmp += self._lnLikelihood_mag(total_ref_mag)
                 tmp += self._lnLikelihood_mag(total_ref_flux)
                 tmp += joint_magnitude_prior
+                tmp += selection_effect
 
                 #logaddexp contribution from this template to marginalise
                 lnProb = np.logaddexp(lnProb, tmp)
