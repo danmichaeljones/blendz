@@ -8,6 +8,7 @@ if sys.version_info >= (3, 4):
 else:
     ABC_meta = abc.ABCMeta('ABC', (), {})
 import numpy as np
+from scipy.integrate import quad
 from blendz import Configuration
 from blendz.fluxes import Responses
 
@@ -130,6 +131,17 @@ class ModelBase(ABC_meta):
                 lnPrior += self.lnMagnitudePrior(magnitudes[a])
 
             return lnPrior
+
+    def comovingSeparation(self, z_lo, z_hi):
+        '''Returns the comoving distance between two objects along the
+        line of sight, given their redshifts.
+        '''
+
+        integral = quad(lambda zp: 1./np.sqrt((self.config.omega_mat * (1+zp)**3.) +
+                                              (self.config.omega_k * (1+zp)**2.) +
+                                              self.config.omega_lam), z_lo, z_hi)[0]
+        return (3.e5 / self.config.hubble) * integral
+
 
     @abc.abstractmethod
     def correlationFunction(self, redshifts):
