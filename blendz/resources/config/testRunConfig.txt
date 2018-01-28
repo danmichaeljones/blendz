@@ -1,13 +1,5 @@
 [Run]
 
-z_lo = 0
-z_hi = 10
-z_len = 1000
+z_len = 500
 ref_mag_lo = 20
 ref_mag_hi = 32
-template_set_path = %(resource_path)s/templates/
-template_set = BPZ8
-omega_mat = 0.307
-omega_lam = 0.691
-omega_k = 0.
-hubble = 67.7

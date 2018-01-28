@@ -15,3 +15,6 @@ omega_mat = 0.307
 omega_lam = 0.691
 omega_k = 0.
 hubble = 67.7
+r0 = 5.
+gamma = 1.77
+xi_r_cutoff = 0.01

@@ -12,7 +12,7 @@ import blendz
 
 class DefaultConfiguration(object):
     def __init__(self):
-        self.configs_to_read = [join(blendz.RESOURCE_PATH, 'config/defaultConfig.txt')]
+        self.configs_to_read = [blendz.DEFAULT_CONFIG_PATH]
         self.kwargs = {}
 
     def populate_configuration(self):
