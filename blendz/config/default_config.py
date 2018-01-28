@@ -120,6 +120,22 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        try:
+            self.r0 = self.maybeGet('Run', 'r0', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.gamma = self.maybeGet('Run', 'gamma', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.xi_r_cutoff = self.maybeGet('Run', 'xi_r_cutoff', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+
         #Data config
         try:
             self.data_path = self.maybeGet('Data', 'data_path', str)

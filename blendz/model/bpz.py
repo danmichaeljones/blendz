@@ -78,9 +78,18 @@ class BPZ(ModelBase):
             return out
 
     def correlationFunction(self, redshifts):
-        #Extra correlation between objects at z1 and z2
-        #For now, assume no extra correlation, i.e., xi = 0
-        return 0.
+        if len(redshifts)==1:
+            return 0.
+        elif len(redshifts)==2:
+            if not self.config.sort_redshifts:
+                redshifts = np.sort(redshifts)
+            separation = self.comovingSeparation(redshifts[0], redshifts[1])
+            #Small-scale cutoff
+            if separation < self.config.xi_r_cutoff:
+                separation = self.config.xi_r_cutoff
+            return (self.config.r0 / separation)**self.config.gamma
+        else:
+            raise NotImplementedError('No N>2 yet...')
 
     def lnMagnitudePrior(self, magnitude):
         return 0.6*(magnitude - self.config.ref_mag_hi) * np.log(10.)
