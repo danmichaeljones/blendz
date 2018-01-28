@@ -27,10 +27,11 @@ class Photoz(object):
                                 as well as a Model/Photometry object, though these
                                 should be mutually exclusive. The configuration
                                 provided will be ignored.""")
-            #Responses and photometry given, just check if configs are equal
+            #Responses and photometry given, merge their configs
             if (model is not None) and (photometry is not None):
                 self.config = Configuration(**kwargs)
                 self.config.mergeFromOther(model.config)
+                self.config.mergeFromOther(photometry.config)
                 self.model = model
                 self.responses = self.model.responses
                 self.photometry = photometry

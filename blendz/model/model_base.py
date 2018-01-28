@@ -19,8 +19,9 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
                             provided will be ignored.""")
         #If responses given, use that
         if responses is not None:
+            self.config = Configuration(**kwargs)
+            self.config.mergeFromOther(responses.config)
             self.responses = responses
-            self.config = self.responses.config
         #Otherwise use config to create a responses object
         else:
             self.config = Configuration(**kwargs)
