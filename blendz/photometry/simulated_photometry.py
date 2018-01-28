@@ -12,6 +12,7 @@ from blendz.utilities import incrementCount
 class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
                 max_err_frac=0.1, model=None, seed=None, random_err=True,
+                num_walkers=100, burn_len=10000, min_err_frac=0.,
                 measurement_component_specification=None, magnitude_bounds=[20., 32], **kwargs):
         super(SimulatedPhotometry, self).__init__(config=config, **kwargs)
 
@@ -43,6 +44,10 @@ class SimulatedPhotometry(PhotometryBase):
         else:
             self.max_redshift = max_redshift
         self.magnitude_bounds = magnitude_bounds
+
+        self.min_err_frac = min_err_frac
+        self.num_walkers = num_walkers
+        self.burn_len = burn_len
 
         self.zero_point_errors = self.config.zero_point_errors
         self.zero_point_frac = 10.**(0.4*self.zero_point_errors) - 1.
@@ -191,14 +196,20 @@ class SimulatedPhotometry(PhotometryBase):
 
     def simulateRandomGalaxies(self, num_components, num_sims, max_redshift=None,
                                max_err_frac=None, measurement_component_specification=None,
-                               magnitude_bounds=None, burn_len=10000, num_walkers = 100,
-                               min_err_frac=0.):
+                               magnitude_bounds=None, burn_len=None, num_walkers=None,
+                               min_err_frac=None):
         if max_redshift is None:
             max_redshift = self.max_redshift
         if max_err_frac is None:
             max_err_frac = self.max_err_frac
         if magnitude_bounds is None:
             magnitude_bounds = self.magnitude_bounds
+        if burn_len is None:
+            burn_len = self.burn_len
+        if num_walkers is None:
+            num_walkers = self.num_walkers
+        if min_err_frac is None:
+            min_err_frac = self.min_err_frac
 
         self.model._setMeasurementComponentMapping(measurement_component_specification, num_components)
 
