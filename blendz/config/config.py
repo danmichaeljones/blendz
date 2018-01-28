@@ -1,12 +1,4 @@
 from builtins import *
-from os.path import join, abspath, dirname
-import warnings
-try:
-    #Python 2
-    import ConfigParser
-except ImportError:
-    #Python 3
-    import configparser as ConfigParser
 import numpy as np
 import blendz
 from blendz.config import DefaultConfiguration
@@ -41,6 +33,21 @@ class Configuration(DefaultConfiguration):
 
         self.populate_configuration()
 
+    def keyIsDefault(self, key):
+        '''Returns True if the current value of the setting ``key`` is default value'''
+        if (key in self.__dict__) and (key in self.default.__dict__) and \
+                np.all(self.__dict__[key]==self.default.__dict__[key]):
+            return True
+        else:
+            #Account for hidden properties
+            key_mod = '_' + key
+            if (key_mod in self.__dict__) and (key_mod in self.default.__dict__) and \
+                    np.all(self.__dict__[key_mod]==self.default.__dict__[key_mod]):
+                return True
+            #Otherwise, not default
+            else:
+                return False
+
     def mergeFromOther(self, other_config, overwrite_default_settings=True,
                        overwrite_any_setting=False):
         '''
@@ -59,24 +66,35 @@ class Configuration(DefaultConfiguration):
 
         for key in other_config.__dict__:
             if key not in no_compare:
+                done_set = False
                 #Setting not here, merge in
-                if key not in self.__dict__:
+                if not done_set and key not in self.__dict__:
                     self.__dict__[key] = other_config.__dict__[key]
+                    done_set = True
                     # ... and mark it as a default if it was a default in other_config
-                    if key in other_config.default.__dict__:
+                    if other_config.keyIsDefault(key):
                         self.default.__dict__[key] = other_config.default.__dict__[key]
+
                 #If they're already equal it doesn't matter
-                elif self.__dict__[key] == other_config.__dict__[key]:
+                if not done_set and np.all(self.__dict__[key] == other_config.__dict__[key]):
+                    done_set = True
                     continue
+
                 #Prevent error if other_config is a default setting and is
                 #different to one already here (don't overwrite with defaults)
-                elif key in other_config.default.__dict__:
+                if not done_set and other_config.keyIsDefault(key):
+                    done_set = True
                     continue
+
                 #Default setting here and allowed to overwrite it
-                elif overwrite_default_settings and key in self.default.__dict__:
+                if not done_set and overwrite_default_settings and self.keyIsDefault(key):
                     self.__dict__[key] = other_config.__dict__[key]
+                    done_set = True
+
                 #Allowed to overwrite any setting
-                elif overwrite_any_setting:
+                if not done_set and overwrite_any_setting:
                     self.__dict__[key] = other_config.__dict__[key]
-                else:
+                    done_set = True
+
+                if not done_set:
                     raise ValueError('Attempting to merge incompatible configurations - ' + key)
