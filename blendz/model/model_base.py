@@ -3,16 +3,13 @@ from builtins import *
 #https://stackoverflow.com/questions/35673474/
 import sys
 import abc
-if sys.version_info >= (3, 4):
-    ABC_meta = abc.ABC
-else:
-    ABC_meta = abc.ABCMeta('ABC', (), {})
+from future.utils import with_metaclass
 import numpy as np
 from scipy.integrate import quad
 from blendz import Configuration
 from blendz.fluxes import Responses
 
-class ModelBase(ABC_meta):
+class ModelBase(with_metaclass(abc.ABCMeta)):
     def __init__(self, responses=None, config=None, **kwargs):
         #Warn user is config and responses given that config ignored
         if ((responses is not None) and (config is not None)):
