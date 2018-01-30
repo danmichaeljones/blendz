@@ -101,7 +101,7 @@ class Photoz(object):
                 pass
 
     def loadState(self, filepath):
-        with open(filepath, 'r') as f:
+        with open(filepath, 'rb') as f:
             self.__dict__.update(dill.load(f))
         #If the photometry is simulated, replace the seed currently saved as
         #a number with the generator it was before saving
