@@ -217,7 +217,7 @@ class Photoz(object):
                                                                                    info['it']))
             self.pbar.refresh()
 
-    def sample(self, num_components, galaxy=None, resample=10000, seed=False, measurement_component_mapping=None, npoints=150, num_between_print=100):
+    def sample(self, num_components, galaxy=None, resample=10000, seed=False, measurement_component_mapping=None, npoints=150, num_between_print=10):
         """Sample the posterior for a particular number of components.
 
         What happens to the results?
