@@ -1,5 +1,6 @@
 from builtins import *
 import sys
+import os
 import warnings
 import itertools as itr
 import numpy as np
@@ -7,11 +8,24 @@ from scipy.special import erf
 import nestle
 from tqdm import tqdm
 import dill
+import blendz
 from blendz import Configuration
 from blendz.fluxes import Responses
 from blendz.photometry import Photometry, SimulatedPhotometry
 from blendz.model import BPZ
-from blendz.utilities import incrementCount
+from blendz.utilities import incrementCount, Silence
+
+try:
+    import pymultinest
+    PYMULTINEST_AVAILABLE = True
+except ImportError:
+    PYMULTINEST_AVAILABLE = False
+    warnings.warn('PyMultinest not installed, so falling back to (slower) python implementation.'
+        + ' See http://johannesbuchner.github.com/PyMultiNest/install.html for installation help.')
+except (SystemExit, OSError):
+    PYMULTINEST_AVAILABLE = False
+    warnings.warn('PyMultinest failed to load, so falling back to (slower) python implementation.'
+        + ' See http://johannesbuchner.github.com/PyMultiNest/install.html for installation help.')
 
 
 class Photoz(object):
@@ -208,6 +222,42 @@ class Photoz(object):
         shift[num_components:] = self.config.ref_mag_lo
         return (params * trans) + shift
 
+
+    def _priorTransform_multinest(self, cube, ndim, nparams):
+        '''
+        Transform params from [0, 1] uniform random to [0, max] uniform random,
+        where the max redshift is set in the configuration, and the max fraction
+        is 1.
+        '''
+        num_components = ndim // 2
+
+        trans = np.zeros(ndim)
+        trans[:num_components] = self.config.z_hi
+        trans[num_components:] = self.config.ref_mag_hi - self.config.ref_mag_lo
+
+        shift = np.zeros(ndim)
+        shift[:num_components] = self.config.z_lo
+        shift[num_components:] = self.config.ref_mag_lo
+
+        for i in range(ndim):
+            cube[i] = (cube[i] * trans[i]) + shift[i]
+
+    def _lnPosterior_multinest(self, cube, ndim, nparams):
+        self.num_posterior_evals += 1
+
+        params = np.array([cube[i] for i in range(ndim)])
+
+        with self.breakSilence():
+            if self.num_posterior_evals%self.num_between_print==0:
+                self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
+                                                                                       self.num_galaxies_sampling,
+                                                                                       self.blend_count,
+                                                                                       self.num_components_sampling,
+                                                                                       self.num_posterior_evals))
+                self.pbar.refresh()
+
+        return self._lnPosterior(params)
+
     def _sampleProgressUpdate(self, info):
         if info['it']%self.num_between_print==0:
             self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
@@ -217,7 +267,9 @@ class Photoz(object):
                                                                                    info['it']))
             self.pbar.refresh()
 
-    def sample(self, num_components, galaxy=None, resample=10000, seed=False, measurement_component_mapping=None, npoints=150, num_between_print=10):
+    def sample(self, num_components, galaxy=None, resample=1000, seed=False,
+               measurement_component_mapping=None, npoints=150, num_between_print=10,
+               use_pymultinest=None):
         """Sample the posterior for a particular number of components.
 
         What happens to the results?
@@ -230,9 +282,9 @@ class Photoz(object):
                 Index of the galaxy to sample. If None, sample every galaxy in the
                 photometry. Defaults to None.
 
-            resample (int or None):
-                Number of non-weighted samples to sample from the weighted samples
-                distribution from Nested Sampling. Defaults to 10000.
+            resample (int):
+                Number of non-weighted samples to draw from the weighted samples
+                distribution from Nested Sampling. Defaults to 1000.
 
             seed (bool or int):
                 Random seed for sampling to ensure deterministic results when
@@ -249,6 +301,9 @@ class Photoz(object):
                 Number of live points for the Nested Sampling algorithm. Defaults to 150.
 
         """
+
+        if use_pymultinest is None:
+            use_pymultinest = PYMULTINEST_AVAILABLE
 
         if isinstance(num_components, int):
             num_components = [num_components]
@@ -287,13 +342,28 @@ class Photoz(object):
 
                     num_param = 2 * nb
                     self.model._setMeasurementComponentMapping(measurement_component_mapping, nb)
-                    results = nestle.sample(self._lnPosterior, self._priorTransform,
-                                            num_param, method='multi', npoints=npoints,
-                                            rstate=rstate, callback=self._sampleProgressUpdate)
-                    self.sample_results[gal.index][nb] = results
-                    if resample is not None:
-                        #self.reweighted_samples[gal.index][nb] = nestle.resample_equal(results.samples, results.weights)
-                        self.reweighted_samples[gal.index][nb] = results.samples[rstate.choice(len(results.weights), size=resample, p=results.weights)]
+
+                    if use_pymultinest:
+                        if not os.path.exists('chains'):
+                            os.makedirs('chains')
+                        with Silence() as self.breakSilence:
+                            self.num_posterior_evals = 0
+                            pymultinest.run(self._lnPosterior_multinest, self._priorTransform_multinest,
+                                            num_param, resume=False, verbose=False, sampling_efficiency='model',
+                                            n_live_points=npoints)#,
+                                            #outputfiles_basename=os.path.join(blendz.CHAIN_PATH, 'chain_'))
+                            results = pymultinest.analyse.Analyzer(num_param)#, outputfiles_basename=os.path.join(blendz.CHAIN_PATH, 'chain_'))
+
+                        self.reweighted_samples[gal.index][nb] = results.get_equal_weighted_posterior()[:, :-1]
+
+                    else:
+                        results = nestle.sample(self._lnPosterior, self._priorTransform,
+                                                num_param, method='multi', npoints=npoints,
+                                                rstate=rstate, callback=self._sampleProgressUpdate)
+                        self.sample_results[gal.index][nb] = results
+                        if resample is not None:
+                            #self.reweighted_samples[gal.index][nb] = nestle.resample_equal(results.samples, results.weights)
+                            self.reweighted_samples[gal.index][nb] = results.samples[rstate.choice(len(results.weights), size=resample, p=results.weights)]
 
                     self.gal_count += 1
                     self.blend_count += 1
