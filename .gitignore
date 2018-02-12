@@ -98,5 +98,8 @@ ENV/
 # mypy
 .mypy_cache/
 
-#multinest chains
+# Multinest chains
 chains/
+
+# Save files from tests
+*.pkl
