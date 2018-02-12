@@ -29,11 +29,13 @@ class PhotometryBase(object):
         self.current_galaxy = None
 
     def __getitem__(self, key):
-        warnings.warn("""This slice of the photometry returns a (list of) Galaxy object(s), but doesn't
-                         update current_galaxy, so this should not be used for iterating over if any
-                         methods are called. Instead, you should use the
-                         iterate(start, stop, step) method for iterating.""")
-        return self.all_galaxies[key]
+        out = self.all_galaxies[key]
+        if isinstance(out, list):
+            warnings.warn("""This slice of the photometry returns a list of Galaxy objects, but doesn't
+                             update current_galaxy, so this should not be used for iterating over if any
+                             methods are called. Instead, you should use the
+                             iterate(start, stop, step) method for iterating.""")
+        return out
 
     @contextmanager
     def galaxy(self, index):

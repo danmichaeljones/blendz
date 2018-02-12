@@ -37,10 +37,9 @@ class TestSimulatedPhotometry(object):
             pass
         assert photo.current_galaxy is None
 
-        #test_slice_indexAndWarning(self):
+        #test_slice_index(self):
         for i in range(photo.num_galaxies):
-            with pytest.warns(UserWarning):
-                assert photo[i].index == i
+            assert photo[i].index == i
             assert photo.current_galaxy is None
 
         #test_slice_listAndWarning(self):
