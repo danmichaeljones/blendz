@@ -1,3 +1,9 @@
+try:
+    from mpi4py import MPI
+    MPI_RANK = MPI.COMM_WORLD.Get_rank()
+except:
+    MPI_RANK = 0
+
 from builtins import *
 import sys
 import os
@@ -248,7 +254,7 @@ class Photoz(object):
         params = np.array([cube[i] for i in range(ndim)])
 
         with self.breakSilence():
-            if self.num_posterior_evals%self.num_between_print==0:
+            if (self.num_posterior_evals%self.num_between_print==0) and MPI_RANK==0:
                 self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
                                                                                        self.num_galaxies_sampling,
                                                                                        self.blend_count,
@@ -259,7 +265,7 @@ class Photoz(object):
         return self._lnPosterior(params)
 
     def _sampleProgressUpdate(self, info):
-        if info['it']%self.num_between_print==0:
+        if (info['it']%self.num_between_print==0) and MPI_RANK==0:
             self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
                                                                                    self.num_galaxies_sampling,
                                                                                    self.blend_count,
@@ -367,4 +373,5 @@ class Photoz(object):
 
                     self.gal_count += 1
                     self.blend_count += 1
-                    self.pbar.update()
+                    if MPI_RANK==0:
+                        self.pbar.update()
