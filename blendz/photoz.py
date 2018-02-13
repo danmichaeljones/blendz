@@ -87,13 +87,15 @@ class Photoz(object):
             self.model._setMeasurementComponentMapping(None, 1)
 
             #Set up empty dictionaries to put results into
-            self.sample_results = {}
-            self.reweighted_samples = {}
+            self._samples = {}
+            self._logevd = {}
+            self._logevd_error = {}
             for g in range(self.num_galaxies):
                 #Each value is a dictionary which will be filled by sample function
                 #The keys of this inner dictionary will be the number of blends for run
-                self.sample_results[g] = {}
-                self.reweighted_samples[g] = {}
+                self._samples[g] = {}
+                self._logevd[g] = {}
+                self._logevd_error[g] = {}
 
     def saveState(self, filepath):
         """Save this entire Photoz instance to file.
@@ -273,12 +275,10 @@ class Photoz(object):
                                                                                    info['it']))
             self.pbar.refresh()
 
-    def sample(self, num_components, galaxy=None, resample=1000, seed=False,
+    def sample(self, num_components, galaxy=None, nresample=1000, seed=False,
                measurement_component_mapping=None, npoints=150, num_between_print=10,
                use_pymultinest=None):
         """Sample the posterior for a particular number of components.
-
-        What happens to the results?
 
         Args:
             num_components (int):
@@ -288,7 +288,7 @@ class Photoz(object):
                 Index of the galaxy to sample. If None, sample every galaxy in the
                 photometry. Defaults to None.
 
-            resample (int):
+            nresample (int):
                 Number of non-weighted samples to draw from the weighted samples
                 distribution from Nested Sampling. Defaults to 1000.
 
@@ -360,18 +360,125 @@ class Photoz(object):
                                             #outputfiles_basename=os.path.join(blendz.CHAIN_PATH, 'chain_'))
                             results = pymultinest.analyse.Analyzer(num_param)#, outputfiles_basename=os.path.join(blendz.CHAIN_PATH, 'chain_'))
 
-                        self.reweighted_samples[gal.index][nb] = results.get_equal_weighted_posterior()[:, :-1]
+                        self._samples[gal.index][nb] = results.get_equal_weighted_posterior()[:, :-1]
+                        self._logevd[gal.index][nb] = results.get_mode_stats()['global evidence']
+                        self._logevd_error[gal.index][nb] = results.get_mode_stats()['global evidence error']
 
                     else:
                         results = nestle.sample(self._lnPosterior, self._priorTransform,
                                                 num_param, method='multi', npoints=npoints,
                                                 rstate=rstate, callback=self._sampleProgressUpdate)
-                        self.sample_results[gal.index][nb] = results
-                        if resample is not None:
-                            #self.reweighted_samples[gal.index][nb] = nestle.resample_equal(results.samples, results.weights)
-                            self.reweighted_samples[gal.index][nb] = results.samples[rstate.choice(len(results.weights), size=resample, p=results.weights)]
+                        self._samples[gal.index][nb] = results.samples[rstate.choice(len(results.weights), size=nresample, p=results.weights)]
 
                     self.gal_count += 1
                     self.blend_count += 1
                     if MPI_RANK==0:
                         self.pbar.update()
+
+    def samples(self, num_components, galaxy=None):
+        """Return the (unweighted) posterior samples.
+
+        Args:
+            num_components (int):
+                Number of components.
+
+            galaxy (int or None):
+                Index of the galaxy to calculate log-evidence for. If None, return array
+                of log-evidence for every galaxy. Defaults to None.
+        """
+        if galaxy is None:
+            return [self._samples[g][num_components] for g in range(self.num_galaxies)]
+        else:
+            return self._samples[galaxy][num_components]
+
+    def logevd(self, num_components, galaxy=None, return_error=False):
+        """Return the base-10 log of the evidence.
+
+        Args:
+            num_components (int):
+                Number of components.
+
+            galaxy (int or None):
+                Index of the galaxy to calculate log-evidence for. If None, return array
+                of log-evidence for every galaxy. Defaults to None.
+
+            return_error (bool):
+                If True, also return the error on the log-evidence. If galaxy is None, this
+                is also an array. Defaults to False.
+        """
+        if galaxy is None:
+            if return_error:
+                return np.array([self._logevd[g][num_components] for g in range(self.num_galaxies)]),\
+                            np.array([self._logevd_error[g][num_components] for g in range(self.num_galaxies)])
+            else:
+                return np.array([self._logevd[g][num_components] for g in range(self.num_galaxies)])
+        else:
+            if return_error:
+                return self._logevd[galaxy][num_components], self._logevd_error[galaxy][num_components]
+            else:
+                return self._logevd[galaxy][num_components]
+
+    def logbayes(self, m, n, galaxy=None):
+        """Return the base-10 log of the Bayes factor between m and n components, log[B_mn].
+
+        A positive value suggests that that evidence prefers the m-component model over
+        the n-component model.
+
+        Args:
+            m (int):
+                First number of components.
+
+            n (int):
+                Second number of components.
+
+            galaxy (int or None):
+                Index of the galaxy to calculate B_mn for. If None, return array
+                of B_mn for every galaxy. Defaults to None.
+        """
+        return (self.logevd(m, galaxy=galaxy) - self.logevd(n, galaxy=galaxy)) / np.log(10.)
+
+
+    def max(self, num_components, galaxy=None, bins=50):
+        """Return the maximum-a-posteriori point for the 1D marginal distribution of each parameter.
+
+        This is calculated by forming a 1D histogram of each marginal distribution
+        and assigning the MAP of that parameter as the centre of the tallest bin.
+
+        Args:
+            num_components (int):
+                Number of components.
+
+            galaxy (int or None):
+                Index of the galaxy to calculate the MAP for. If None, return array
+                with rows of MAPs for each galaxy. Defaults to None.
+
+            bins (int):
+                Number of bins to use for each 1D histogram.
+        """
+        if galaxy is None:
+            out = np.zeros(self.num_galaxies, num_components * 2)
+            for g in range(self.num_galaxies):
+                for n in range(num_components * 2):
+                    vals, edges = np.histogram(self.samples(num_components, galaxy=g)[:, n], bins=bins)
+                    out[g, n] = edges[np.argmax(vals)[0]] + ((edges[1] - edges[0]) / 2.)
+            return out
+        else:
+            out = np.zeros(num_components * 2)
+            for n in range(num_components * 2):
+                vals, edges = np.histogram(self.samples(num_components, galaxy=galaxy)[:, n], bins=bins)
+                out[n] = edges[np.argmax(vals)[0]] + ((edges[1] - edges[0]) / 2.)
+            return out
+
+    def mean(self, num_components, galaxy=None):
+        raise NotImplementedError('To-do!')
+
+    def std(self, num_components, galaxy=None):
+        raise NotImplementedError('To-do!')
+
+    def quantiles(self, num_components, galaxy=None, q=(0.16, 0.84)):
+        try:
+            pcnt = [qq*100. for qq in q]
+        except TypeError:
+            pcnt = 100. * q
+        #call numpy.percentile with q *= 100
+        raise NotImplementedError('To-do!')
