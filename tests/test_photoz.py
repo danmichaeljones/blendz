@@ -48,7 +48,7 @@ class TestPhotoz(object):
         assert pz1.config==pz2.config
         self.checkPhotometry(pz1, pz2)
         if done_sample:
-            assert np.all(pz1.reweighted_samples[0][1]==pz2.reweighted_samples[0][1])
+            assert np.all(pz1.samples(1, galaxy=0)==pz2.samples(1, galaxy=0))
         self.checkFilters(pz1, pz2)
         self.checkTemplates(pz1, pz2)
 

@@ -24,7 +24,7 @@ class TestConfiguration(object):
                         filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
                                  'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
-                        ref_mag_lo = 20, ref_mag_hi = 32, sort_redshifts=True,
+                        ref_mag_lo = 20, ref_mag_hi = 32, sort_redshifts=False,
                         magnitude_limit=32, z_len=500)
 
 
@@ -65,8 +65,10 @@ class TestConfiguration(object):
 
     def test_sort_redshifts(self):
         cfg1, _, cfg2 = self.loadAndMakeConfig()
-        assert cfg1.sort_redshifts is False
-        assert cfg2.sort_redshifts is True
+        #Default is True
+        assert cfg1.sort_redshifts is True
+        #Test set to False
+        assert cfg2.sort_redshifts is False
 
     def test_eq_equal(self):
         cfg1, cfg2, _ = self.loadAndMakeConfig()

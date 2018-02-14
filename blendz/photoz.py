@@ -460,13 +460,13 @@ class Photoz(object):
             for g in range(self.num_galaxies):
                 for n in range(num_components * 2):
                     vals, edges = np.histogram(self.samples(num_components, galaxy=g)[:, n], bins=bins)
-                    out[g, n] = edges[np.argmax(vals)[0]] + ((edges[1] - edges[0]) / 2.)
+                    out[g, n] = edges[np.argmax(vals)] + ((edges[1] - edges[0]) / 2.)
             return out
         else:
             out = np.zeros(num_components * 2)
             for n in range(num_components * 2):
                 vals, edges = np.histogram(self.samples(num_components, galaxy=galaxy)[:, n], bins=bins)
-                out[n] = edges[np.argmax(vals)[0]] + ((edges[1] - edges[0]) / 2.)
+                out[n] = edges[np.argmax(vals)] + ((edges[1] - edges[0]) / 2.)
             return out
 
     def mean(self, num_components, galaxy=None):
