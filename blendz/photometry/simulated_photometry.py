@@ -4,6 +4,7 @@ from math import ceil
 from itertools import repeat
 import numpy as np
 import emcee
+from tqdm import tqdm
 from blendz.config import Configuration
 from blendz.photometry import PhotometryBase, Galaxy
 from blendz.model import BPZ
@@ -65,7 +66,7 @@ class SimulatedPhotometry(PhotometryBase):
                                     measurement_component_specification=measurement_component_specification,
                                     magnitude_bounds=self.magnitude_bounds)
 
-    def drawParametersFromPrior(self, num_components, num_sims, burn_len=10000, num_walkers = 100):
+    def drawParametersFromPrior(self, num_components, num_sims, burn_len=10000, num_walkers=100, num_thin=50):
         '''
         Use mcmc to draw ``num_sims`` sets of source parameters for
         sources of ``num_components`` components.
@@ -112,21 +113,24 @@ class SimulatedPhotometry(PhotometryBase):
         num_selected = 0
         #Sample in batches of num_sims samples, plus a bit more
         #because some are lost due to not making the selection criteria
-        main_sample_len = int(ceil(num_sims / float(num_walkers))*1.2)
+        main_sample_len = int(ceil(num_sims / float(num_walkers)) * 1.2 * num_thin)
         params = np.zeros((num_sims, num_pars))
         #Fill up the return params array with samples from the chain
         #that obey the magnitude selection criteria
-        while num_selected < num_sims:
-            sampler.reset()
-            sampler.run_mcmc(burn_pos, main_sample_len)
-            chain = sampler.flatchain
-            for i in range(np.shape(chain)[0]):
-                sample_i = chain[-i, :]
-                if num_selected<num_sims and self._fluxDataWithinSelection(sample_i):
-                    params[num_selected, :] = sample_i
-                    params[num_selected, num_components:2*num_components] = \
-                        np.around(params[num_selected, num_components:2*num_components])
-                    num_selected += 1
+        with tqdm(total=num_sims) as pbar:
+            while num_selected < num_sims:
+                sampler.reset()
+                sampler.run_mcmc(burn_pos, main_sample_len, thin=num_thin)
+                chain = sampler.flatchain
+                for i in range(np.shape(chain)[0]):
+                    sample_i = chain[-i, :]
+                    if num_selected<num_sims and self._fluxDataWithinSelection(sample_i):
+                        params[num_selected, :] = sample_i
+                        params[num_selected, num_components:2*num_components] = \
+                            np.around(params[num_selected, num_components:2*num_components])
+                        num_selected += 1
+                        pbar.update()
+
 
         return params
 
