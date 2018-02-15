@@ -437,6 +437,40 @@ class Photoz(object):
         """
         return (self.logevd(m, galaxy=galaxy) - self.logevd(n, galaxy=galaxy)) / np.log(10.)
 
+    def applyToMarginals(self, func, num_components, galaxy=None, **kwargs):
+        """Apply a function to the 1D marginal distribution samples of each parameter.
+
+        Args:
+
+            func (function):
+                The function to apply to the marginal distribution samples.
+                It should accept an array of the samples as its first argument,
+                with optional keyword arguments.
+
+            num_components (int):
+                Number of components.
+
+            galaxy (int or None):
+                Index of the galaxy to apply the function to. If None, return
+                array with a row for each galaxy. Defaults to None.
+
+            **kwargs:
+                Any optional keyword arguments to pass to the function.
+        """
+        if galaxy is None:
+            out = np.zeros((self.num_galaxies, num_components * 2))
+            for g in range(self.num_galaxies):
+                for n in range(num_components * 2):
+                    out[g, n] = func(self._samples[g][num_components][:, n], **kwargs)
+        else:
+            out = np.zeros(num_components * 2)
+            for n in range(num_components * 2):
+                out[n] = func(self._samples[galaxy][num_components][:, n], **kwargs)
+        return out
+
+    def _MAP1d(self, samps, bins=50):
+        vals, edges = np.histogram(samps, bins=bins)
+        return edges[np.argmax(vals)] + ((edges[1] - edges[0]) / 2.)
 
     def max(self, num_components, galaxy=None, bins=50):
         """Return the maximum-a-posteriori point for the 1D marginal distribution of each parameter.
@@ -455,30 +489,39 @@ class Photoz(object):
             bins (int):
                 Number of bins to use for each 1D histogram.
         """
-        if galaxy is None:
-            out = np.zeros(self.num_galaxies, num_components * 2)
-            for g in range(self.num_galaxies):
-                for n in range(num_components * 2):
-                    vals, edges = np.histogram(self.samples(num_components, galaxy=g)[:, n], bins=bins)
-                    out[g, n] = edges[np.argmax(vals)] + ((edges[1] - edges[0]) / 2.)
-            return out
-        else:
-            out = np.zeros(num_components * 2)
-            for n in range(num_components * 2):
-                vals, edges = np.histogram(self.samples(num_components, galaxy=galaxy)[:, n], bins=bins)
-                out[n] = edges[np.argmax(vals)] + ((edges[1] - edges[0]) / 2.)
-            return out
+        return self.applyToMarginals(self._MAP1d, num_components, galaxy=galaxy, bins=bins)
 
     def mean(self, num_components, galaxy=None):
-        raise NotImplementedError('To-do!')
+        """Return the mean point for the 1D marginal distribution of each parameter.
+
+        Args:
+            num_components (int):
+                Number of components.
+
+            galaxy (int or None):
+                Index of the galaxy to calculate the MAP for. If None, return array
+                with rows of means for each galaxy. Defaults to None.
+        """
+        return self.applyToMarginals(np.mean, num_components, galaxy=galaxy)
+
 
     def std(self, num_components, galaxy=None):
-        raise NotImplementedError('To-do!')
+        """Return the standard deviation for the 1D marginal distribution of each parameter.
+
+        Args:
+            num_components (int):
+                Number of components.
+
+            galaxy (int or None):
+                Index of the galaxy to calculate the MAP for. If None, return array
+                with rows of means for each galaxy. Defaults to None.
+        """
+        return self.applyToMarginals(np.std, num_components, galaxy=galaxy)
 
     def quantiles(self, num_components, galaxy=None, q=(0.16, 0.84)):
         try:
             pcnt = [qq*100. for qq in q]
         except TypeError:
-            pcnt = 100. * q
+            pcnt = [100. * q]
         #call numpy.percentile with q *= 100
-        raise NotImplementedError('To-do!')
+        return [self.applyToMarginals(np.percentile, num_components, galaxy=galaxy, q=pp) for pp in pcnt]
