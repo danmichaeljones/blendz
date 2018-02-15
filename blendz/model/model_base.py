@@ -143,6 +143,10 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
                                               self.config.omega_lam), z_lo, z_hi)[0]
         return (3.e5 / self.config.hubble) * integral
 
+    def lnPriorCalibrationPrior(self):
+        '''Returns the prior on the prior parameters for the calibration procedure.'''
+        #Default to P(theta) = 1 --> ln P(theta) = 0
+        return 0.
 
     @abc.abstractmethod
     def correlationFunction(self, redshifts):

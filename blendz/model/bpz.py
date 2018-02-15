@@ -88,3 +88,14 @@ class BPZ(ModelBase):
 
     def lnMagnitudePrior(self, magnitude):
         return 0.6*(magnitude - self.config.ref_mag_hi) * np.log(10.)
+
+    def lnPriorCalibrationPrior(self):
+        '''Returns the prior on the prior parameters for the calibration procedure.'''
+        #Assume a flat prior, except that f_t_early + f_t_late <= 1. ...
+        if self.prior_params_dict['f_t']['early'] + par_dict['f_t']['late'] > 1.:
+            return -np.inf
+        #... and all parameters are positive
+        elif np.any(self.prior_params < 0.):
+            return -np.inf
+        else:
+            return 0.
