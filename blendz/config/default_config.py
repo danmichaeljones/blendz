@@ -135,6 +135,10 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        try:
+            self.prior_params = np.array(self.maybeGetList('Run', 'prior_params', float))
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
 
         #Data config
         try:

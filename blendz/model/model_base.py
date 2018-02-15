@@ -2,6 +2,7 @@ from builtins import *
 #Python 2 & 3 compatibility for abstract base classes, from
 #https://stackoverflow.com/questions/35673474/
 import sys
+import warnings
 import abc
 from future.utils import with_metaclass
 import numpy as np
@@ -29,6 +30,8 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
                 self.config.mergeFromOther(config)
 
             self.responses = Responses(config=self.config)
+
+        self.prior_params = self.config.prior_params
 
     def _setMeasurementComponentMapping(self, specification, num_components):
         '''
