@@ -369,6 +369,8 @@ class Photoz(object):
                                                 num_param, method='multi', npoints=npoints,
                                                 rstate=rstate, callback=self._sampleProgressUpdate)
                         self._samples[gal.index][nb] = results.samples[rstate.choice(len(results.weights), size=nresample, p=results.weights)]
+                        self._logevd[gal.index][nb] = results.logz
+                        self._logevd_error[gal.index][nb] = results.logzerr
 
                     self.gal_count += 1
                     self.blend_count += 1
