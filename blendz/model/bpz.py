@@ -18,7 +18,7 @@ class BPZ(ModelBase):
         #Normalisation of redshift priors
         self.redshift_prior_norm = {}
         mag_len = 100
-        mag_range = np.linspace(20, 32, mag_len)
+        mag_range = np.linspace(self.config.ref_mag_lo, self.config.ref_mag_hi, mag_len)
         for T in self.responses.templates.possible_types:
             norms = np.zeros(mag_len)
             for i, mag in enumerate(mag_range):
@@ -27,24 +27,18 @@ class BPZ(ModelBase):
             self.redshift_prior_norm[T] = interp1d(mag_range, norms)
 
     def lnTemplatePrior(self, template_type, component_ref_mag):
-        if component_ref_mag > 32.:
-            mag0 = 32.
-        elif component_ref_mag < 20.:
-            mag0 = 20.
-        else:
-            mag0 = component_ref_mag
         #All include a scaling of 1/Number of templates of that type
         if template_type in ['early', 'late']:
             Nt = self.responses.templates.numType(template_type)
             coeff = np.log(self.prior_params['f_t'][template_type] / Nt)
-            expon = self.prior_params['k_t'][template_type] * (mag0 - 20.)
+            expon = self.prior_params['k_t'][template_type] * (component_ref_mag - 20.)
             out = coeff - expon
         elif template_type == 'irr':
             Nte = self.responses.templates.numType('early')
             Ntl = self.responses.templates.numType('late')
             Nti = self.responses.templates.numType('irr')
-            expone = self.prior_params['k_t']['early'] * (mag0 - 20.)
-            exponl = self.prior_params['k_t']['late'] * (mag0 - 20.)
+            expone = self.prior_params['k_t']['early'] * (component_ref_mag - 20.)
+            exponl = self.prior_params['k_t']['late'] * (component_ref_mag - 20.)
             early = self.prior_params['f_t']['early'] * np.exp(-expone)
             late = self.prior_params['f_t']['late'] * np.exp(-exponl)
             out = np.log(1. - early - late) - np.log(Nti)
@@ -56,24 +50,18 @@ class BPZ(ModelBase):
 
     def lnRedshiftPrior(self, redshift, template_type, component_ref_mag, norm=True):
         try:
-            if component_ref_mag > 32.:
-                mag0 = 32.
-            elif component_ref_mag < 20.:
-                mag0 = 20.
-            else:
-                mag0 = component_ref_mag
             if redshift==0:
                 first = -np.inf
             else:
                 first = (self.prior_params['alpha_t'][template_type] * np.log(redshift))
-            second = self.prior_params['z_0t'][template_type] + (self.prior_params['k_mt'][template_type] * (mag0 - 20.))
+            second = self.prior_params['z_0t'][template_type] + (self.prior_params['k_mt'][template_type] * (component_ref_mag - 20.))
             out = first - (redshift / second)**self.prior_params['alpha_t'][template_type]
         except KeyError:
             raise ValueError('The BPZ priors are only defined for templates of \
                               types "early", "late" and "irr", but the redshift \
                               prior was called with type ' + template_type)
         if norm:
-            return out + self.redshift_prior_norm[template_type](mag0)
+            return out + self.redshift_prior_norm[template_type](component_ref_mag)
         else:
             return out
 
