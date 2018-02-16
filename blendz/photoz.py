@@ -8,10 +8,13 @@ from builtins import *
 import sys
 import os
 import warnings
+from math import ceil
+from multiprocessing import cpu_count
 import itertools as itr
 import numpy as np
 from scipy.special import erf
 import nestle
+import emcee
 from tqdm import tqdm
 import dill
 import blendz
@@ -376,6 +379,101 @@ class Photoz(object):
                     self.blend_count += 1
                     if MPI_RANK==0:
                         self.pbar.update()
+
+    def _lnPriorCalibrationPosterior(self, params):
+        calibration_model = self.CalibrationModel(responses=self.responses, prior_params=params, **self.calibration_model_kwargs)
+        calibration_prior = calibration_model.lnPriorCalibrationPrior()
+        if not np.isfinite(calibration_prior):
+            return -np.inf
+        else:
+            lnProb_all = 0.
+            for g in self.photometry:
+                total_ref_mag = g.ref_mag_data
+                total_ref_flux = 10.**(-0.4 * total_ref_mag)
+                magnitude_prior = calibration_model.lnMagnitudePrior(total_ref_mag)
+                magnitude_likelihood = self._lnLikelihood_mag(total_ref_flux)
+                selection_effect = self._lnSelection(total_ref_flux)
+                template_priors = np.zeros(self.num_templates)
+                redshift_priors = np.zeros(self.num_templates)
+                lnProb_g = -np.inf
+                #Sum over template
+                for T in range(self.num_templates):
+                    tmp = 0.
+
+                    tmpType = self.responses.templates.templateType(T)
+                    tmp += calibration_model.lnTemplatePrior(tmpType, total_ref_mag)
+                    tmp += calibration_model.lnRedshiftPrior(g.spec_redshift, tmpType, total_ref_mag)
+                    blend_flux = self.fixed_model_fluxes[g.index][T, self.config.non_ref_bands, 0]
+                    tmp += self._lnLikelihood_flux(blend_flux)
+                    tmp += magnitude_prior
+                    tmp += selection_effect
+                    tmp += magnitude_likelihood
+
+                    lnProb_g = np.logaddexp(lnProb_g, tmp)
+
+                #if joint_magnitude_prior == -np.inf:
+                #    pass
+                #else:
+                #    lnProb_all += lnProb_g
+                lnProb_all += lnProb_g
+            if not np.isfinite(lnProb_all):
+                return -np.inf
+            else:
+                return lnProb_all + calibration_prior
+
+    def calibrate(self, num_samples, chain_path='chains/calibration-chain.txt',
+                  calibration_model=BPZ, num_walkers=200, num_threads=1,
+                  prior_params_scale=[1., 1., 1., 1., 5., 5., 5., 1., 1., 1., 0.25, 0.25, 0.25],
+                  **calibration_model_kwargs):
+        self.CalibrationModel = calibration_model
+        self.calibration_model_kwargs = calibration_model_kwargs
+        self.model._setMeasurementComponentMapping(None, 1)
+
+        num_dims = len(prior_params_scale)
+
+        chain_dir_path = os.path.dirname(chain_path)
+        if not os.path.exists(chain_dir_path):
+            os.makedirs(chain_dir_path)
+        chain_file = open(chain_path, 'w')
+        chain_file.close()
+
+        #Single interp call -> Shape = (N_template, N_band, N_component)
+        self.fixed_model_fluxes = {}
+        for g in self.photometry:
+            self.fixed_model_fluxes[g.index] = self.responses.interp(np.array([g.spec_redshift]))
+            for T in range(self.num_templates):
+                scaling = 10.**(-0.4*g.ref_mag_data) / self.fixed_model_fluxes[g.index][T, self.config.ref_band, 0]
+                self.fixed_model_fluxes[g.index][T, :, 0] *= scaling
+
+        pos0 = np.zeros((num_walkers, num_dims))
+        with tqdm(total=num_walkers) as pbar:
+            for w in range(num_walkers):
+                done = False
+                while not done:
+                    rand_pars = np.random.random(num_dims) * prior_params_scale
+                    if np.isfinite(self._lnPriorCalibrationPosterior(np.random.random(num_dims))):
+                        pos0[w, :] = rand_pars
+                        done = True
+                pbar.update()
+
+        # Plan is to use num_threads=cpu_count(), but can't pickle at the moment.
+        # Possibly because of interp1d having __slots__, see https://stackoverflow.com/a/37726646
+        # Instead, just catch it here for now.
+        if num_threads!=1:
+            raise ValueError('Multithreading is currently broken, so num_threads must be 1.')
+        sampler = emcee.EnsembleSampler(num_walkers, num_dims,
+                                        self._lnPriorCalibrationPosterior,
+                                        threads=num_threads)
+
+        num_iter = int(ceil(num_samples / float(num_walkers)))
+        with tqdm(total=num_iter) as pbar:
+            for i, result in enumerate(sampler.sample(pos0, iterations=num_iter, storechain=False)):
+                #Append new step to file
+                position = result[0]
+                with open(chain_path, 'a') as chain_file:
+                    for k in range(position.shape[0]):
+                        chain_file.write(u"{1:s}\n".format(k, " ".join(map(str, position[k]))))
+                pbar.update()
 
     def samples(self, num_components, galaxy=None):
         """Return the (unweighted) posterior samples.
