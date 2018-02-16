@@ -196,6 +196,16 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        try:
+            self.no_detect_value = self.maybeGet('Data', 'no_detect_value', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
+        try:
+            self.no_observe_value = self.maybeGet('Data', 'no_observe_value', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
     #Derived attiribute -> property for ref_band and non_ref_bands indices
     @property #getter
     def ref_band(self):
