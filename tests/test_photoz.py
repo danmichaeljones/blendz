@@ -64,6 +64,11 @@ class TestPhotoz(object):
         #Test single-component sampling all galaxies with default sampler
         pz.sample(1)
 
+        #Check that the max-a-post, mean and stan-devs of all parameters for all galaxies are okay
+        assert np.all(np.isfinite(pz.max(1)))
+        assert np.all(np.isfinite(pz.mean(1)))
+        assert np.all(np.isfinite(pz.std(1)))
+
         #Test save/load after sampling single component
         pz.saveState('testPZ_one_component_samples.pkl')
         pz_load2 = blendz.Photoz(load_state_path='testPZ_one_component_samples.pkl')
