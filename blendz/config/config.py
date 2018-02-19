@@ -63,7 +63,7 @@ class Configuration(DefaultConfiguration):
         '''
         no_compare = ['config', 'configs_to_read', 'kwargs', 'default']
         if self.default != other_config.default:
-            warning.warn('Merging configurations with different defaults.')
+            warnings.warn('Merging configurations with different defaults.')
 
         for key in other_config.__dict__:
             if key not in no_compare:
