@@ -21,4 +21,12 @@ class Photometry(PhotometryBase):
             mag_sigma = self.photo_data[g, self.config.sigma_cols]
             self.all_galaxies.append(Galaxy(mag_data, mag_sigma, self.config, self.zero_point_frac, g))
             if self.config.spec_z_col is not None:
-                self.all_galaxies[g].spec_redshift = self.photo_data[g, self.config.spec_z_col]
+                self.all_galaxies[g].truth['num_components'] = len(self.config.spec_z_col)
+                for c in range(len(self.config.spec_z_col)):
+                    self.all_galaxies[g].truth[c] = {}
+                    self.all_galaxies[g].truth[c]['redshift'] = self.photo_data[g, self.config.spec_z_col[c]]
+
+            if self.config.magnitude_limit_col is not None:
+                self.all_galaxies[g].magnitude_limit = self.photo_data[g, self.config.magnitude_limit_col]
+            else:
+                self.all_galaxies[g].magnitude_limit = self.config.magnitude_limit

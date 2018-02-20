@@ -14,6 +14,8 @@ class Galaxy(object):
         self.zero_point_frac = zero_point_frac
         self.index = index
 
+        self.truth = {}
+
         self.convertMagnitudes()
 
     def convertMagnitudes(self):
@@ -21,13 +23,13 @@ class Galaxy(object):
         self.flux_sigma = (10.**(0.4*self.mag_sigma)-1.)*self.flux_data
 
         # Galaxy not OBSERVED - set flux to zero and error to very high (1e108)
-        noObs = np.where(np.isclose(self.mag_data, self.config.no_observe_value))[0]
+        noObs = np.where(np.isclose(self.mag_data, self.config.no_observe_value, atol=0.01))[0]
         for no in noObs:
             self.flux_data[no] = 0.
             self.flux_sigma[no] = 1e108
 
         # Galaxy not DETECTED - set flux to zero, error to abs(error)
-        noDet = np.where(np.isclose(self.mag_data, self.config.no_detect_value))[0]
+        noDet = np.where(np.isclose(self.mag_data, self.config.no_detect_value, atol=0.01))[0]
         for nd in noDet:
             self.flux_data[nd] = 0.
             self.flux_sigma[nd] = 10.**(-0.4*self.mag_sigma[nd])
@@ -36,6 +38,10 @@ class Galaxy(object):
         # i.e., the galaxy IS seen in this band
         notSeen = np.array([((b in noObs) or (b in noDet)) for b in range(len(self.mag_data))])
         seen = np.array([not b for b in notSeen])
+
+        if not seen[self.ref_band]:
+            print(mag_data)
+            raise ValueError('Galaxies must be observed in reference band, but galaxy {} had ref-band magnitude of {}, i.e., marked as a non-observation/detection.'.format(self.index, self.ref_mag_data))
 
         #Add the zero point errors in
         #First, handle the observed objects

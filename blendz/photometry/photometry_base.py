@@ -50,10 +50,3 @@ class PhotometryBase(object):
         Read only attribute returning the number of galaxies contained in the photometry data set.
         '''
         return len(self.all_galaxies)
-
-    def _fluxDataWithinSelection(self, flux_data):
-        '''Take in an array of flux data and return a bool of whether
-        is is within the selection criteria
-        '''
-        ref_band_mag = np.log10(flux_data[self.config.ref_band]) / (-0.4)
-        return ref_band_mag <= self.config.magnitude_limit

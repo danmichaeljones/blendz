@@ -35,6 +35,13 @@ class SimulatedPhotometry(PhotometryBase):
             self.model = BPZ(config=self.config)
             self.responses = self.model.responses
 
+        #Config must have magnitude_limit set, NOT magnitude_limit_col for simulations
+        # We assume a fixed magnitude cut.
+        if self.config.magnitude_limit is None:
+            raise ValueError('SimulatedPhotometry requires magnitude_limit to be set in config.')
+        elif self.config.magnitude_limit_col is not None:
+            warnings.warn('SimulatedPhotometry uses magnitude_limit, but magnitude_limit_col has also been set.')
+
         self.num_sims = num_sims
         self.num_components = num_components
         self.max_err_frac = max_err_frac
@@ -134,6 +141,13 @@ class SimulatedPhotometry(PhotometryBase):
 
         return params
 
+    def _fluxDataWithinSelection(self, flux_data):
+        '''Take in an array of flux data and return a bool of whether
+        is is within the selection criteria
+        '''
+        ref_band_mag = np.log10(flux_data[self.config.ref_band]) / (-0.4)
+        return ref_band_mag <= self.config.magnitude_limit
+
     def generateObservables(self, params, max_err_frac, min_err_frac=0.):
         '''
         Use array of params shape (num_sims, 3*num_components) to generate
@@ -224,6 +238,7 @@ class SimulatedPhotometry(PhotometryBase):
         for g in range(num_sims):
             new_galaxy = Galaxy(all_mag_data[g, :], all_mag_sigma[g, :], self.config, self.zero_point_frac, g)
             new_galaxy.truth = all_truths[g]
+            new_galaxy.magnitude_limit = self.config.magnitude_limit
             self.all_galaxies.append(new_galaxy)
 
     def simulateGalaxies(self, redshifts, scales, templates, err_frac):
