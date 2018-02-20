@@ -51,7 +51,7 @@ class TestConfiguration(object):
             assert isinstance(cfg.mag_cols, list)
             assert isinstance(cfg.sigma_cols, list)
             assert isinstance(cfg.ref_band, int)
-            assert (isinstance(cfg.spec_z_col, int)) or (cfg.spec_z_col is None)
+            assert (isinstance(cfg.spec_z_col, list)) or (cfg.spec_z_col is None)
             assert isinstance(cfg.filter_path, str)
             assert isinstance(cfg.filter_file_extension, str)
             assert isinstance(cfg.filters, list)
@@ -99,6 +99,48 @@ class TestConfiguration(object):
 
         grid = cfg.redshift_grid
         assert np.all(grid == np.linspace(cfg.z_lo, cfg.z_hi, cfg.z_len))
+
+    def test_lists(self):
+        load_list_config = blendz.Configuration(config_path=join(blendz.RESOURCE_PATH,
+                                                        'config/testListConfig.txt'))
+
+        made_list_config1 = blendz.config.Configuration(
+                        mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
+                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
+                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
+                        zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
+                        spec_z_col=13)
+
+        made_list_config2 = blendz.config.Configuration(
+                        mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
+                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
+                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
+                        zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
+                        spec_z_col=[13, 14])
+
+        for cfg in [load_list_config, made_list_config1, made_list_config2]:
+            #Check they're lists...
+            assert isinstance(cfg.mag_cols, list)
+            assert isinstance(cfg.sigma_cols, list)
+            assert isinstance(cfg.filters, list)
+            assert isinstance(cfg.zero_point_errors, np.ndarray)
+            assert isinstance(cfg.spec_z_col, list)
+            # ... of the right type
+            assert isinstance(cfg.mag_cols[0], int)
+            assert isinstance(cfg.sigma_cols[0], int)
+            assert isinstance(cfg.filters[0], str)
+            assert isinstance(cfg.zero_point_errors[0], float)
+            assert isinstance(cfg.spec_z_col[0], int)
+
+        for cfg in [load_list_config, made_list_config2]:
+            #Check the values
+            assert cfg.mag_cols==[1, 3, 5, 7, 9, 11]
+            assert cfg.sigma_cols==[2, 4, 6, 8, 10, 12]
+            assert cfg.filters==['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
+                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w']
+            assert np.all(cfg.zero_point_errors==np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01]))
+            assert cfg.spec_z_col==[13, 14]
+
 
     def test_merge(self):
         #Empty config, loaded config and made config with some difference to loaded
@@ -169,7 +211,7 @@ class TestConfiguration(object):
         assert not loaded_test_config.keyIsDefault('spec_z_col')
         assert made_config1.keyIsDefault('spec_z_col')
         assert made_config1.spec_z_col is None
-        assert loaded_test_config.spec_z_col == 13
+        assert loaded_test_config.spec_z_col == [13]
         #...and z_len
         assert made_config1.z_len != loaded_test_config.z_len
         assert not loaded_test_config.keyIsDefault('z_len')
@@ -182,29 +224,29 @@ class TestConfiguration(object):
         assert np.all(loaded_test_config.mag_cols == made_config1.mag_cols)
         assert made_config1.template_set == 'BPZ6'
         assert made_config1.z_len == 500
-        assert made_config1.spec_z_col == 13
+        assert made_config1.spec_z_col == [13]
 
         #Non-default setting here, non-default in other and not allowed to overwrite it = error
-        assert made_config2.spec_z_col == 10
+        assert made_config2.spec_z_col == [10]
         assert not made_config2.keyIsDefault('spec_z_col')
-        assert loaded_test_config.spec_z_col == 13
+        assert loaded_test_config.spec_z_col == [13]
         assert not loaded_test_config.keyIsDefault('spec_z_col')
         with pytest.raises(ValueError):
             made_config2.mergeFromOther(loaded_test_config)
 
         #Non-default setting here, non-default in other and allowed to overwrite it = merge in
-        assert made_config3.spec_z_col == 10
+        assert made_config3.spec_z_col == [10]
         assert not made_config3.keyIsDefault('spec_z_col')
-        assert loaded_test_config.spec_z_col == 13
+        assert loaded_test_config.spec_z_col == [13]
         assert not loaded_test_config.keyIsDefault('spec_z_col')
         made_config3.mergeFromOther(loaded_test_config, overwrite_any_setting=True)
 
-        #Different defaults = error on merge
+        #Different defaults = warn on merge
         existing_default_path = blendz.DEFAULT_CONFIG_PATH
         cfg_before_change_default = blendz.Configuration()
         blendz.DEFAULT_CONFIG_PATH = '/Path/To/Nowhere.txt'
         cfg_after_change_default = blendz.Configuration()
-        with pytest.raises(ValueError):
+        with pytest.warns(UserWarning):
             cfg_after_change_default.mergeFromOther(cfg_before_change_default)
         #Put the default path back
         blendz.DEFAULT_CONFIG_PATH = existing_default_path

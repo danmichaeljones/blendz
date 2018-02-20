@@ -1,0 +1,7 @@
+[Data]
+
+mag_cols = 1, 3, 5, 7, 9, 11
+sigma_cols = 2, 4, 6, 8, 10, 12
+spec_z_col = 13, 14
+filters = HST_ACS_WFC_F435W, HST_ACS_WFC_F606W, HST_ACS_WFC_F775W, HST_ACS_WFC_F850LP, nic3_f110w, nic3_f160w
+zero_point_errors = 0.01, 0.01, 0.01, 0.01, 0.01, 0.01

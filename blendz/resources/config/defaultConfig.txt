@@ -1,7 +1,6 @@
 [Data]
 
 filter_path = %(resource_path)s/filters/bpz
-spec_z_col = None
 no_detect_value = 99.
 no_observe_value = -99.
 

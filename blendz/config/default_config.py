@@ -54,9 +54,18 @@ class DefaultConfiguration(object):
         to the Configuration class, and then read from configuration files.
         '''
         if key in self.kwargs:
-            return [typeFn(v) for v in self.kwargs[key]]
+            if self.kwargs[key] is None:
+                return None
+            else:
+                try:
+                    return [typeFn(v) for v in self.kwargs[key]]
+                except TypeError:
+                    return [typeFn(self.kwargs[key])]
         else:
-            return [typeFn(v.strip()) for v in self.config.get(section, key).split(',')]
+            try:
+                return [typeFn(v.strip()) for v in self.config.get(section, key).split(',')]
+            except TypeError:
+                return None
 
     def saveAndConvertValues(self):
         #Run config
@@ -166,10 +175,21 @@ class DefaultConfiguration(object):
         #spec_z_col is never allowed to not be set, force it to None if not set
         #reading None can cause exceptions too, so catch them and set to None
         try:
-            self.spec_z_col = self.maybeGet('Data', 'spec_z_col', int)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError,
-                TypeError, ValueError):
+            self.spec_z_col = self.maybeGetList('Data', 'spec_z_col', int)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             self.spec_z_col = None
+
+        try:
+            self.magnitude_limit_col = self.maybeGet('Data', 'magnitude_limit_col', int)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            self.magnitude_limit_col = None
+
+        try:
+            self.magnitude_limit = self.maybeGet('Data', 'magnitude_limit', float)
+            if self.magnitude_limit_col is not None:
+                warnings.warn('Both magnitude_limit and magnitude_limit_col have been set, so magnitude_limit will be ignored.')
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            self.magnitude_limit = None
 
         try:
             self.filter_path = self.maybeGet('Data', 'filter_path', str)
@@ -188,11 +208,6 @@ class DefaultConfiguration(object):
 
         try:
             self.zero_point_errors = np.array(self.maybeGetList('Data', 'zero_point_errors', float))
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            pass
-
-        try:
-            self.magnitude_limit = self.maybeGet('Data', 'magnitude_limit', float)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
