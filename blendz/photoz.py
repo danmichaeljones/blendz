@@ -411,23 +411,25 @@ class Photoz(object):
 
                     lnProb_g = np.logaddexp(lnProb_g, tmp)
 
-                #if joint_magnitude_prior == -np.inf:
-                #    pass
-                #else:
-                #    lnProb_all += lnProb_g
-                lnProb_all += lnProb_g
+                if not np.isfinite(magnitude_prior):
+                    pass
+                else:
+                    lnProb_all += lnProb_g
+                #lnProb_all += lnProb_g
             if not np.isfinite(lnProb_all):
                 return -np.inf
             else:
                 return lnProb_all + calibration_prior
 
-    def calibrate(self, num_samples, chain_path='chains/calibration-chain.txt',
+    def calibrate(self, num_samples, chain_path='chains/calibration-chain',
                   calibration_model=BPZ, num_walkers=200, num_threads=1,
                   prior_params_scale=[1., 1., 1., 1., 5., 5., 5., 1., 1., 1., 0.25, 0.25, 0.25],
                   **calibration_model_kwargs):
         self.CalibrationModel = calibration_model
         self.calibration_model_kwargs = calibration_model_kwargs
         self.model._setMeasurementComponentMapping(None, 1)
+
+        chain_path = chain_path + '-{}.txt'.format(MPI_RANK)
 
         num_dims = len(prior_params_scale)
 
