@@ -147,7 +147,7 @@ class Photoz(object):
         return chi_sq
 
     def _lnSelection(self, flux):
-        flim = 10.**(-0.4*self.config.magnitude_limit)
+        flim = 10.**(-0.4*self.photometry.current_galaxy.magnitude_limit)
         sigma = self.photometry.current_galaxy.ref_flux_sigma
         selection = 0.5 - (0.5 * erf((flim - flux) / (sigma * np.sqrt(2))))
         return np.log(selection)
@@ -402,7 +402,7 @@ class Photoz(object):
 
                     tmpType = self.responses.templates.templateType(T)
                     tmp += calibration_model.lnTemplatePrior(tmpType, total_ref_mag)
-                    tmp += calibration_model.lnRedshiftPrior(g.spec_redshift, tmpType, total_ref_mag)
+                    tmp += calibration_model.lnRedshiftPrior(g.truth[0]['redshift'], tmpType, total_ref_mag)
                     blend_flux = self.fixed_model_fluxes[g.index][T, self.config.non_ref_bands, 0]
                     tmp += self._lnLikelihood_flux(blend_flux)
                     tmp += magnitude_prior
@@ -440,7 +440,7 @@ class Photoz(object):
         #Single interp call -> Shape = (N_template, N_band, N_component)
         self.fixed_model_fluxes = {}
         for g in self.photometry:
-            self.fixed_model_fluxes[g.index] = self.responses.interp(np.array([g.spec_redshift]))
+            self.fixed_model_fluxes[g.index] = self.responses.interp(np.array([g.truth[0]['redshift']]))
             for T in range(self.num_templates):
                 scaling = 10.**(-0.4*g.ref_mag_data) / self.fixed_model_fluxes[g.index][T, self.config.ref_band, 0]
                 self.fixed_model_fluxes[g.index][T, :, 0] *= scaling
