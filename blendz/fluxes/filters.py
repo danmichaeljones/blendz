@@ -10,7 +10,7 @@ class Filters(object):
 
     Args:
         config (blendz.Configuratio): Description of parameter `config`. Defaults to None.
-        
+
         kwargs : Description of parameter `kwargs`.
 
     Returns:
@@ -45,6 +45,9 @@ class Filters(object):
             self._all_filters[F] = {}
             self._all_filters[F]['lambda'], self._all_filters[F]['response'] = \
                     np.loadtxt(join(filepath, filenames[F] + file_extension), unpack=True)
+            flt_order = np.argsort(self._all_filters[F]['lambda'])
+            self._all_filters[F]['lambda'] = self._all_filters[F]['lambda'][flt_order]
+            self._all_filters[F]['response'] = self._all_filters[F]['response'][flt_order]
             #Calculate normalisation
             self._all_filters[F]['norm'] = np.trapz(self._all_filters[F]['response'] / self._all_filters[F]['lambda'],\
                                             x = self._all_filters[F]['lambda'])

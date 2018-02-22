@@ -25,6 +25,9 @@ class Templates(object):
             self._all_templates[T] = {}
             self._all_templates[T]['lambda'], self._all_templates[T]['flux'] = \
                         np.loadtxt(self.template_dict[T]['path'], unpack=True)
+            tmp_order = np.argsort(self._all_templates[T]['lambda'])
+            self._all_templates[T]['lambda'] = self._all_templates[T]['lambda'][tmp_order]
+            self._all_templates[T]['flux'] = self._all_templates[T]['flux'][tmp_order]
             self._all_templates[T]['name'] = self.template_dict[T]['name']
 
     def _countTypes(self):
