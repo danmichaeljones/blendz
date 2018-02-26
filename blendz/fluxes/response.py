@@ -2,6 +2,7 @@ from builtins import *
 import warnings
 import numpy as np
 from scipy.interpolate import interp1d
+from matplotlib import pyplot as plt
 from blendz import Configuration
 from blendz.fluxes import Templates
 from blendz.fluxes import Filters
@@ -117,6 +118,34 @@ class Responses(object):
                     integrand_extinct = integrand * extinction
                     self._all_responses[T, F, iZ] = np.trapz(integrand_extinct, x=self.filters.wavelength(F))
         self.interp = interp1d(self.zGrid, self._all_responses, bounds_error=False, fill_value=0.)
+
+    def plotFiltersAndTemplates(self, single_plot=True):
+        if single_plot:
+            plt.figure(figsize=(15, 6*self.templates.num_templates))
+        for T in range(self.templates.num_templates):
+            if single_plot:
+                plt.subplot(self.templates.num_templates, 1, T+1)
+            else:
+                plt.figure(figsize=(15, 6))
+            lamt = self.templates.wavelength(T)
+            tmp = self.templates.flux(T)
+            tmp_z_mid = self.templates.interp(T, lamt/(1.+(self.config.z_hi*0.5)))
+            tmp_z_hi = self.templates.interp(T, lamt/(1.+self.config.z_hi))
+            plt.plot(lamt, tmp/np.max(tmp), label=self.templates.name(T) + ' at z=0', color='b')
+            plt.plot(lamt, tmp_z_mid/np.max(tmp_z_mid), linestyle='--',
+                     label=self.templates.name(T) + ' at z={}'.format((self.config.z_hi*0.5)), color='b')
+            plt.plot(lamt, tmp_z_hi/np.max(tmp_z_hi), linestyle=':',
+                     label=self.templates.name(T) + ' at z={}'.format(self.config.z_hi), color='b')
+            filter_upper_bound = np.zeros(self.filters.num_filters)
+            for F in range(self.filters.num_filters):
+                lamf = self.filters.wavelength(F)
+                flt = self.filters.response(F)
+                filter_upper_bound[F] = lamf[np.max(np.where( ~np.isclose(flt, 0.))[0])]
+                plt.plot(lamf, flt/np.max(flt), color='0.5')
+            plt.legend()
+            plt.xlim(0, np.max(filter_upper_bound)*1.2)
+        if single_plot:
+            plt.subplots_adjust(hspace=0.1)
 
     def __call__(self, T, F, Z):
         #Using isinstance to catch suitable python and numpy data-types

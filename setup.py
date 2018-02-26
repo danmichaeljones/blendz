@@ -15,6 +15,7 @@ setup(name = 'blendz',
         'dill',
         'future',
         'emcee',
+        'matplotlib',
       ],
       include_package_data = True)#,
 #      zip_safe = False)
