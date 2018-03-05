@@ -389,33 +389,31 @@ class Photoz(object):
             lnProb_all = 0.
             for g in self.photometry:
                 total_ref_mag = g.ref_mag_data
-                total_ref_flux = 10.**(-0.4 * total_ref_mag)
                 magnitude_prior = calibration_model.lnMagnitudePrior(total_ref_mag)
-                magnitude_likelihood = self._lnLikelihood_mag(total_ref_flux)
-                selection_effect = self._lnSelection(total_ref_flux)
-                template_priors = np.zeros(self.num_templates)
-                redshift_priors = np.zeros(self.num_templates)
-                lnProb_g = -np.inf
-                #Sum over template
-                for T in range(self.num_templates):
-                    tmp = 0.
-
-                    tmpType = self.responses.templates.templateType(T)
-                    tmp += calibration_model.lnTemplatePrior(tmpType, total_ref_mag)
-                    tmp += calibration_model.lnRedshiftPrior(g.truth[0]['redshift'], tmpType, total_ref_mag)
-                    blend_flux = self.fixed_model_fluxes[g.index][T, self.config.non_ref_bands, 0]
-                    tmp += self._lnLikelihood_flux(blend_flux)
-                    tmp += magnitude_prior
-                    tmp += selection_effect
-                    tmp += magnitude_likelihood
-
-                    lnProb_g = np.logaddexp(lnProb_g, tmp)
-
                 if not np.isfinite(magnitude_prior):
                     pass
                 else:
+                    total_ref_flux = 10.**(-0.4 * total_ref_mag)
+                    magnitude_likelihood = self._lnLikelihood_mag(total_ref_flux)
+                    selection_effect = self._lnSelection(total_ref_flux)
+                    template_priors = np.zeros(self.num_templates)
+                    redshift_priors = np.zeros(self.num_templates)
+                    lnProb_g = -np.inf
+                    #Sum over template
+                    for T in range(self.num_templates):
+                        tmp = 0.
+
+                        tmpType = self.responses.templates.templateType(T)
+                        tmp += calibration_model.lnTemplatePrior(tmpType, total_ref_mag)
+                        tmp += calibration_model.lnRedshiftPrior(g.truth[0]['redshift'], tmpType, total_ref_mag)
+                        blend_flux = self.fixed_model_fluxes[g.index][T, self.config.non_ref_bands, 0]
+                        tmp += self._lnLikelihood_flux(blend_flux)
+                        tmp += magnitude_prior
+                        tmp += selection_effect
+                        tmp += magnitude_likelihood
+
+                        lnProb_g = np.logaddexp(lnProb_g, tmp)
                     lnProb_all += lnProb_g
-                #lnProb_all += lnProb_g
             if not np.isfinite(lnProb_all):
                 return -np.inf
             else:
@@ -453,7 +451,7 @@ class Photoz(object):
                 done = False
                 while not done:
                     rand_pars = np.random.random(num_dims) * prior_params_scale
-                    if np.isfinite(self._lnPriorCalibrationPosterior(np.random.random(num_dims))):
+                    if np.isfinite(self._lnPriorCalibrationPosterior(rand_pars)):
                         pos0[w, :] = rand_pars
                         done = True
                 pbar.update()
