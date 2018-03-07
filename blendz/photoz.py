@@ -12,6 +12,7 @@ from math import ceil
 from multiprocessing import cpu_count
 import itertools as itr
 import numpy as np
+from matplotlib import pyplot as plt
 from scipy.special import erf
 import nestle
 import emcee
@@ -572,7 +573,7 @@ class Photoz(object):
         vals, edges = np.histogram(samps, bins=bins)
         return edges[np.argmax(vals)] + ((edges[1] - edges[0]) / 2.)
 
-    def max(self, num_components, galaxy=None, bins=50):
+    def max(self, num_components, galaxy=None, bins=20):
         """Return the maximum-a-posteriori point for the 1D marginal distribution of each parameter.
 
         This is calculated by forming a 1D histogram of each marginal distribution
@@ -625,3 +626,114 @@ class Photoz(object):
             pcnt = [100. * q]
         #call numpy.percentile with q *= 100
         return [self.applyToMarginals(np.percentile, num_components, galaxy=galaxy, q=pp) for pp in pcnt]
+
+    def plotRedshiftVsTrue(self, galaxies=None, plot_equal_line=True, line_color='k',
+                           point_estimate='max1d', errorbar='quantiles',
+                           color=['b','g','r','c','m','y'], marker=['o'], plot_components=True,
+                           rel_error_line=0.15, abs_err_line=1., legend=0, axes=None,
+                           xlabel='Spectroscopic redshift', ylabel='Photometric redshift',
+                           xlim=None, ylim=None, **fig_kwargs):
+        if axes is None:
+            fig, ax = plt.subplots(nrows=1, ncols=1, **fig_kwargs)
+        else:
+            ax = axes
+
+        if xlim is None:
+            xlim=(self.config.z_lo, self.config.z_hi)
+        if ylim is None:
+            ylim=(self.config.z_lo, self.config.z_hi)
+        #Line extends far beyond z_hi for error line plotting
+        line = np.linspace(self.config.z_lo, self.config.z_hi * 10., 100)
+
+        #Plotting code later expects iterables but user can specify single string instead
+        if type(color) == str:
+            color = [color]
+        if type(marker) == str:
+            marker = [marker]
+
+        if galaxies is None:
+            galaxies = range(self.photometry.num_galaxies)
+
+        errors = {}
+        specz = {}
+        photoz = {}
+        max_num_components = 0
+
+        #Fill the arrays for plotting
+        for g in galaxies:
+            try:
+                gal_num_components = self.photometry[g].truth['num_components']
+                gal_true_redshifts = [self.photometry[g].truth[cmp]['redshift']
+                                        for cmp in range(gal_num_components)]
+            except KeyError:
+                raise ValueError('Galaxy {} does not have the required '.format(g)
+                               + 'spectroscopic information.')
+
+            if gal_num_components>max_num_components:
+                max_num_components = gal_num_components
+                #Need to create new arrays for this number of components
+                #NaN so that galaxies with less components don't plot
+                #The -1 is for indexing in for loop later
+                errors[gal_num_components-1] = np.zeros((2, len(galaxies))) * np.nan
+                specz[gal_num_components-1] = np.zeros(len(galaxies)) * np.nan
+                photoz[gal_num_components-1] = np.zeros(len(galaxies)) * np.nan
+
+            for cmp in range(gal_num_components):
+                if errorbar=='quantiles':
+                    q = self.quantiles(gal_num_components, galaxy=g, q=(0.16, 0.5, 0.84))
+                    err_up = q[2][cmp] - q[1][cmp]
+                    err_down = q[1][cmp] - q[0][cmp]
+                elif errorbar=='std':
+                    std = self.std(gal_num_components, galaxy=g)
+                    err_up = std
+                    err_down = std
+                elif errorbar is None:
+                    err_up = np.nan
+                    err_down = np.nan
+                errors[cmp][0, g] = err_up
+                errors[cmp][1, g] = err_down
+
+                if point_estimate=='max1d':
+                    photoz[cmp][g] = self.max(gal_num_components, galaxy=g)[cmp]
+                elif point_estimate=='mean1d':
+                    photoz[cmp][g] = self.mean(gal_num_components, galaxy=g)[cmp]
+                else:
+                    raise NotImplementedError('No option other than "max1d" or "mean1d" '
+                                            + 'for point_estimate is implemented yet.')
+
+                specz[cmp][g] = gal_true_redshifts[cmp]
+
+        #Plot the results
+        for cmp in range(max_num_components):
+            if plot_components:
+                col = color[cmp%len(color)]
+                mark = marker[cmp%len(marker)]
+                lab = r'$z_{}$'.format(cmp+1)
+            else:
+                col = color[0]
+                mark = marker[0]
+                lab = None
+            ax.errorbar(specz[cmp], photoz[cmp], yerr=errors[cmp], linestyle='none',
+                        marker=mark, capsize=0, color=col, label=lab)
+
+        #Line plotting
+        if plot_equal_line:
+            ax.plot(line, line, color=line_color, label='Photo-z = True')
+        if rel_error_line is not None:
+            ax.plot(line, (rel_error_line*(1.+line))+line, color=line_color, linestyle='--')
+            ax.plot(line, (-1*rel_error_line*(1.+line))+line, color=line_color, linestyle='--', label='Error / (1+z) > {}'.format(rel_error_line))
+        if abs_err_line is not None:
+            ax.plot(line, line+abs_err_line, color=line_color, linestyle=':')
+            ax.plot(line, line-abs_err_line, color=line_color, linestyle=':', label='Error > {}'.format(abs_err_line))
+
+        #Set plot details
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        if xlabel is not None:
+            ax.set_xlabel(xlabel)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
+        if legend is not None:
+            ax.legend(loc=legend)
+
+        return fig
