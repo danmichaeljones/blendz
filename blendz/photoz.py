@@ -630,13 +630,20 @@ class Photoz(object):
     def plotRedshiftVsTrue(self, galaxies=None, plot_equal_line=True, line_color='k',
                            point_estimate='max1d', errorbar='quantiles',
                            color=['b','g','r','c','m','y'], marker=['o'], plot_components=True,
-                           rel_error_line=0.15, abs_err_line=1., legend=0, axes=None,
+                           rel_error_line=0.15, abs_err_line=1., legend=0, figure=None, axes=None,
                            xlabel='Spectroscopic redshift', ylabel='Photometric redshift',
+                           heatmap=False, hist_bins=25, hist_cmap='viridis', colorbar=True, hist_normed=False,
                            xlim=None, ylim=None, **fig_kwargs):
-        if axes is None:
+        if (figure is None) and (axes is None):
             fig, ax = plt.subplots(nrows=1, ncols=1, **fig_kwargs)
+            return_figure = True
+        elif axes is None:
+            fig = figure
+            ax = fig.axes
+            return_figure = False
         else:
             ax = axes
+            return_figure = False
 
         if xlim is None:
             xlim=(self.config.z_lo, self.config.z_hi)
@@ -704,17 +711,25 @@ class Photoz(object):
                 specz[cmp][g] = gal_true_redshifts[cmp]
 
         #Plot the results
-        for cmp in range(max_num_components):
-            if plot_components:
-                col = color[cmp%len(color)]
-                mark = marker[cmp%len(marker)]
-                lab = r'$z_{}$'.format(cmp+1)
-            else:
-                col = color[0]
-                mark = marker[0]
-                lab = None
-            ax.errorbar(specz[cmp], photoz[cmp], yerr=errors[cmp], linestyle='none',
-                        marker=mark, capsize=0, color=col, label=lab)
+        if not heatmap:
+            for cmp in range(max_num_components):
+                if plot_components:
+                    col = color[cmp%len(color)]
+                    mark = marker[cmp%len(marker)]
+                    lab = r'$z_{}$'.format(cmp+1)
+                else:
+                    col = color[0]
+                    mark = marker[0]
+                    lab = None
+                ax.errorbar(specz[cmp], photoz[cmp], yerr=errors[cmp], linestyle='none',
+                            marker=mark, capsize=0, color=col, label=lab)
+        else:
+            specz_all = np.concatenate([specz[cmp] for cmp in range(max_num_components)])
+            photoz_all = np.concatenate([photoz[cmp] for cmp in range(max_num_components)])
+            ax.hist2d(specz_all, photoz_all, bins=hist_bins, cmap=hist_cmap, normed=hist_normed)
+            if colorbar:
+                plt.colorbar()
+
 
         #Line plotting
         if plot_equal_line:
@@ -736,4 +751,5 @@ class Photoz(object):
         if legend is not None:
             ax.legend(loc=legend)
 
-        return fig
+        if return_figure:
+            return fig
