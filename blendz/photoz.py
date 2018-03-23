@@ -422,7 +422,9 @@ class Photoz(object):
 
     def calibrate(self, num_samples, chain_path='chains/calibration-chain',
                   calibration_model=BPZ, num_walkers=200, num_threads=1,
-                  prior_params_scale=[1., 1., 1., 1., 5., 5., 5., 1., 1., 1., 0.25, 0.25, 0.25],
+                  #prior_params_scale=[1., 1., 1., 1., 5., 5., 5., 1., 1., 1., 0.25, 0.25, 0.25],
+                  prior_params_start=np.array([0., 0., 0.33, 0.33, 1.25, 1.25, 1.25, 0.1, 0.1, 0.1, 0., 0., 0.]),
+                  prior_params_spread=np.array([0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]),
                   **calibration_model_kwargs):
         self.CalibrationModel = calibration_model
         self.calibration_model_kwargs = calibration_model_kwargs
@@ -430,7 +432,7 @@ class Photoz(object):
 
         chain_path = chain_path + '-{}.txt'.format(MPI_RANK)
 
-        num_dims = len(prior_params_scale)
+        num_dims = len(prior_params_start)
 
         chain_dir_path = os.path.dirname(chain_path)
         if not os.path.exists(chain_dir_path):
@@ -451,7 +453,9 @@ class Photoz(object):
             for w in range(num_walkers):
                 done = False
                 while not done:
-                    rand_pars = np.random.random(num_dims) * prior_params_scale
+                    #rand_pars = np.random.random(num_dims) * prior_params_scale
+                    rand_pars = (np.random.random(num_dims) * prior_params_spread * 2.) - prior_params_spread
+                    rand_pars += prior_params_start
                     if np.isfinite(self._lnPriorCalibrationPosterior(rand_pars)):
                         pos0[w, :] = rand_pars
                         done = True
@@ -664,7 +668,8 @@ class Photoz(object):
         errors = {}
         specz = {}
         photoz = {}
-        max_num_components = 0
+        ##max_num_components = 0
+        num_components_seen = []
 
         #Fill the arrays for plotting
         for g in galaxies:
@@ -676,14 +681,17 @@ class Photoz(object):
                 raise ValueError('Galaxy {} does not have the required '.format(g)
                                + 'spectroscopic information.')
 
-            if gal_num_components>max_num_components:
-                max_num_components = gal_num_components
-                #Need to create new arrays for this number of components
-                #NaN so that galaxies with less components don't plot
-                #The -1 is for indexing in for loop later
-                errors[gal_num_components-1] = np.zeros((2, len(galaxies))) * np.nan
-                specz[gal_num_components-1] = np.zeros(len(galaxies)) * np.nan
-                photoz[gal_num_components-1] = np.zeros(len(galaxies)) * np.nan
+            ##if gal_num_components>max_num_components:
+            ##    max_num_components = gal_num_components
+            #Need to create new arrays for up-to this number of components
+            #NaN so that galaxies with less components don't plot
+            #The -1 is for indexing in for loop later
+            for cmp in range(gal_num_components):
+                if cmp not in num_components_seen:
+                    errors[cmp] = np.zeros((2, len(galaxies))) * np.nan
+                    specz[cmp] = np.zeros(len(galaxies)) * np.nan
+                    photoz[cmp] = np.zeros(len(galaxies)) * np.nan
+                    num_components_seen.append(cmp)
 
             for cmp in range(gal_num_components):
                 if errorbar=='quantiles':
@@ -712,7 +720,7 @@ class Photoz(object):
 
         #Plot the results
         if not heatmap:
-            for cmp in range(max_num_components):
+            for cmp in num_components_seen:
                 if plot_components:
                     col = color[cmp%len(color)]
                     mark = marker[cmp%len(marker)]
@@ -724,8 +732,8 @@ class Photoz(object):
                 ax.errorbar(specz[cmp], photoz[cmp], yerr=errors[cmp], linestyle='none',
                             marker=mark, capsize=0, color=col, label=lab)
         else:
-            specz_all = np.concatenate([specz[cmp] for cmp in range(max_num_components)])
-            photoz_all = np.concatenate([photoz[cmp] for cmp in range(max_num_components)])
+            specz_all = np.concatenate([specz[cmp] for cmp in num_components_seen])
+            photoz_all = np.concatenate([photoz[cmp] for cmp in num_components_seen])
             ax.hist2d(specz_all, photoz_all, bins=hist_bins, cmap=hist_cmap, normed=hist_normed)
             if colorbar:
                 plt.colorbar()
@@ -750,6 +758,77 @@ class Photoz(object):
             ax.set_ylabel(ylabel)
         if legend is not None:
             ax.legend(loc=legend)
+
+        if return_figure:
+            return fig
+
+    def plotPrior(self, num_galaxies=1000, bins=50, magnitude_limit=None, figure=None, axes=None,
+                  xlabel=r'$z$', ylabel=r'$P(z)$', legend=0, linestyle='-',
+                  color=['k', 'b', 'g', 'r', 'c', 'y', 'm'], **fig_kwargs):
+
+        if magnitude_limit is not None:
+            sim_data = SimulatedPhotometry(num_galaxies, num_components=1,
+                                           model=self.model, magnitude_limit=magnitude_limit)
+        else:
+            sim_data = SimulatedPhotometry(num_galaxies, num_components=1, model=self.model)
+        sim_redshifts = np.array([gal.truth[0]['redshift'] for gal in sim_data])
+        sim_types = np.array([sim_data.responses.templates.templateType(
+                                    int(gal.truth[0]['template']))
+                              for gal in sim_data])
+        sim_redshifts_tmp = {}
+        for tmp in self.responses.templates.possible_types:
+            sim_redshifts_tmp[tmp] = np.array([sim_redshifts[i] for i in
+                                               range(len(sim_redshifts))
+                                               if sim_types[i]==tmp])
+
+        if (figure is None) and (axes is None):
+            fig, ax = plt.subplots(nrows=1, ncols=1, **fig_kwargs)
+            return_figure = True
+        elif axes is None:
+            fig = figure
+            ax = fig.axes
+            return_figure = False
+        else:
+            ax = axes
+            return_figure = False
+
+        # Plotting code expects iterables but user can specify single string instead
+        if type(color) == str:
+            color = [color]
+
+        ax.hist(sim_redshifts, bins=bins, histtype='step',
+                linestyle=linestyle, color=color[0], label='Total')
+
+        for i, tmp in enumerate(sim_redshifts_tmp):
+            ax.hist(sim_redshifts_tmp[tmp], bins=bins, histtype='step',
+                linestyle=linestyle, color=color[(i+1)%len(color)], label=tmp)
+
+        '''
+        for i, tmp in enumerate(sim_redshifts_tmp):
+            hist, bins = np.histogram(sim_redshifts_tmp[tmp], bins=bins, density=True)
+            widths = np.diff(bins)
+            # Normalise the type histograms to fraction of galaxies of that type
+            hist *= float(len(sim_redshifts_tmp[tmp])) / float(num_galaxies)
+
+            #Repeat each height twice, padding with single zero at each end
+            heights = np.zeros((len(hist)*2)+2)
+            heights[2::2] = hist
+            heights[1:-1:2] = hist
+
+            #Repeat each edge twice
+            edges = np.zeros(2*len(bins))
+            edges[:-1:2] = bins
+            edges[1::2] = bins
+
+            ax.plot(edges, heights, linestyle=linestyle,
+                     color=color[i%len(color)], label=tmp)
+        '''
+        if legend is not None:
+            ax.legend(loc=legend)
+        if xlabel is not None:#into args
+            ax.set_xlabel(xlabel)
+        if ylabel is not None:
+            ax.set_ylabel(ylabel)
 
         if return_figure:
             return fig
