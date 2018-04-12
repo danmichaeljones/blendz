@@ -395,23 +395,27 @@ class Photoz(object):
                     pass
                 else:
                     total_ref_flux = 10.**(-0.4 * total_ref_mag)
-                    magnitude_likelihood = self._lnLikelihood_mag(total_ref_flux)
                     selection_effect = self._lnSelection(total_ref_flux)
                     template_priors = np.zeros(self.num_templates)
                     redshift_priors = np.zeros(self.num_templates)
                     lnProb_g = -np.inf
+
+                    cache_lnTemplatePrior = {}
+                    cache_lnRedshiftPrior = {}
+                    for tmpType in self.responses.templates.possible_types:
+                        cache_lnTemplatePrior[tmpType] = calibration_model.lnTemplatePrior(tmpType, total_ref_mag)
+                        cache_lnRedshiftPrior[tmpType] = calibration_model.lnRedshiftPrior(g.truth[0]['redshift'], tmpType, total_ref_mag)
+
                     #Sum over template
                     for T in range(self.num_templates):
                         tmp = 0.
 
                         tmpType = self.responses.templates.templateType(T)
-                        tmp += calibration_model.lnTemplatePrior(tmpType, total_ref_mag)
-                        tmp += calibration_model.lnRedshiftPrior(g.truth[0]['redshift'], tmpType, total_ref_mag)
-                        blend_flux = self.fixed_model_fluxes[g.index][T, self.config.non_ref_bands, 0]
-                        tmp += self._lnLikelihood_flux(blend_flux)
+                        tmp += cache_lnTemplatePrior[tmpType]
+                        tmp += cache_lnRedshiftPrior[tmpType]
+                        tmp += self.fixed_lnLikelihood_flux[g.index, T]
                         tmp += magnitude_prior
                         tmp += selection_effect
-                        tmp += magnitude_likelihood
 
                         lnProb_g = np.logaddexp(lnProb_g, tmp)
                     lnProb_all += lnProb_g
@@ -442,11 +446,16 @@ class Photoz(object):
 
         #Single interp call -> Shape = (N_template, N_band, N_component)
         self.fixed_model_fluxes = {}
+        self.fixed_lnLikelihood_flux = np.zeros((self.photometry.num_galaxies, self.num_templates))
         for g in self.photometry:
             self.fixed_model_fluxes[g.index] = self.responses.interp(np.array([g.truth[0]['redshift']]))
             for T in range(self.num_templates):
                 scaling = 10.**(-0.4*g.ref_mag_data) / self.fixed_model_fluxes[g.index][T, self.config.ref_band, 0]
                 self.fixed_model_fluxes[g.index][T, :, 0] *= scaling
+                #Cache the flux likelihoods
+                non_ref_flux = self.fixed_model_fluxes[g.index][T, self.config.non_ref_bands, 0]
+                self.fixed_lnLikelihood_flux[g.index, T] = self._lnLikelihood_flux(non_ref_flux)
+
 
         pos0 = np.zeros((num_walkers, num_dims))
         with tqdm(total=num_walkers) as pbar:
