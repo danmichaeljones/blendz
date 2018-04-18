@@ -15,7 +15,7 @@ class BPZ(ModelBase):
     def _loadParameterDict(self):
         nt = len(self.possible_types)
 
-        if len(self.prior_params) != 5 * len(types) - 2:
+        if len(self.prior_params) != 5 * len(self.possible_types) - 2:
             raise ValueError('Wrong number of parameters')
 
         kt = {t: self.prior_params[i] for i, t in enumerate(self.possible_types[:-1])}
