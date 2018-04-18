@@ -8,21 +8,21 @@ class BPZ(ModelBase):
         super(BPZ, self).__init__(**kwargs)
 
         self.mag_grid_len = mag_grid_len
+        self.possible_types = self.responses.templates.possible_types
         self._loadParameterDict()
         self._calculateRedshiftPriorNorm()
 
     def _loadParameterDict(self):
-        types = self.responses.templates.possible_types
-        nt = len(types)
+        nt = len(self.possible_types)
 
         if len(self.prior_params) != 5 * len(types) - 2:
             raise ValueError('Wrong number of parameters')
 
-        kt = {t: self.prior_params[i] for i, t in enumerate(types[:-1])}
-        ft = {t: self.prior_params[i + nt - 1] for i, t in enumerate(types[:-1])}
-        alpt = {t: self.prior_params[i + 2*nt - 2] for i, t in enumerate(types)}
-        z0t = {t: self.prior_params[i + 3*nt - 2] for i, t in enumerate(types)}
-        kmt = {t: self.prior_params[i + 4*nt - 2] for i, t in enumerate(types)}
+        kt = {t: self.prior_params[i] for i, t in enumerate(self.possible_types[:-1])}
+        ft = {t: self.prior_params[i + nt - 1] for i, t in enumerate(self.possible_types[:-1])}
+        alpt = {t: self.prior_params[i + 2*nt - 2] for i, t in enumerate(self.possible_types)}
+        z0t = {t: self.prior_params[i + 3*nt - 2] for i, t in enumerate(self.possible_types)}
+        kmt = {t: self.prior_params[i + 4*nt - 2] for i, t in enumerate(self.possible_types)}
 
         self.prior_params_dict = {
             'k_t': kt, 'f_t': ft, 'alpha_t': alpt, 'z_0t': z0t, 'k_mt': kmt
@@ -31,7 +31,7 @@ class BPZ(ModelBase):
     def _calculateRedshiftPriorNorm(self):
         self.redshift_prior_norm = {}
         mag_range = np.linspace(self.config.ref_mag_lo, self.config.ref_mag_hi, self.mag_grid_len)
-        for T in self.responses.templates.possible_types:
+        for T in self.possible_types:
             norms = np.zeros(self.mag_grid_len)
             for i, mag in enumerate(mag_range):
                 zi = np.exp(np.array([self.lnRedshiftPrior(zz, T, mag, norm=False) for zz in self.responses.zGrid]))
