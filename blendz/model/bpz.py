@@ -6,22 +6,27 @@ from blendz.model import ModelBase
 class BPZ(ModelBase):
     def __init__(self, mag_grid_len=100, **kwargs):
         super(BPZ, self).__init__(**kwargs)
-        #Default to the prior parameters given in Benitez 2000
-        self.prior_params_dict = {'k_t': {'early': self.prior_params[0], \
-                                          'late': self.prior_params[1]}, \
-                                 'f_t': {'early': self.prior_params[2], \
-                                         'late': self.prior_params[3]}, \
-                                 'alpha_t': {'early': self.prior_params[4], \
-                                             'late': self.prior_params[5], \
-                                             'irr': self.prior_params[6]}, \
-                                  'z_0t': {'early': self.prior_params[7], \
-                                           'late': self.prior_params[8], \
-                                           'irr': self.prior_params[9]}, \
-                                  'k_mt': {'early': self.prior_params[10], \
-                                           'late': self.prior_params[11], \
-                                           'irr': self.prior_params[12]}}
+
         self.mag_grid_len = mag_grid_len
+        self._loadParameterDict()
         self._calculateRedshiftPriorNorm()
+
+    def _loadParameterDict(self):
+        types = self.responses.templates.possible_types
+        nt = len(types)
+
+        if len(self.prior_params) != 5 * len(types) - 2:
+            raise ValueError('Wrong number of parameters')
+
+        kt = {t: self.prior_params[i] for i, t in enumerate(types[:-1])}
+        ft = {t: self.prior_params[i + nt - 1] for i, t in enumerate(types[:-1])}
+        alpt = {t: self.prior_params[i + 2*nt - 2] for i, t in enumerate(types)}
+        z0t = {t: self.prior_params[i + 3*nt - 2] for i, t in enumerate(types)}
+        kmt = {t: self.prior_params[i + 4*nt - 2] for i, t in enumerate(types)}
+
+        self.prior_params_dict = {
+            'k_t': kt, 'f_t': ft, 'alpha_t': alpt, 'z_0t': z0t, 'k_mt': kmt
+        }
 
     def _calculateRedshiftPriorNorm(self):
         self.redshift_prior_norm = {}
