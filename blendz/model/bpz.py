@@ -56,7 +56,7 @@ class BPZ(ModelBase):
             out = np.log(1. - other_types) - np.log(Nt)
         else:
             raise ValueError('The possible galaxy types based on your template '
-                             'set are "' + '", "'.join(types) + '", but the '
+                             'set are "' + '", "'.join(self.possible_types) + '", but the '
                              'template prior was called with type ' + template_type)
         return out
 
@@ -70,7 +70,7 @@ class BPZ(ModelBase):
             out = first - (redshift / second)**self.prior_params_dict['alpha_t'][template_type]
         except KeyError:
             raise ValueError('The possible galaxy types based on your template '
-                             'set are "' + '", "'.join(types) + '", but the '
+                             'set are "' + '", "'.join(self.possible_types) + '", but the '
                              'redshift prior was called with type ' + template_type)
         if norm:
             try:
