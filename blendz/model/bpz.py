@@ -55,9 +55,9 @@ class BPZ(ModelBase):
                 other_types += self.prior_params_dict['f_t'][T] * np.exp(-expon)
             out = np.log(1. - other_types) - np.log(Nt)
         else:
-            raise ValueError('The BPZ priors are only defined for templates of \
-                              types "early", "late" and "irr", but the template \
-                              prior was called with type ' + template_type)
+            raise ValueError('The possible galaxy types based on your template '
+                             'set are "' + '", "'.join(types) + '", but the '
+                             'template prior was called with type ' + template_type)
         return out
 
     def lnRedshiftPrior(self, redshift, template_type, component_ref_mag, norm=True):
@@ -69,14 +69,16 @@ class BPZ(ModelBase):
             second = self.prior_params_dict['z_0t'][template_type] + (self.prior_params_dict['k_mt'][template_type] * (component_ref_mag - self.config.ref_mag_lo))
             out = first - (redshift / second)**self.prior_params_dict['alpha_t'][template_type]
         except KeyError:
-            raise ValueError('The BPZ priors are only defined for templates of \
-                              types "early", "late" and "irr", but the redshift \
-                              prior was called with type ' + template_type)
+            raise ValueError('The possible galaxy types based on your template '
+                             'set are "' + '", "'.join(types) + '", but the '
+                             'redshift prior was called with type ' + template_type)
         if norm:
             try:
                 out = out + self.redshift_prior_norm[template_type](component_ref_mag)
             except ValueError:
-                raise ValueError('Magnitude = {} is outside of prior-precalculation range. Check your configuration ref-mag limits cover your input magnitudes.'.format(component_ref_mag))
+                raise ValueError('Magnitude = {} is outside of prior-precalculation '
+                                 'range. Check your configuration ref-mag limits'
+                                 'cover your input magnitudes.'.format(component_ref_mag))
             return out
         else:
             return out
