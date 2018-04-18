@@ -44,7 +44,7 @@ is a configuration file containing the following information:
 
 - The path to the file specifying the template *relative to the location of the template set file*.
 
-- The galaxy type - this should be either ``early``, ``late`` or ``irr`` (unless you define your own priors).
+- The galaxy type - this should be either ``early``, ``late`` or ``other`` (unless you define your own priors).
 
 An example layout of a template set is given below:
 

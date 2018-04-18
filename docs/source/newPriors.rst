@@ -47,7 +47,7 @@ A few things to note:
 
 - The ``**kwargs`` get passed by ``ModelBase`` to ``Configuration``, allowing you to edit the settings of your class (and of the flux responses it contains from ``ModelBase``) using keyword arguments.
 
-- The ``template_type`` argument passed to ``lnTemplatePrior`` and ``lnRedshiftPrior`` is a string specifying the template type as defined in the template set file. While the default priors are only defined for ``"early"``, ``"late"`` and ``"irr"`` types, you can support any types your templates use - you need to define your priors for at least these three if you use the default templates.
+- The ``template_type`` argument passed to ``lnTemplatePrior`` and ``lnRedshiftPrior`` is a string specifying the template type as defined in the template set file. While the default priors are only defined for ``"early"``, ``"late"`` and ``"other"`` types, you can support any types your templates use - you need to define your priors for at least these three if you use the default templates.
 
 - The ``redshift``, ``magnitude`` and ``component_ref_mag`` arguments passed to natural-log prior functions are floats, while the ``redshifts`` argument in ``correlationFunction`` is a 1D ``numpy`` array.
 

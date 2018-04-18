@@ -12,20 +12,20 @@ type = late
 
 [Im_B2004a]
 path = bpz/Im_B2004a.sed
-type = irr
+type = other
 
 [SB2_B2004a]
 path = bpz/SB2_B2004a.sed
-type = irr
+type = other
 
 [SB3_B2004a]
 path = bpz/SB3_B2004a.sed
-type = irr
+type = other
 
 [ssp_5Myr_z008]
 path = bpz/ssp_5Myr_z008.sed
-type = irr
+type = other
 
 [ssp_25Myr_z008]
 path = bpz/ssp_25Myr_z008.sed
-type = irr
+type = other

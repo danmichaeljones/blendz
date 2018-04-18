@@ -13,7 +13,7 @@ class Templates(object):
 
         self.template_dict = self.config.template_dict
         self.num_templates = len(self.template_dict)
-        self.possible_types = set(tmp['type'] for tmp in self.template_dict.values())
+        self.possible_types = sorted(set(tmp['type'] for tmp in self.template_dict.values()))
 
         self.loadTemplates()
         self._num_type = self._countTypes()
