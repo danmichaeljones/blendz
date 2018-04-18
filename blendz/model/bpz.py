@@ -39,21 +39,21 @@ class BPZ(ModelBase):
             self.redshift_prior_norm[T] = interp1d(mag_range, norms)
 
     def lnTemplatePrior(self, template_type, component_ref_mag):
+        mag_diff = component_ref_mag - self.config.ref_mag_lo
         #All include a scaling of 1/Number of templates of that type
-        if template_type in ['early', 'late']:
+        if template_type in self.possible_types[:-1]:
             Nt = self.responses.templates.numType(template_type)
             coeff = np.log(self.prior_params_dict['f_t'][template_type] / Nt)
-            expon = self.prior_params_dict['k_t'][template_type] * (component_ref_mag - self.config.ref_mag_lo)
+            expon = self.prior_params_dict['k_t'][template_type] * mag_diff
             out = coeff - expon
-        elif template_type == 'irr':
-            Nte = self.responses.templates.numType('early')
-            Ntl = self.responses.templates.numType('late')
-            Nti = self.responses.templates.numType('irr')
-            expone = self.prior_params_dict['k_t']['early'] * (component_ref_mag - self.config.ref_mag_lo)
-            exponl = self.prior_params_dict['k_t']['late'] * (component_ref_mag - self.config.ref_mag_lo)
-            early = self.prior_params_dict['f_t']['early'] * np.exp(-expone)
-            late = self.prior_params_dict['f_t']['late'] * np.exp(-exponl)
-            out = np.log(1. - early - late) - np.log(Nti)
+        #Prior for final type = 1 - prior of other types
+        elif template_type == self.possible_types[-1]:
+            Nt = self.responses.templates.numType(template_type)
+            other_types = 0.
+            for T in self.possible_types[:-1]:
+                expon = self.prior_params_dict['k_t'][T] * mag_diff
+                other_types += self.prior_params_dict['f_t'][T] * np.exp(-expon)
+            out = np.log(1. - other_types) - np.log(Nt)
         else:
             raise ValueError('The BPZ priors are only defined for templates of \
                               types "early", "late" and "irr", but the template \
