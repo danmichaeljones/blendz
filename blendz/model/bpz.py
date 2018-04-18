@@ -100,8 +100,8 @@ class BPZ(ModelBase):
 
     def lnPriorCalibrationPrior(self):
         '''Returns the prior on the prior parameters for the calibration procedure.'''
-        #Assume a flat prior, except that f_t_early + f_t_late <= 1. ...
-        if self.prior_params_dict['f_t']['early'] + self.prior_params_dict['f_t']['late'] > 1.:
+        #Assume a flat prior, except that sum(type fractions) <= 1. ...
+        if sum(self.prior_params_dict['f_t'].values()) > 1.:
             return -np.inf
         #... and all parameters are positive
         elif np.any(self.prior_params < 0.):
