@@ -9,8 +9,9 @@ class BPZ(ModelBase):
 
         self.mag_grid_len = mag_grid_len
         self.possible_types = self.responses.templates.possible_types
-        self._loadParameterDict()
-        self._calculateRedshiftPriorNorm()
+        if self.prior_params is not np.nan:
+            self._loadParameterDict()
+            self._calculateRedshiftPriorNorm()
 
     def _loadParameterDict(self):
         nt = len(self.possible_types)
@@ -106,7 +107,8 @@ class BPZ(ModelBase):
         if sum(self.prior_params_dict['f_t'].values()) > 1.:
             return -np.inf
         #... and all parameters are positive
-        elif np.any(self.prior_params < 0.):
-            return -np.inf
+        # TEMPORARY TEST - ALLOW NEGATIVE Ks, IMPOSE REST POSITIVE IN CALIBRATION
+        #elif np.any(self.prior_params < 0.):
+        #    return -np.inf
         else:
             return 0.
