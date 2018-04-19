@@ -59,16 +59,17 @@ class DefaultConfiguration(object):
             else:
                 try:
                     return [typeFn(v) for v in self.kwargs[key]]
-                except TypeError:
+                except (TypeError, ValueError):
                     return [typeFn(self.kwargs[key])]
         else:
             try:
                 return [typeFn(v.strip()) for v in self.config.get(section, key).split(',')]
-            except TypeError:
+            except (TypeError, ValueError):
                 return None
 
     def saveAndConvertValues(self):
         #Run config
+        # We reserve np.nan for unset parameters that are ALWAYS allowed to be overwritten when merging!
         try:
             self._z_lo = self.maybeGet('Run', 'z_lo', float)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
@@ -144,8 +145,14 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        # _prior_params is either an array of parameters,
+        # or np.nan for when we want to do calibration (allow overwrite)
         try:
-            self.prior_params = np.array(self.maybeGetList('Run', 'prior_params', float))
+            _prior_params = self.maybeGetList('Run', 'prior_params', float)
+            if _prior_params is None:
+                self.prior_params = np.nan
+            else:
+                self.prior_params = np.array(_prior_params)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
