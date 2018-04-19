@@ -97,5 +97,14 @@ class Configuration(DefaultConfiguration):
                     self.__dict__[key] = other_config.__dict__[key]
                     done_set = True
 
+                #Setting here is nan, which designates it as always okay to overwrite
+                if not done_set and self.__dict__[key] is np.nan:
+                    self.__dict__[key] = other_config.__dict__[key]
+                    done_set = True
+
+                #Setting in other is nan, never overwrite with it
+                if not done_set and other_config.__dict__[key] is np.nan:
+                    done_set = True
+
                 if not done_set:
                     raise ValueError('Attempting to merge incompatible configurations - ' + key)
