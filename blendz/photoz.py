@@ -640,7 +640,7 @@ class Photoz(object):
         #call numpy.percentile with q *= 100
         return [self.applyToMarginals(np.percentile, num_components, galaxy=galaxy, q=pp) for pp in pcnt]
 
-    def plotRedshiftVsTrue(self, galaxies=None, plot_equal_line=True, line_color='k',
+    def plotRedshiftVsTrue(self, plot_equal_line=True, line_color='k',
                            point_estimate='max1d', errorbar='quantiles',
                            color=['b','g','r','c','m','y'], marker=['o'], plot_components=True,
                            rel_error_line=0.15, abs_err_line=1., legend=0, figure=None, axes=None,
@@ -671,9 +671,6 @@ class Photoz(object):
         if type(marker) == str:
             marker = [marker]
 
-        if galaxies is None:
-            galaxies = range(self.photometry.num_galaxies)
-
         errors = {}
         specz = {}
         photoz = {}
@@ -681,51 +678,53 @@ class Photoz(object):
         num_components_seen = []
 
         #Fill the arrays for plotting
-        for g in galaxies:
+        for g in range(self.photometry.num_galaxies):
             try:
                 gal_num_components = self.photometry[g].truth['num_components']
                 gal_true_redshifts = [self.photometry[g].truth[cmp]['redshift']
                                         for cmp in range(gal_num_components)]
+
+                #Need to create new arrays for up-to this number of components
+                #NaN so that galaxies with less components don't plot
+                #The -1 is for indexing in for loop later
+                for cmp in range(gal_num_components):
+                    if cmp not in num_components_seen:
+                        errors[cmp] = np.zeros((2, self.photometry.num_galaxies)) * np.nan
+                        specz[cmp] = np.zeros(self.photometry.num_galaxies) * np.nan
+                        photoz[cmp] = np.zeros(self.photometry.num_galaxies) * np.nan
+                        num_components_seen.append(cmp)
+
+                for cmp in range(gal_num_components):
+                    if errorbar=='quantiles':
+                        q = self.quantiles(gal_num_components, galaxy=g, q=(0.16, 0.5, 0.84))
+                        err_up = q[2][cmp] - q[1][cmp]
+                        err_down = q[1][cmp] - q[0][cmp]
+                    elif errorbar=='std':
+                        std = self.std(gal_num_components, galaxy=g)
+                        err_up = std
+                        err_down = std
+                    elif errorbar is None:
+                        err_up = np.nan
+                        err_down = np.nan
+                    errors[cmp][0, g] = err_up
+                    errors[cmp][1, g] = err_down
+
+                    if point_estimate=='max1d':
+                        photoz[cmp][g] = self.max(gal_num_components, galaxy=g)[cmp]
+                    elif point_estimate=='mean1d':
+                        photoz[cmp][g] = self.mean(gal_num_components, galaxy=g)[cmp]
+                    else:
+                        raise NotImplementedError('No option other than "max1d" or "mean1d" '
+                                                + 'for point_estimate is implemented yet.')
+
+                    specz[cmp][g] = gal_true_redshifts[cmp]
             except KeyError:
-                raise ValueError('Galaxy {} does not have the required '.format(g)
+                for cmp in photoz:
+                    photoz[cmp][g] = np.nan
+                    specz[cmp][g] = np.nan
+                    errors[cmp][:, g] = np.nan
+                warnings.warn('Galaxy {} does not have the required '.format(g)
                                + 'spectroscopic information.')
-
-            ##if gal_num_components>max_num_components:
-            ##    max_num_components = gal_num_components
-            #Need to create new arrays for up-to this number of components
-            #NaN so that galaxies with less components don't plot
-            #The -1 is for indexing in for loop later
-            for cmp in range(gal_num_components):
-                if cmp not in num_components_seen:
-                    errors[cmp] = np.zeros((2, len(galaxies))) * np.nan
-                    specz[cmp] = np.zeros(len(galaxies)) * np.nan
-                    photoz[cmp] = np.zeros(len(galaxies)) * np.nan
-                    num_components_seen.append(cmp)
-
-            for cmp in range(gal_num_components):
-                if errorbar=='quantiles':
-                    q = self.quantiles(gal_num_components, galaxy=g, q=(0.16, 0.5, 0.84))
-                    err_up = q[2][cmp] - q[1][cmp]
-                    err_down = q[1][cmp] - q[0][cmp]
-                elif errorbar=='std':
-                    std = self.std(gal_num_components, galaxy=g)
-                    err_up = std
-                    err_down = std
-                elif errorbar is None:
-                    err_up = np.nan
-                    err_down = np.nan
-                errors[cmp][0, g] = err_up
-                errors[cmp][1, g] = err_down
-
-                if point_estimate=='max1d':
-                    photoz[cmp][g] = self.max(gal_num_components, galaxy=g)[cmp]
-                elif point_estimate=='mean1d':
-                    photoz[cmp][g] = self.mean(gal_num_components, galaxy=g)[cmp]
-                else:
-                    raise NotImplementedError('No option other than "max1d" or "mean1d" '
-                                            + 'for point_estimate is implemented yet.')
-
-                specz[cmp][g] = gal_true_redshifts[cmp]
 
         #Plot the results
         if not heatmap:
@@ -746,7 +745,6 @@ class Photoz(object):
             ax.hist2d(specz_all, photoz_all, bins=hist_bins, cmap=hist_cmap, normed=hist_normed)
             if colorbar:
                 plt.colorbar()
-
 
         #Line plotting
         if plot_equal_line:
