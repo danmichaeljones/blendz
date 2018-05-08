@@ -275,7 +275,7 @@ class Photoz(object):
 
     def sample(self, num_components, galaxy=None, nresample=1000, seed=False,
                measurement_component_mapping=None, npoints=150, num_between_print=10,
-               use_pymultinest=None):
+               use_pymultinest=None, save_path=None, save_interval=None):
         """Sample the posterior for a particular number of components.
 
         Args:
@@ -374,6 +374,12 @@ class Photoz(object):
                     self.blend_count += 1
                     if MPI_RANK==0:
                         self.pbar.update()
+                if (save_path is not None) and (save_interval is not None):
+                    if gal.index % save_interval == 0:
+                        self.saveState(save_path)
+        if save_path is not None:
+            self.saveState(save_path)
+
 
     def _lnPriorCalibrationPosterior(self, params):
         calibration_model = self.CalibrationModel(responses=self.responses, prior_params=params, **self.calibration_model_kwargs)
