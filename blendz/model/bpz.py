@@ -101,13 +101,15 @@ class BPZ(ModelBase):
     def lnMagnitudePrior(self, magnitude):
         return 0.6*(magnitude - self.config.ref_mag_hi) * np.log(10.)
 
-    def lnPrior(self, redshift, magnitude, type_index):
+    def lnPrior(self, redshift, magnitude):
         #Just the single component prior given TYPE index (not template)
-        template_type = self.responses.templates.possible_types[type_index]
-        p_z = self.lnRedshiftPrior(redshift, template_type, magnitude)
-        p_t = self.lnTemplatePrior(template_type, magnitude)
-        p_m = self.lnMagnitudePrior(magnitude)
-        return p_z * p_t * p_m
+        prior = np.zeros(len(self.possible_types))
+        for i, template_type in enumerate(self.possible_types):
+            p_z = self.lnRedshiftPrior(redshift, template_type, magnitude)
+            p_t = self.lnTemplatePrior(template_type, magnitude)
+            p_m = self.lnMagnitudePrior(magnitude)
+            prior[i] = p_z * p_t * p_m
+        return prior
 
     def lnPriorCalibrationPrior(self):
         '''Returns the prior on the prior parameters for the calibration procedure.'''
