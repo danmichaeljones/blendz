@@ -14,7 +14,7 @@ class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
                 max_err_frac=0.1, model=None, seed=None, random_err=True,
                 num_walkers=100, burn_len=10000, min_err_frac=0.,
-                measurement_component_specification=None, magnitude_bounds=[20., 32], **kwargs):
+                measurement_component_specification=None, magnitude_bounds=None, **kwargs):
         super(SimulatedPhotometry, self).__init__(config=config, **kwargs)
 
         if model is not None:
@@ -47,11 +47,16 @@ class SimulatedPhotometry(PhotometryBase):
         self.max_err_frac = max_err_frac
         self.random_err = random_err
         self.num_measurements = self.responses.filters.num_filters
+
         if max_redshift is None:
             self.max_redshift = self.config.z_hi
         else:
             self.max_redshift = max_redshift
-        self.magnitude_bounds = magnitude_bounds
+
+        if magnitude_bounds is None:
+            self.magnitude_bounds = [self.config.ref_mag_lo, self.config.ref_mag_hi]
+        else:
+            self.magnitude_bounds = magnitude_bounds
 
         self.min_err_frac = min_err_frac
         self.num_walkers = num_walkers
