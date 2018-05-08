@@ -19,6 +19,12 @@ class Templates(object):
         self._num_type = self._countTypes()
         self._interpolators = self._getInterpolators()
 
+        self.tmp_ind_to_type_ind = []
+        for T in range(self.num_templates):
+            tmpType = self.templateType(T)
+            self.tmp_ind_to_type_ind.append(np.where(np.array(self.possible_types)==tmpType)[0][0])
+
+
     def loadTemplates(self):
         self._all_templates = {}
         for T in range(self.num_templates):
