@@ -266,7 +266,7 @@ class Photoz(object):
 
     def _sampleProgressUpdate(self, info):
         if (info['it']%self.num_between_print==0) and MPI_RANK==0:
-            self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
+            self.pbar.set_description('[Gal: {}/{}, Cmp: {}/{}, Itr: {}] '.format(self.gal_count,
                                                                                    self.num_galaxies_sampling,
                                                                                    self.blend_count,
                                                                                    self.num_components_sampling,
@@ -391,9 +391,10 @@ class Photoz(object):
                         self._logevd_error[gal.index][nb] = results.logzerr
 
                     self.blend_count += 1
-                    if MPI_RANK==0:
-                        self.pbar.update()
+
                 self.gal_count += 1
+                if MPI_RANK==0:
+                    self.pbar.update()
                 if (save_path is not None) and (save_interval is not None):
                     if gal.index % save_interval == 0:
                         self.saveState(save_path)
