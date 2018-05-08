@@ -86,6 +86,7 @@ class Photoz(object):
             self.num_templates = self.responses.templates.num_templates
             self.num_measurements = self.responses.filters.num_filters
             self.num_galaxies = self.photometry.num_galaxies
+            self.tmp_ind_to_type_ind = self.responses.templates.tmp_ind_to_type_ind
 
             #Default to assuming single component, present in all measurements
             self.model._setMeasurementComponentMapping(None, 1)
@@ -162,20 +163,20 @@ class Photoz(object):
             return -np.inf
         else:
             #Precalculate all quantities we'll need in the template loop
-            template_priors = np.zeros((num_components, self.num_templates))
-            redshift_priors = np.zeros((num_components, self.num_templates))
+            #template_priors = np.zeros((num_components, self.num_templates))
+            #redshift_priors = np.zeros((num_components, self.num_templates))
             #Single interp call -> Shape = (N_template, N_band, N_component)
             model_fluxes = self.responses.interp(redshifts)
 
-            for T in range(self.num_templates):
-                tmpType = self.responses.templates.templateType(T)
-                for nb in range(num_components):
-                    template_priors[nb, T] = self.model.lnTemplatePrior(tmpType, magnitudes[nb])
-                    redshift_priors[nb, T] = self.model.lnRedshiftPrior(redshifts[nb], tmpType, magnitudes[nb])
+            #for T in range(self.num_templates):
+            #    tmpType = self.responses.templates.templateType(T)
+            #    for nb in range(num_components):
+            #        template_priors[nb, T] = self.model.lnTemplatePrior(tmpType, magnitudes[nb])
+            #        redshift_priors[nb, T] = self.model.lnRedshiftPrior(redshifts[nb], tmpType, magnitudes[nb])
             redshift_correlation = np.log(1. + self.model.correlationFunction(redshifts))
 
             #We assume independent magnitudes, so sum over log priors for joint prior
-            joint_magnitude_prior = np.sum([self.model.lnMagnitudePrior(m) for m in magnitudes])
+            #joint_magnitude_prior = np.sum([self.model.lnMagnitudePrior(m) for m in magnitudes])
             #Get total flux in reference band  = transform to flux & sum
             total_ref_flux = np.sum(10.**(-0.4 * magnitudes))
             selection_effect = self._lnSelection(total_ref_flux)
@@ -194,8 +195,10 @@ class Photoz(object):
                     T = template_combo[nb]
                     component_scaling = 10.**(-0.4*magnitudes[nb]) / model_fluxes[T, self.config.ref_band, nb]
                     blend_flux += model_fluxes[T, :, nb] * component_scaling * self.model.measurement_component_mapping[nb, :]
-                    tmp += template_priors[nb, T]
-                    tmp += redshift_priors[nb, T]
+                    ##tmp += template_priors[nb, T]
+                    ##tmp += redshift_priors[nb, T]
+                    type_ind = self.tmp_ind_to_type_ind[T]
+                    tmp += self.model.lnPrior(redshifts[nb], magnitudes[nb], type_ind)
                     #################################################print('SCALING')
                     ################################################print component_scaling
                     ################################################print('BLEND FLUX')
@@ -209,13 +212,14 @@ class Photoz(object):
                 tmp += redshift_correlation
                 tmp += self._lnLikelihood_flux(blend_flux)
                 tmp += self._lnLikelihood_mag(total_ref_flux)
-                tmp += joint_magnitude_prior
+                ##tmp += joint_magnitude_prior
                 tmp += selection_effect
 
                 #logaddexp contribution from this template to marginalise
                 lnProb = np.logaddexp(lnProb, tmp)
 
             return lnProb
+
 
     def _priorTransform(self, params):
         '''
