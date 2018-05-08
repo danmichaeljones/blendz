@@ -126,10 +126,8 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
         else:
             lnPrior = np.log(1. + self.correlationFunction(redshifts))
             for a in range(num_components):
-                tmp_type_a = self.responses.templates.templateType(templates_disc[a])
-                lnPrior += self.lnRedshiftPrior(redshifts[a], tmp_type_a, magnitudes[a])
-                lnPrior += self.lnTemplatePrior(tmp_type_a, magnitudes[a])
-                lnPrior += self.lnMagnitudePrior(magnitudes[a])
+                tmp_ind_a = self.responses.templates.tmp_ind_to_type_ind[int(templates_disc[a])]
+                lnPrior += self.lnPrior(redshifts[a], magnitudes[a])[tmp_ind_a]
 
             return lnPrior
 
