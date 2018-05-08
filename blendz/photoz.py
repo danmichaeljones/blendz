@@ -318,6 +318,12 @@ class Photoz(object):
             save_interval (None or int)
                 If given and save_path is not None, the Photoz object will be
                 saved to save_path every save_interval galaxies. Defaults to None.
+
+            use_pymultinest (bool or None)
+                If True, sample using the pyMultinest sampler. This requires PyMultiNest
+                to be installed separately. If False, sample using the Nestle sampler,
+                which is always installed when blendz is. If None, check whether pyMultinest
+                is installed and use it if it is, otherwise use Nestle. Defaults to None.
         """
 
         if use_pymultinest is None:
