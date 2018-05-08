@@ -274,7 +274,7 @@ class Photoz(object):
             self.pbar.refresh()
 
     def sample(self, num_components, galaxy=None, nresample=1000, seed=False,
-               measurement_component_mapping=None, npoints=150, num_between_print=10,
+               measurement_component_mapping=None, npoints=150, print_interval=10,
                use_pymultinest=None, save_path=None, save_interval=None):
         """Sample the posterior for a particular number of components.
 
@@ -304,6 +304,20 @@ class Photoz(object):
             npoints (int):
                 Number of live points for the Nested Sampling algorithm. Defaults to 150.
 
+            print_interval (int):
+                Update the progress bar with number of posterior evaluations every
+                print_interval calls. Defaults to 10.
+
+            save_path (None or str):
+                Filepath for saving the Photoz object for reloading with `Photoz.loadState`.
+                If None, do not automatically save. If given, the Photoz object will
+                be saved to this path after all galaxies are sampled. If save_interval
+                is also not None, the Photoz object will be saved to this path every
+                save_interval galaxies. Defaults to None.
+
+            save_interval (None or int)
+                If given and save_path is not None, the Photoz object will be
+                saved to save_path every save_interval galaxies. Defaults to None.
         """
 
         if use_pymultinest is None:
@@ -318,7 +332,7 @@ class Photoz(object):
                 raise ValueError('measurement_component_mapping cannot be set when sampling multiple numbers of components in one call. Do the separate cases separately.')
 
         self.num_components_sampling = len(num_components)
-        self.num_between_print = float(round(num_between_print))
+        self.num_between_print = float(round(print_interval))
 
         if galaxy is None:
             start = None
