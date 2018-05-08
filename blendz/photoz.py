@@ -255,22 +255,18 @@ class Photoz(object):
 
         with self.breakSilence():
             if (self.num_posterior_evals%self.num_between_print==0) and MPI_RANK==0:
-                self.pbar.set_description('[Gal: {}/{}, Comp: {}/{}, Itr: {}] '.format(self.gal_count,
-                                                                                       self.num_galaxies_sampling,
-                                                                                       self.blend_count,
-                                                                                       self.num_components_sampling,
-                                                                                       self.num_posterior_evals))
+                self.pbar.set_description('[Cmp: {}/{}, Itr: {}] '.format(self.blend_count,
+                                                                          self.num_components_sampling,
+                                                                          self.num_posterior_evals))
                 self.pbar.refresh()
 
         return self._lnPosterior(params)
 
     def _sampleProgressUpdate(self, info):
         if (info['it']%self.num_between_print==0) and MPI_RANK==0:
-            self.pbar.set_description('[Gal: {}/{}, Cmp: {}/{}, Itr: {}] '.format(self.gal_count,
-                                                                                   self.num_galaxies_sampling,
-                                                                                   self.blend_count,
-                                                                                   self.num_components_sampling,
-                                                                                   info['it']))
+            self.pbar.set_description('[Cmp: {}/{}, Itr: {}] '.format(self.blend_count,
+                                                                      self.num_components_sampling,
+                                                                      info['it']))
             self.pbar.refresh()
 
     def sample(self, num_components, galaxy=None, nresample=1000, seed=False,
@@ -351,7 +347,7 @@ class Photoz(object):
         else:
             raise TypeError('galaxy may be either None or an integer, but got {} instead'.format(type(galaxy)))
 
-        with tqdm(total=self.num_galaxies_sampling * self.num_components_sampling, unit='galaxy') as self.pbar:
+        with tqdm(total=self.num_galaxies_sampling, unit='galaxy') as self.pbar:
             self.gal_count = 1
             for gal in self.photometry.iterate(start, stop):
                 self.blend_count = 1
