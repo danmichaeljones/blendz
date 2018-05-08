@@ -3,9 +3,11 @@ import numpy as np
 from blendz.model import ModelBase
 
 
-class HistModel(blendz.model.ModelBase):
+class Histogram(ModelBase):
     def __init__(self, n_mag_bins=15, n_z_bins=15, **kwargs):
         super(HistModel, self).__init__(**kwargs)
+        self.n_mag_bins = n_mag_bins
+        self.n_z_bins = n_z_bins
         self.z_bins = np.linspace(self.config.z_lo, self.config.z_hi, n_z_bins)
         self.mag_bins = np.linspace(self.config.ref_mag_lo, self.config.ref_mag_hi, n_mag_bins)
         prior_params_full = np.append(self.prior_params, 1.-sum(self.prior_params))
