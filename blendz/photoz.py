@@ -390,10 +390,10 @@ class Photoz(object):
                         self._logevd[gal.index][nb] = results.logz
                         self._logevd_error[gal.index][nb] = results.logzerr
 
-                    self.gal_count += 1
                     self.blend_count += 1
                     if MPI_RANK==0:
                         self.pbar.update()
+                self.gal_count += 1
                 if (save_path is not None) and (save_interval is not None):
                     if gal.index % save_interval == 0:
                         self.saveState(save_path)
