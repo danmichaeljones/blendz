@@ -351,7 +351,7 @@ class Photoz(object):
         else:
             raise TypeError('galaxy may be either None or an integer, but got {} instead'.format(type(galaxy)))
 
-        with tqdm(total=self.num_galaxies_sampling * self.num_components_sampling) as self.pbar:
+        with tqdm(total=self.num_galaxies_sampling * self.num_components_sampling, unit='galaxy') as self.pbar:
             self.gal_count = 1
             for gal in self.photometry.iterate(start, stop):
                 self.blend_count = 1
