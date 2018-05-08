@@ -146,18 +146,10 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
         #Default to P(theta) = 1 --> ln P(theta) = 0
         return 0.
 
-    @abc.abstractmethod
     def correlationFunction(self, redshifts):
-        pass
+        #Default to no correlation
+        return 0.
 
     @abc.abstractmethod
-    def lnTemplatePrior(self, template_type, component_ref_mag):
-        pass
-
-    @abc.abstractmethod
-    def lnRedshiftPrior(self, redshift, template_type, component_ref_mag):
-        pass
-
-    @abc.abstractmethod
-    def lnMagnitudePrior(self, magnitude):
+    def lnPrior(self, redshift, magnitude):
         pass
