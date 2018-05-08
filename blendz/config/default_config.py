@@ -228,6 +228,14 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        #Angle within which we assume the galaxies lie, given they're blended
+        #For use in correlation functions, given in arcsec, converted to rads here
+        try:
+            res_arcsec = self.maybeGet('Data', 'angular_resolution', float)
+            self.angular_resolution = (res_arcsec / (60. * 60.)) * (np.pi / 180.)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
     #Derived attiribute -> property for ref_band and non_ref_bands indices
     @property #getter
     def ref_band(self):

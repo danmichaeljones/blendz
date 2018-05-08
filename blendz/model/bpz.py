@@ -88,14 +88,18 @@ class BPZ(ModelBase):
         if len(redshifts)==1:
             return 0.
         elif len(redshifts)==2:
-            if not self.config.sort_redshifts:
-                redshifts = np.sort(redshifts)
-            separation = self.comovingSeparation(redshifts[0], redshifts[1])
-            #Small-scale cutoff
-            if separation < self.config.xi_r_cutoff:
-                separation = self.config.xi_r_cutoff
-            return (self.config.r0 / separation)**self.config.gamma
+            theta = self.config.angular_resolution
+            redshifts = np.sort(redshifts)
+            r_2 = self.comovingSeparation(0., redshifts[1])
+            delta_r = self.comovingSeparation(redshifts[0], redshifts[1])
+            power = 1. - (self.config.gamma/2.)
+            one = (self.config.r0**2.) / (power * r_2 * r_2 * theta * theta)
+            two = (delta_r**2 + (r_2 * r_2 * theta * theta)) / (self.config.r0**2.)
+            three = (delta_r**2) / (self.config.r0**2.)
+            return one * ( (two**power) - (three**power) )
         else:
+            #Could define this recursively by calling with a
+            #len 2 slice of redshifts - assuming bispectrum and above = 0
             raise NotImplementedError('No N>2 yet...')
 
     def lnMagnitudePrior(self, magnitude):
