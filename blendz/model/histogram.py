@@ -1,19 +1,21 @@
 from builtins import *
 import numpy as np
+from tqdm import tqdm
 from blendz.model import ModelBase
 
 
 class Histogram(ModelBase):
     def __init__(self, n_mag_bins=15, n_z_bins=15, **kwargs):
-        super(HistModel, self).__init__(**kwargs)
+        super(Histogram, self).__init__(**kwargs)
         self.n_mag_bins = n_mag_bins
         self.n_z_bins = n_z_bins
         self.z_bins = np.linspace(self.config.z_lo, self.config.z_hi, n_z_bins)
         self.mag_bins = np.linspace(self.config.ref_mag_lo, self.config.ref_mag_hi, n_mag_bins)
-        prior_params_full = np.append(self.prior_params, 1.-sum(self.prior_params))
-        num_types = len(self.responses.templates.possible_types)
-        self.histogram = prior_params_full.reshape((n_z_bins, n_mag_bins,
-                                                    num_types))
+        self.num_types = len(self.responses.templates.possible_types)
+        if self.prior_params is not np.nan:
+            self.histogram = self.prior_params.reshape((self.n_z_bins, self.n_mag_bins, self.num_types))
+        else:
+            self.histogram = None
 
     def correlationFunction(self, redshifts):
         if len(redshifts)==1:
@@ -45,3 +47,57 @@ class Histogram(ModelBase):
         iz = np.digitize(redshift, self.z_bins)
         im = np.digitize(magnitude, self.mag_bins)
         return np.log(self.histogram[iz, im, :])
+
+    def calibrate(self, photometry, num_samps=10000, chain_save_interval=None,
+                  chain_save_path=None, config_save_path=None, burn_len=0):
+
+        hist_size = (self.n_z_bins, self.n_mag_bins, self.num_types)
+        flat_size = self.n_z_bins * self.n_mag_bins * self.num_types
+
+        #Init with a flat histogram
+        new_heights = np.ones(hist_size)
+        new_heights /= sum(new_heights)
+
+        height_chain = np.zeros((num_samps, flat_size))
+
+        for s in tqdm(range(num_samps)):
+
+            template_inds = np.zeros(photometry.num_galaxies)
+            magnitude_inds = np.zeros(photometry.num_galaxies)
+            redshift_inds = np.zeros(photometry.num_galaxies)
+            for g in photometry:
+                iz = np.digitize(g.truth[0]['redshift'], self.z_bins)
+                im = np.digitize(g.ref_mag_data, self.mag_bins)
+                prob = new_heights.reshape(hist_size)[iz, im, :]
+
+                template_inds[g.index] = np.random.choice(len(prob), p=prob/sum(prob))
+                redshift_inds[g.index] = iz
+                magnitude_inds[g.index] = im
+
+            #Convert T/Z/M bin indices into bin counts
+            flat_inds = np.ravel_multi_index((np.int_(redshift_inds),
+                                              np.int_(magnitude_inds),
+                                              np.int_(template_inds)),
+                                              hist_size)
+            bin_counts = np.bincount(flat_inds, minlength=flat_size)
+
+            #Draw dirichlet given bin counts to give new histogram heights
+            new_heights = np.random.dirichlet(bin_counts)
+            height_chain[s, :] = new_heights
+
+            if (chain_save_interval is not None) and (chain_save_path is not None):
+                if (s % chain_save_interval == 0):
+                    np.savetxt(chain_save_path, height_chain)
+
+        if chain_save_path is not None:
+            np.savetxt(chain_save_path, height_chain)
+
+        mean_params = np.mean(height_chain[burn_len:, :], axis=0)
+        self.prior_params = mean_params
+        self.histogram = self.prior_params.reshape((self.n_z_bins, self.n_mag_bins, self.num_types))
+
+        if config_save_path is not None:
+            array_str = np.array2string(mean_params, separator=',', max_line_width=np.inf)[1:-1]
+            cfg_str = u'[Run]\n\nprior_params = ' + array_str
+            with open(config_save_path, 'w') as config_file:
+                config_file.write(cfg_str)
