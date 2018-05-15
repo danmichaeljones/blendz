@@ -22,7 +22,6 @@ import blendz
 from blendz import Configuration
 from blendz.fluxes import Responses
 from blendz.photometry import Photometry, SimulatedPhotometry
-from blendz.model import BPZ
 from blendz.utilities import incrementCount, Silence
 
 try:
@@ -71,7 +70,18 @@ class Photoz(object):
                 self.config = Configuration(**kwargs)
                 self.config.mergeFromOther(photometry.config)
                 self.photometry = photometry
-                self.model = BPZ(config=self.config)
+
+                if self.config.model_type == 'Histogram':
+                    self.model = blendz.model.Histogram(config=self.config)
+                elif self.config.model_type == 'BPZ':
+                    self.model = blendz.model.BPZ(config=self.config)
+                else:
+                    raise ValueError('Configuration option model_type must be '
+                                     + 'either Histogram or BPZ. If you want to '
+                                     + 'use a custom prior, instantiate your '
+                                     + 'custom model class and pass to Photoz '
+                                     + 'using the model=... keyword argument.')
+
                 self.responses = self.model.responses
             #Neither given, load both from provided (or default, if None) config
             else:
@@ -79,7 +89,17 @@ class Photoz(object):
                 if config is not None:
                     self.config.mergeFromOther(config)
 
-                self.model = BPZ(config=self.config)
+                if self.config.model_type == 'Histogram':
+                    self.model = blendz.model.Histogram(config=self.config)
+                elif self.config.model_type == 'BPZ':
+                    self.model = blendz.model.BPZ(config=self.config)
+                else:
+                    raise ValueError('Configuration option model_type must be '
+                                     + 'either Histogram or BPZ. If you want to '
+                                     + 'use a custom prior, instantiate your '
+                                     + 'custom model class and pass to Photoz '
+                                     + 'using the model=... keyword argument.')
+
                 self.responses = self.model.responses
                 self.photometry = Photometry(config=self.config)
 
