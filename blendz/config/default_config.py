@@ -170,12 +170,12 @@ class DefaultConfiguration(object):
         try:
             self.skip_data_rows = self.maybeGet('Data', 'skip_data_rows', int)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            self.skip_data_rows = 0
+            pass
 
         try:
             self.data_is_csv = self.maybeGet('Data', 'data_is_csv', bool)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            self.data_is_csv = False
+            pass
 
         try:
             #self.mag_cols = [int(i) for i in self.maybeGet('Data', 'mag_cols').split(',')]
