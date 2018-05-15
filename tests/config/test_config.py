@@ -20,9 +20,9 @@ class TestConfiguration(object):
         made_config = blendz.config.Configuration(
                         data_path=join(blendz.RESOURCE_PATH, 'data/bpz/UDFtest.cat'),
                         mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
-                        spec_z_col=None, ref_band=2, filter_file_extension='.res',
-                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
-                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
+                        spec_z_col=None, ref_band=2,
+                        filters=['hst/F435W', 'hst/F606W', 'hst/F775W',
+                                 'hst/F850LP', 'hst/F110W', 'hst/F160W'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
                         ref_mag_lo = 20, ref_mag_hi = 32, sort_redshifts=False,
                         magnitude_limit=32, z_len=500)
@@ -53,7 +53,6 @@ class TestConfiguration(object):
             assert isinstance(cfg.ref_band, int)
             assert (isinstance(cfg.spec_z_col, list)) or (cfg.spec_z_col is None)
             assert isinstance(cfg.filter_path, str)
-            assert isinstance(cfg.filter_file_extension, str)
             assert isinstance(cfg.filters, list)
             assert isinstance(cfg.zero_point_errors, np.ndarray)
             assert isinstance(cfg.sort_redshifts, bool)
@@ -106,15 +105,15 @@ class TestConfiguration(object):
 
         made_list_config1 = blendz.config.Configuration(
                         mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
-                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
-                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
+                        filters=['hst/F435W', 'hst/F606W', 'hst/F775W',
+                                 'hst/F850LP', 'hst/F110W', 'hst/F160W'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
                         spec_z_col=13)
 
         made_list_config2 = blendz.config.Configuration(
                         mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
-                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
-                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
+                        filters=['hst/F435W', 'hst/F606W', 'hst/F775W',
+                                 'hst/F850LP', 'hst/F110W', 'hst/F160W'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
                         spec_z_col=[13, 14])
 
@@ -136,8 +135,8 @@ class TestConfiguration(object):
             #Check the values
             assert cfg.mag_cols==[1, 3, 5, 7, 9, 11]
             assert cfg.sigma_cols==[2, 4, 6, 8, 10, 12]
-            assert cfg.filters==['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
-                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w']
+            assert cfg.filters==['hst/F435W', 'hst/F606W', 'hst/F775W',
+                                 'hst/F850LP', 'hst/F110W', 'hst/F160W']
             assert np.all(cfg.zero_point_errors==np.array([0.01, 0.01, 0.01, 0.01, 0.01, 0.01]))
             assert cfg.spec_z_col==[13, 14]
 
@@ -150,9 +149,9 @@ class TestConfiguration(object):
         made_config1 = blendz.config.Configuration(
                         data_path=join(blendz.RESOURCE_PATH, 'data/bpz/UDFtest.cat'),
                         mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
-                        ref_band=2, filter_file_extension='.res',
-                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
-                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
+                        ref_band=2,
+                        filters=['hst/F435W', 'hst/F606W', 'hst/F775W',
+                                 'hst/F850LP', 'hst/F110W', 'hst/F160W'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
                         ref_mag_lo = 20, ref_mag_hi = 32, sort_redshifts=True,
                         magnitude_limit=32, template_set='BPZ6')
@@ -160,9 +159,9 @@ class TestConfiguration(object):
         made_config2 = blendz.config.Configuration(
                         data_path=join(blendz.RESOURCE_PATH, 'data/bpz/UDFtest.cat'),
                         mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
-                        ref_band=2, filter_file_extension='.res',
-                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
-                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
+                        ref_band=2,
+                        filters=['hst/F435W', 'hst/F606W', 'hst/F775W',
+                                 'hst/F850LP', 'hst/F110W', 'hst/F160W'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
                         spec_z_col=10, ref_mag_lo = 20, ref_mag_hi = 32, sort_redshifts=True,
                         magnitude_limit=32, template_set='BPZ6')
@@ -170,9 +169,9 @@ class TestConfiguration(object):
         made_config3 = blendz.config.Configuration(
                         data_path=join(blendz.RESOURCE_PATH, 'data/bpz/UDFtest.cat'),
                         mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
-                        ref_band=2, filter_file_extension='.res',
-                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', 'HST_ACS_WFC_F775W', \
-                                 'HST_ACS_WFC_F850LP', 'nic3_f110w', 'nic3_f160w'],
+                        ref_band=2,
+                        filters=['hst/F435W', 'hst/F606W', 'hst/F775W',
+                                 'hst/F850LP', 'hst/F110W', 'hst/F160W'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
                         spec_z_col=10, ref_mag_lo = 20, ref_mag_hi = 32, sort_redshifts=True,
                         magnitude_limit=32, template_set='BPZ6')
