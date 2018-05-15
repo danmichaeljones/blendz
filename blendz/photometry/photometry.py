@@ -9,7 +9,12 @@ class Photometry(PhotometryBase):
         super(Photometry, self).__init__(config=config, **kwargs)
         self.data_path = self.config.data_path
         self.zero_point_errors = self.config.zero_point_errors
-        self.photo_data = np.loadtxt(self.data_path)
+        if self.config.data_is_csv:
+            self.photo_data = np.loadtxt(self.data_path,
+                skiprows=self.config.skip_data_rows, delimiter=',')
+        else:
+            self.photo_data = np.loadtxt(self.data_path,
+                skiprows=self.config.skip_data_rows)
         self.num_to_load = np.shape(self.photo_data)[0]
         self.zero_point_frac = 10.**(0.4*self.zero_point_errors) - 1.
 
