@@ -12,6 +12,11 @@ class Histogram(ModelBase):
         self.z_bins = np.linspace(self.config.z_lo, self.config.z_hi, n_z_bins)
         self.mag_bins = np.linspace(self.config.ref_mag_lo, self.config.ref_mag_hi, n_mag_bins)
         self.num_types = len(self.responses.templates.possible_types)
+
+        if self.prior_params is not np.nan:
+            if len(self.prior_params) != self.n_z_bins * self.n_mag_bins * self.num_types:
+                raise ValueError('Wrong number of prior parameters.')
+
         if self.prior_params is not np.nan:
             self.histogram = self.prior_params.reshape((self.n_z_bins, self.n_mag_bins, self.num_types))
         else:
