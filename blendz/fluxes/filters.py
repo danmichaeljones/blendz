@@ -24,27 +24,24 @@ class Filters(object):
 
         self.filter_path = self.config.filter_path
         self.filter_names = self.config.filters
-        self.file_extension = self.config.filter_file_extension
         self.num_filters = len(self.filter_names)
 
         self._all_filters = {}
         #load_filters reads filters in from file *and* calculates the normalisations
         self.load_filters()
 
-    def load_filters(self, filenames=None, filepath=None, file_extension=None):
+    def load_filters(self, filenames=None, filepath=None):
         #Default arguments evaluated at define, self only available at function call, so use None instead
         if filenames is None:
             filenames = self.filter_names
         if filepath is None:
             filepath = self.filter_path
-        if file_extension is None:
-            file_extension = self.file_extension
 
         for F in range(len(filenames)):
             #Read from file
             self._all_filters[F] = {}
             self._all_filters[F]['lambda'], self._all_filters[F]['response'] = \
-                    np.loadtxt(join(filepath, filenames[F] + file_extension), unpack=True)
+                    np.loadtxt(join(filepath, filenames[F]), unpack=True)
             flt_order = np.argsort(self._all_filters[F]['lambda'])
             self._all_filters[F]['lambda'] = self._all_filters[F]['lambda'][flt_order]
             self._all_filters[F]['response'] = self._all_filters[F]['response'][flt_order]
