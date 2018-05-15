@@ -145,6 +145,11 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        try:
+            self.model_type = self.maybeGet('Run', 'model_type', str)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            pass
+
         # _prior_params is either an array of parameters,
         # or np.nan for when we want to do calibration (allow overwrite)
         try:
@@ -161,6 +166,16 @@ class DefaultConfiguration(object):
             self.data_path = self.maybeGet('Data', 'data_path', str)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
+
+        try:
+            self.skip_data_rows = self.maybeGet('Data', 'skip_data_rows', int)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            self.skip_data_rows = 0
+
+        try:
+            self.data_is_csv = self.maybeGet('Data', 'data_is_csv', bool)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            self.data_is_csv = False
 
         try:
             #self.mag_cols = [int(i) for i in self.maybeGet('Data', 'mag_cols').split(',')]
@@ -200,11 +215,6 @@ class DefaultConfiguration(object):
 
         try:
             self.filter_path = self.maybeGet('Data', 'filter_path', str)
-        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            pass
-
-        try:
-            self.filter_file_extension = self.maybeGet('Data', 'filter_file_extension', str)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
