@@ -1,6 +1,7 @@
 from builtins import *
 import warnings
 import numpy as np
+from tqdm import tqdm
 from scipy.interpolate import interp1d
 from matplotlib import pyplot as plt
 from blendz import Configuration
@@ -102,21 +103,25 @@ class Responses(object):
     def _calculate_responses(self):
         #self._all_responses = {}
         self._all_responses = np.zeros((self.templates.num_templates, self.filters.num_filters, len(self.zGrid)))
-        for F in range(self.filters.num_filters):
-            for iZ, Z in enumerate(self.zGrid):
-                extinction = self.etau_madau(self.filters.wavelength(F), Z)
-                for T in range(self.templates.num_templates):
-                    shiftedTemplate = self.templates.interp(T, self.filters.wavelength(F) / (1+Z) )
-                    # TODO:The multiply by lambda in here is a conversion
-                    # from flux_nu (in the equation) to flux_lambda (how templates are defined)
-                    # Add a setting to choose how the templates are defined.
-                    # Normalisation includes factor of c
-                    flux_norm = self.filters.norm(F) * 2.99792458e18
-                    integrand = shiftedTemplate * self.filters.response(F) * \
-                                self.filters.wavelength(F) / flux_norm
-                    #integrand_extinct = integrand * self.etau_madau(self.filters.wavelength(F), Z)
-                    integrand_extinct = integrand * extinction
-                    self._all_responses[T, F, iZ] = np.trapz(integrand_extinct, x=self.filters.wavelength(F))
+        tot_its = self.templates.num_templates * self.config.z_len * \
+                    self.filters.num_filters
+        with tqdm(total=tot_its) as pbar:
+            for F in range(self.filters.num_filters):
+                for iZ, Z in enumerate(self.zGrid):
+                    extinction = self.etau_madau(self.filters.wavelength(F), Z)
+                    for T in range(self.templates.num_templates):
+                        shiftedTemplate = self.templates.interp(T, self.filters.wavelength(F) / (1+Z) )
+                        # TODO:The multiply by lambda in here is a conversion
+                        # from flux_nu (in the equation) to flux_lambda (how templates are defined)
+                        # Add a setting to choose how the templates are defined.
+                        # Normalisation includes factor of c
+                        flux_norm = self.filters.norm(F) * 2.99792458e18
+                        integrand = shiftedTemplate * self.filters.response(F) * \
+                                    self.filters.wavelength(F) / flux_norm
+                        #integrand_extinct = integrand * self.etau_madau(self.filters.wavelength(F), Z)
+                        integrand_extinct = integrand * extinction
+                        self._all_responses[T, F, iZ] = np.trapz(integrand_extinct, x=self.filters.wavelength(F))
+                        pbar.update()
         self.interp = interp1d(self.zGrid, self._all_responses, bounds_error=False, fill_value=0.)
 
     def plotFiltersAndTemplates(self, single_plot=True):
