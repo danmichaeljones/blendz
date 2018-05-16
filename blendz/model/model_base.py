@@ -7,6 +7,7 @@ import abc
 from future.utils import with_metaclass
 import numpy as np
 from scipy.integrate import quad
+from scipy.special import erf
 from blendz import Configuration
 from blendz.fluxes import Responses
 
@@ -140,6 +141,12 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
                                               (self.config.omega_k * (1+zp)**2.) +
                                               self.config.omega_lam), z_lo, z_hi)[0]
         return (3.e5 / self.config.hubble) * integral
+
+    def lnSelection(self, flux, galaxy):
+        flim = 10.**(-0.4 * galaxy.magnitude_limit)
+        sigma = galaxy.ref_flux_sigma
+        selection = 0.5 - (0.5 * erf((flim - flux) / (sigma * np.sqrt(2))))
+        return np.log(selection)
 
     def lnPriorCalibrationPrior(self):
         '''Returns the prior on the prior parameters for the calibration procedure.'''

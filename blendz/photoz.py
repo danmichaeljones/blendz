@@ -13,7 +13,6 @@ from multiprocessing import cpu_count
 import itertools as itr
 import numpy as np
 from matplotlib import pyplot as plt
-from scipy.special import erf
 import nestle
 import emcee
 from tqdm import tqdm
@@ -171,12 +170,6 @@ class Photoz(object):
         chi_sq = -1. * np.sum((self.photometry.current_galaxy.ref_flux_data - total_ref_flux)**2 / self.photometry.current_galaxy.ref_flux_sigma**2)
         return chi_sq
 
-    def _lnSelection(self, flux):
-        flim = 10.**(-0.4*self.photometry.current_galaxy.magnitude_limit)
-        sigma = self.photometry.current_galaxy.ref_flux_sigma
-        selection = 0.5 - (0.5 * erf((flim - flux) / (sigma * np.sqrt(2))))
-        return np.log(selection)
-
     def _lnPosterior(self, params):
         num_components = int(len(params) // 2)
         redshifts = params[:num_components]
@@ -197,7 +190,8 @@ class Photoz(object):
 
             #Get total flux in reference band  = transform to flux & sum
             total_ref_flux = np.sum(10.**(-0.4 * magnitudes))
-            selection_effect = self._lnSelection(total_ref_flux)
+            selection_effect = self.model.lnSelection(total_ref_flux,
+                                                      self.photometry.current_galaxy)
 
             #Loop over all templates - discrete marginalisation
             #All log probabilities so (multiply -> add) and (add -> logaddexp)
