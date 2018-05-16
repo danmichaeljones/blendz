@@ -1,31 +1,31 @@
 [El_B2004a]
-path = bpz/El_B2004a.sed
+path = bpz/El_B2004a
 type = early
 
 [Sbc_B2004a]
-path = bpz/Sbc_B2004a.sed
+path = bpz/Sbc_B2004a
 type = late
 
 [Scd_B2004a]
-path = bpz/Scd_B2004a.sed
+path = bpz/Scd_B2004a
 type = late
 
 [Im_B2004a]
-path = bpz/Im_B2004a.sed
+path = bpz/Im_B2004a
 type = other
 
 [SB2_B2004a]
-path = bpz/SB2_B2004a.sed
+path = bpz/SB2_B2004a
 type = other
 
 [SB3_B2004a]
-path = bpz/SB3_B2004a.sed
+path = bpz/SB3_B2004a
 type = other
 
 [ssp_5Myr_z008]
-path = bpz/ssp_5Myr_z008.sed
+path = bpz/ssp_5Myr_z008
 type = other
 
 [ssp_25Myr_z008]
-path = bpz/ssp_25Myr_z008.sed
+path = bpz/ssp_25Myr_z008
 type = other
