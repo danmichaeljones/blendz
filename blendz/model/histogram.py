@@ -53,8 +53,10 @@ class Histogram(ModelBase):
         im = np.digitize(magnitude, self.mag_bins)
         return np.log(self.histogram[iz, im, :])
 
-    def calibrate(self, photometry, num_samps=10000, chain_save_interval=None,
-                  chain_save_path=None, config_save_path=None, burn_len=0):
+    def calibrate(self, photometry, cached_likelihood, num_samps=10000,
+                  chain_save_interval=None, burn_len=0,
+                  config_save_path='calibrated_prior_config.txt',
+                  chain_save_path=None):
 
         hist_size = (self.n_z_bins, self.n_mag_bins, self.num_types)
         flat_size = self.n_z_bins * self.n_mag_bins * self.num_types
