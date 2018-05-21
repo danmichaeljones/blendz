@@ -411,8 +411,26 @@ class Photoz(object):
         if save_path is not None:
             self.saveState(save_path)
 
+    def _cacheTruthLikelihood(self):
+        self.model._setMeasurementComponentMapping(None, 1)
+        #Single interp call -> Shape = (N_template, N_band, N_component)
+        fixed_model_fluxes = {}
+        fixed_lnLikelihood_flux = np.zeros((self.photometry.num_galaxies,
+                                            self.responses.templates.num_templates))
+        for g in self.photometry:
+            fixed_model_fluxes[g.index] = self.responses.interp(np.array([g.truth[0]['redshift']]))
+            for T in range(self.responses.templates.num_templates):
+                scaling = 10.**(-0.4*g.ref_mag_data) / fixed_model_fluxes[g.index][T, self.config.ref_band, 0]
+                fixed_model_fluxes[g.index][T, :, 0] *= scaling
+                #Cache the flux likelihoods
+                non_ref_flux = fixed_model_fluxes[g.index][T, self.config.non_ref_bands, 0]
+                fixed_lnLikelihood_flux[g.index, T] = self._lnLikelihood_flux(non_ref_flux)
+        return fixed_lnLikelihood_flux
+
+
     def calibrate(self, **kwargs):
-        self.model.calibrate(self.photometry, **kwargs)
+        cached_likelihood = self._cacheTruthLikelihood()
+        self.model.calibrate(self.photometry, cached_likelihood, **kwargs)
 
     def samples(self, num_components, galaxy=None):
         """Return the (unweighted) posterior samples.
@@ -431,7 +449,7 @@ class Photoz(object):
             return self._samples[galaxy][num_components]
 
     def logevd(self, num_components, galaxy=None, return_error=False):
-        """Return the base-10 log of the evidence.
+        """Return the natural log of the evidence.
 
         Args:
             num_components (int):
@@ -457,8 +475,8 @@ class Photoz(object):
             else:
                 return self._logevd[galaxy][num_components]
 
-    def logbayes(self, m, n, galaxy=None):
-        """Return the base-10 log of the Bayes factor between m and n components, log[B_mn].
+    def logbayes(self, m, n, base=None, galaxy=None):
+        """Return the log of the Bayes factor between m and n components, log[B_mn].
 
         A positive value suggests that that evidence prefers the m-component model over
         the n-component model.
@@ -470,11 +488,19 @@ class Photoz(object):
             n (int):
                 Second number of components.
 
+            base (float or None):
+                Base of the log to return. If None, uses natural log.
+                Defaults to None.
+
             galaxy (int or None):
                 Index of the galaxy to calculate B_mn for. If None, return array
                 of B_mn for every galaxy. Defaults to None.
         """
-        return (self.logevd(m, galaxy=galaxy) - self.logevd(n, galaxy=galaxy)) / np.log(10.)
+        if base is None:
+            alter_base = 1.
+        else:
+            alter_base = np.log(base)
+        return (self.logevd(m, galaxy=galaxy) - self.logevd(n, galaxy=galaxy)) / alter_base
 
     def applyToMarginals(self, func, num_components, galaxy=None, **kwargs):
         """Apply a function to the 1D marginal distribution samples of each parameter.
