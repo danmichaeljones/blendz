@@ -33,6 +33,7 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
             self.responses = Responses(config=self.config)
 
         self.prior_params = self.config.prior_params
+        self.num_templates = self.responses.templates.num_templates
 
     def _setMeasurementComponentMapping(self, specification, num_components):
         '''
