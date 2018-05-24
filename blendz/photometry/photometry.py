@@ -35,3 +35,14 @@ class Photometry(PhotometryBase):
                 self.all_galaxies[g].magnitude_limit = self.photo_data[g, self.config.magnitude_limit_col]
             else:
                 self.all_galaxies[g].magnitude_limit = self.config.magnitude_limit
+
+            #If ref_mag_hi_sigma is not set, use ref_mag_hi instead, but prefer sigma
+            if self.config.ref_mag_hi_sigma is None:
+                if self.config.ref_mag_hi is not None:
+                    self.all_galaxies[g].ref_mag_hi = self.config.ref_mag_hi
+                else:
+                    raise ValueError('One of ref_mag_hi or ref_mag_hi_sigma must be set in config to load photometry.')
+            else:
+                ref_flux_hi = self.config.ref_mag_hi_sigma * self.all_galaxies[g].ref_flux_sigma
+                ref_mag_hi = -2.5 * np.log10(ref_flux_hi)
+                self.all_galaxies[g].ref_mag_hi = ref_mag_hi

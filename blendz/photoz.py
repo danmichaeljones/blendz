@@ -73,7 +73,9 @@ class Photoz(object):
                 if self.config.model_type == 'Histogram':
                     self.model = blendz.model.Histogram(config=self.config)
                 elif self.config.model_type == 'BPZ':
-                    self.model = blendz.model.BPZ(config=self.config)
+                    #BPZ wants the maximum value of the ref_mag_hi from photometry
+                    max_ref_mag_hi = np.max([g.ref_mag_hi for g in self.photometry])
+                    self.model = blendz.model.BPZ(config=self.config, max_ref_mag_hi=max_ref_mag_hi)
                 else:
                     raise ValueError('Configuration option model_type must be '
                                      + 'either Histogram or BPZ. If you want to '
@@ -88,19 +90,21 @@ class Photoz(object):
                 if config is not None:
                     self.config.mergeFromOther(config)
 
+                self.photometry = Photometry(config=self.config)
+
                 if self.config.model_type == 'Histogram':
                     self.model = blendz.model.Histogram(config=self.config)
                 elif self.config.model_type == 'BPZ':
-                    self.model = blendz.model.BPZ(config=self.config)
+                    #BPZ wants the maximum value of the ref_mag_hi from photometry
+                    max_ref_mag_hi = np.max([g.ref_mag_hi for g in self.photometry])
+                    self.model = blendz.model.BPZ(config=self.config, max_ref_mag_hi=max_ref_mag_hi)
                 else:
                     raise ValueError('Configuration option model_type must be '
                                      + 'either Histogram or BPZ. If you want to '
                                      + 'use a custom prior, instantiate your '
                                      + 'custom model class and pass to Photoz '
                                      + 'using the model=... keyword argument.')
-
                 self.responses = self.model.responses
-                self.photometry = Photometry(config=self.config)
 
             self.num_templates = self.responses.templates.num_templates
             self.num_measurements = self.responses.filters.num_filters
@@ -175,7 +179,7 @@ class Photoz(object):
         redshifts = params[:num_components]
         magnitudes = params[num_components:]
 
-        if not self.model._obeyPriorConditions(redshifts, magnitudes):
+        if not self.model._obeyPriorConditions(redshifts, magnitudes, self.photometry.current_galaxy.ref_mag_hi):
             return -np.inf
         else:
             #Precalculate all quantities we'll need in the template loop
@@ -235,7 +239,7 @@ class Photoz(object):
 
         trans = np.ones(len(params))
         trans[:num_components] = self.config.z_hi - self.config.z_lo
-        trans[num_components:] = self.config.ref_mag_hi - self.config.ref_mag_lo
+        trans[num_components:] = self.photometry.current_galaxy.ref_mag_hi - self.config.ref_mag_lo
 
         shift = np.zeros(len(params))
         shift[:num_components] = self.config.z_lo
@@ -253,7 +257,7 @@ class Photoz(object):
 
         trans = np.zeros(ndim)
         trans[:num_components] = self.config.z_hi
-        trans[num_components:] = self.config.ref_mag_hi - self.config.ref_mag_lo
+        trans[num_components:] = self.photometry.current_galaxy.ref_mag_hi - self.config.ref_mag_lo
 
         shift = np.zeros(ndim)
         shift[:num_components] = self.config.z_lo

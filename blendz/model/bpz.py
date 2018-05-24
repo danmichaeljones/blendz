@@ -6,12 +6,13 @@ from itertools import repeat
 from blendz.model import ModelBase
 
 class BPZ(ModelBase):
-    def __init__(self, mag_grid_len=100, **kwargs):
+    def __init__(self, mag_grid_len=100, max_ref_mag_hi=None, **kwargs):
         super(BPZ, self).__init__(**kwargs)
-
         self.mag_grid_len = mag_grid_len
         self.possible_types = self.responses.templates.possible_types
-        if self.prior_params is not np.nan:
+        self.max_ref_mag_hi = max_ref_mag_hi
+
+        if (self.prior_params is not np.nan) and (self.max_ref_mag_hi is not None):
             self._loadParameterDict()
             self._calculateRedshiftPriorNorm()
 
@@ -33,7 +34,7 @@ class BPZ(ModelBase):
 
     def _calculateRedshiftPriorNorm(self):
         self.redshift_prior_norm = {}
-        mag_range = np.linspace(self.config.ref_mag_lo, self.config.ref_mag_hi, self.mag_grid_len)
+        mag_range = np.linspace(self.config.ref_mag_lo, self.max_ref_mag_hi, self.mag_grid_len)
         for T in self.possible_types:
             norms = np.zeros(self.mag_grid_len)
             for i, mag in enumerate(mag_range):
@@ -105,7 +106,7 @@ class BPZ(ModelBase):
             raise NotImplementedError('No N>2 yet...')
 
     def lnMagnitudePrior(self, magnitude):
-        return 0.6*(magnitude - self.config.ref_mag_hi) * np.log(10.)
+        return (0.6 * magnitude) * np.log(10.)
 
     def lnPrior(self, redshift, magnitude):
         #Just the single component prior given TYPE index (not template)
@@ -185,6 +186,10 @@ class BPZ(ModelBase):
         tolerance = frac_tol * np.finfo(float).eps
         self.mag_grid_len = mag_grid_len
         self._fixed_lnLikelihood_flux = cached_likelihood
+
+        # Set the max_ref_mag_hi (for the precaculation grid) to the
+        # largest value in the photometry
+        self.max_ref_mag_hi = np.max([g.ref_mag_data for g in photometry])
 
         # Initial guesses:
         # Assume 1/3 fraction for each type

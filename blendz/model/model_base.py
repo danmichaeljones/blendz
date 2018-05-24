@@ -72,7 +72,7 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
             else:
                 self.redshifts_exchangeable = None
 
-    def _obeyPriorConditions(self, redshifts, magnitudes):
+    def _obeyPriorConditions(self, redshifts, magnitudes, ref_mag_hi):
         '''Check that the (arrays of) redshift and magnitude have sensible
         values (within bounds set by config) and that they obey the sorting conditions.
         '''
@@ -81,7 +81,7 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
                               and np.all(redshifts >= self.config.z_lo) \
                               and np.all(redshifts <= self.config.z_hi)
         magnitudes_in_bounds = np.all(magnitudes >= self.config.ref_mag_lo) \
-                               and np.all(magnitudes <= self.config.ref_mag_hi)
+                               and np.all(magnitudes <= ref_mag_hi)
         bounds_check = redshifts_in_bounds and magnitudes_in_bounds
         #Only need sorting condition if redshifts are exchangable
         # (depends on measurement_component_mapping) and if there's
@@ -121,7 +121,9 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
         template_positive = np.all(templates_disc >= 0.)
         template_within_bounds = np.all(templates_disc <= self.responses.templates.num_templates - 1)
         template_okay = template_positive and template_within_bounds
-        redshift_magnitude_okay = self._obeyPriorConditions(redshifts, magnitudes)
+        # ref_mag_hi must be set in config, which is okay since this function is
+        # only used in SimulatedPhotometry which assumes that must be set
+        redshift_magnitude_okay = self._obeyPriorConditions(redshifts, magnitudes, self.config.ref_mag_hi)
 
         if not (template_okay and redshift_magnitude_okay):
             return -np.inf

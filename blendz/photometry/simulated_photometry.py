@@ -32,7 +32,7 @@ class SimulatedPhotometry(PhotometryBase):
         else:
             #Config given, take default+kwargs+given config
             #which is loaded in in PhotometryBase
-            self.model = BPZ(config=self.config)
+            self.model = BPZ(config=self.config, max_ref_mag_hi=self.config.ref_mag_hi)
             self.responses = self.model.responses
 
         #Config must have magnitude_limit set, NOT magnitude_limit_col for simulations
@@ -41,6 +41,12 @@ class SimulatedPhotometry(PhotometryBase):
             raise ValueError('SimulatedPhotometry requires magnitude_limit to be set in config.')
         elif self.config.magnitude_limit_col is not None:
             warnings.warn('SimulatedPhotometry uses magnitude_limit, but magnitude_limit_col has also been set.')
+
+        #Config must have ref_mag_hi set, NOT ref_mag_hi_sigma for simulations
+        if self.config.ref_mag_hi is None:
+            raise ValueError('SimulatedPhotometry requires ref_mag_hi to be set in config.')
+        elif self.config.ref_mag_hi_sigma is not None:
+            warnings.warn('SimulatedPhotometry uses ref_mag_hi, but ref_mag_hi_sigma has also been set.')
 
         self.num_sims = num_sims
         self.num_components = num_components
@@ -244,6 +250,7 @@ class SimulatedPhotometry(PhotometryBase):
             new_galaxy = Galaxy(all_mag_data[g, :], all_mag_sigma[g, :], self.config, self.zero_point_frac, g)
             new_galaxy.truth = all_truths[g]
             new_galaxy.magnitude_limit = self.config.magnitude_limit
+            new_galaxy.ref_mag_hi = self.config.ref_mag_hi
             self.all_galaxies.append(new_galaxy)
 
     def simulateGalaxies(self, redshifts, scales, templates, err_frac):

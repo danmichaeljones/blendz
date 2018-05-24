@@ -103,7 +103,12 @@ class DefaultConfiguration(object):
         try:
             self.ref_mag_hi = self.maybeGet('Run', 'ref_mag_hi', float)
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
-            pass
+            self.ref_mag_hi = None
+
+        try:
+            self.ref_mag_hi_sigma = self.maybeGet('Run', 'ref_mag_hi_sigma', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            self.ref_mag_hi_sigma = None
 
         try:
             self.ref_mag_lo = self.maybeGet('Run', 'ref_mag_lo', float)
