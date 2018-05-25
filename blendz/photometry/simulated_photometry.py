@@ -84,6 +84,12 @@ class SimulatedPhotometry(PhotometryBase):
                                     measurement_component_specification=measurement_component_specification,
                                     magnitude_bounds=self.magnitude_bounds)
 
+        #Remove simulated galaxies that aren't within the selection
+        in_selection = np.where(np.array([self._fluxDataWithinSelection(g.flux_data)
+                                          for g in self.all_galaxies]))[0]
+        self.all_galaxies = [g for i, g in enumerate(self.all_galaxies)
+                             if i in in_selection]
+
     def drawParametersFromPrior(self, num_components, num_sims, burn_len=10000, num_walkers=100, num_thin=50):
         '''
         Use mcmc to draw ``num_sims`` sets of source parameters for
@@ -142,7 +148,7 @@ class SimulatedPhotometry(PhotometryBase):
                 chain = sampler.flatchain
                 for i in range(np.shape(chain)[0]):
                     sample_i = chain[-i, :]
-                    if num_selected<num_sims and self._fluxDataWithinSelection(sample_i):
+                    if num_selected<num_sims:# and self._fluxDataWithinSelection(sample_i):
                         params[num_selected, :] = sample_i
                         params[num_selected, num_components:2*num_components] = \
                             np.around(params[num_selected, num_components:2*num_components])
