@@ -12,8 +12,8 @@ from blendz.utilities import incrementCount
 
 class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
-                max_err_frac=0.1, model=None, seed=None, random_err=True,
-                num_walkers=100, burn_len=10000, min_err_frac=0.,
+                model=None, seed=None, signal_to_noise=10.,
+                num_walkers=100, burn_len=10000,
                 measurement_component_specification=None, magnitude_bounds=None, **kwargs):
         super(SimulatedPhotometry, self).__init__(config=config, **kwargs)
 
@@ -50,8 +50,6 @@ class SimulatedPhotometry(PhotometryBase):
 
         self.num_sims = num_sims
         self.num_components = num_components
-        self.max_err_frac = max_err_frac
-        self.random_err = random_err
         self.num_measurements = self.responses.filters.num_filters
 
         if max_redshift is None:
@@ -64,12 +62,18 @@ class SimulatedPhotometry(PhotometryBase):
         else:
             self.magnitude_bounds = magnitude_bounds
 
-        self.min_err_frac = min_err_frac
         self.num_walkers = num_walkers
         self.burn_len = burn_len
 
         self.zero_point_errors = self.config.zero_point_errors
         self.zero_point_frac = 10.**(0.4*self.zero_point_errors) - 1.
+
+        #Signal to noise is an array with an element for each filters
+        #If the arg is a float, assume every element the same
+        if isinstance(signal_to_noise, float):
+            self.signal_to_noise = np.ones(self.model.responses.filters.num_filters) * signal_to_noise
+        else:
+            self.signal_to_noise = signal_to_noise
 
         #Use an incrementing counter for the seed to make sure its always
         #different between various different function calls
@@ -80,7 +84,6 @@ class SimulatedPhotometry(PhotometryBase):
 
         self.simulateRandomGalaxies(self.num_components, self.num_sims,
                                     max_redshift=self.max_redshift,
-                                    max_err_frac=self.max_err_frac,
                                     measurement_component_specification=measurement_component_specification,
                                     magnitude_bounds=self.magnitude_bounds)
 
@@ -132,7 +135,10 @@ class SimulatedPhotometry(PhotometryBase):
         sampler = emcee.EnsembleSampler(num_walkers, num_pars, self.model._lnTotalPrior)
         #Run burn in
         burn_sample_len = int(ceil(burn_len / float(num_walkers)))
-        burn_pos, burn_prob, burn_state = sampler.run_mcmc(start_pos, burn_sample_len)
+        burn_rstate = np.random.RandomState(next(self.sim_seed))
+        burn_pos, burn_prob, burn_state = sampler.run_mcmc(start_pos,
+                                                           burn_sample_len,
+                                                           rstate0=burn_rstate)
         #Sample our parameters until we have enough selected sources
         num_selected = 0
         #Sample in batches of num_sims samples, plus a bit more
@@ -144,7 +150,9 @@ class SimulatedPhotometry(PhotometryBase):
         with tqdm(total=num_sims) as pbar:
             while num_selected < num_sims:
                 sampler.reset()
-                sampler.run_mcmc(burn_pos, main_sample_len, thin=num_thin)
+                main_rstate = np.random.RandomState(next(self.sim_seed))
+                sampler.run_mcmc(burn_pos, main_sample_len,
+                                 thin=num_thin, rstate0=main_rstate)
                 chain = sampler.flatchain
                 for i in range(np.shape(chain)[0]):
                     sample_i = chain[-i, :]
@@ -165,7 +173,7 @@ class SimulatedPhotometry(PhotometryBase):
         ref_band_mag = np.log10(flux_data[self.config.ref_band]) / (-0.4)
         return ref_band_mag <= self.config.magnitude_limit
 
-    def generateObservables(self, params, max_err_frac, min_err_frac=0.):
+    def generateObservables(self, params):
         '''
         Use array of params shape (num_sims, 3*num_components) to generate
         array of observed fluxes and array of errors, both of shape
@@ -183,13 +191,14 @@ class SimulatedPhotometry(PhotometryBase):
                 resp_c = self.responses(tc, None, zc)
                 norm = (10.**(-0.4 * mc)) / resp_c[self.config.ref_band]
                 true_flux[g, :] += resp_c * norm * self.model.measurement_component_mapping[c, :]
-        err_frac_range = max_err_frac - min_err_frac
-        rand_err_frac = (np.random.rand(*out_shape) * err_frac_range) + min_err_frac
-        rand_err_sign = (np.random.randint(2, size=out_shape) * 2.) - 1.
-        rand_err  = rand_err_frac * rand_err_sign * true_flux
-        obs_flux = true_flux + rand_err
-        flux_err = true_flux * max_err_frac
 
+        #Errors
+        flux_err = true_flux / self.signal_to_noise #quoted error
+        err_rstate = np.random.RandomState(next(self.sim_seed))
+        rand_err = err_rstate.normal(loc=0., scale=flux_err, size=out_shape) #actual error
+        obs_flux = true_flux + rand_err #added actual error to flux
+
+        #Conversions
         obs_mag = np.log10(obs_flux) / (-0.4)
         mag_err = np.log10((flux_err/obs_flux)+1.) / 0.4
         return obs_mag, mag_err
@@ -230,26 +239,21 @@ class SimulatedPhotometry(PhotometryBase):
         return all_truths
 
     def simulateRandomGalaxies(self, num_components, num_sims, max_redshift=None,
-                               max_err_frac=None, measurement_component_specification=None,
-                               magnitude_bounds=None, burn_len=None, num_walkers=None,
-                               min_err_frac=None):
+                               measurement_component_specification=None,
+                               magnitude_bounds=None, burn_len=None, num_walkers=None):
         if max_redshift is None:
             max_redshift = self.max_redshift
-        if max_err_frac is None:
-            max_err_frac = self.max_err_frac
         if magnitude_bounds is None:
             magnitude_bounds = self.magnitude_bounds
         if burn_len is None:
             burn_len = self.burn_len
         if num_walkers is None:
             num_walkers = self.num_walkers
-        if min_err_frac is None:
-            min_err_frac = self.min_err_frac
 
         self.model._setMeasurementComponentMapping(measurement_component_specification, num_components)
 
         prior_parameters = self.drawParametersFromPrior(num_components, num_sims, burn_len=burn_len, num_walkers = num_walkers)
-        all_mag_data, all_mag_sigma = self.generateObservables(prior_parameters, max_err_frac, min_err_frac=min_err_frac)
+        all_mag_data, all_mag_sigma = self.generateObservables(prior_parameters)
         all_truths = self.createTruthDicts(prior_parameters)
 
         for g in range(num_sims):
@@ -257,22 +261,4 @@ class SimulatedPhotometry(PhotometryBase):
             new_galaxy.truth = all_truths[g]
             new_galaxy.magnitude_limit = self.config.magnitude_limit
             new_galaxy.ref_mag_hi = self.config.ref_mag_hi
-            self.all_galaxies.append(new_galaxy)
-
-    def simulateGalaxies(self, redshifts, scales, templates, err_frac):
-        for g in range(len(redshifts)):
-            num_components = len(redshifts[g])
-            obs_mag, mag_err, fracs = self.generateObservables(
-                                        num_components, redshifts[g], scales[g],
-                                        templates[g], err_frac)
-            truth = {}
-            truth['num_components'] = num_components
-            for c in range(num_components):
-                truth[c] = {'redshift': redshifts[g][c],
-                            'scale': scales[g][c],
-                            'fraction': fracs[c],
-                            'template': templates[g][c]}
-            new_galaxy = Galaxy(obs_mag, mag_err, self.config,
-                                self.zero_point_frac, g)
-            new_galaxy.truth = truth
             self.all_galaxies.append(new_galaxy)
