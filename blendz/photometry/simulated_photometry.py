@@ -92,6 +92,9 @@ class SimulatedPhotometry(PhotometryBase):
                                           for g in self.all_galaxies]))[0]
         self.all_galaxies = [g for i, g in enumerate(self.all_galaxies)
                              if i in in_selection]
+        #Go back through and set the galaxy indices to the correct value
+        for i, gal in enumerate(self.all_galaxies):
+            gal.index = i
 
     def drawParametersFromPrior(self, num_components, num_sims, burn_len=10000, num_walkers=100, num_thin=50):
         '''
