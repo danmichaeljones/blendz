@@ -436,7 +436,7 @@ class Photoz(object):
         cached_likelihood = self._cacheTruthLikelihood()
         self.model.calibrate(self.photometry, cached_likelihood, **kwargs)
 
-    def samples(self, num_components, galaxy=None):
+    def chain(self, num_components, galaxy=None):
         """Return the (unweighted) posterior samples.
 
         Args:
