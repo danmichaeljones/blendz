@@ -12,6 +12,7 @@ from math import ceil
 from multiprocessing import cpu_count
 import itertools as itr
 import numpy as np
+from scipy.integrate import simps
 from matplotlib import pyplot as plt
 import nestle
 import emcee
@@ -113,6 +114,8 @@ class Photoz(object):
             self.tmp_ind_to_type_ind = self.responses.templates.tmp_ind_to_type_ind
             self.possible_types = self.responses.templates.possible_types
             self.num_types = len(self.possible_types)
+
+            self.max_ref_mag_hi = np.max([g.ref_mag_hi for g in self.photometry])
 
             #Default to assuming single component, present in all measurements
             self.model._setMeasurementComponentMapping(None, 1)
@@ -226,7 +229,7 @@ class Photoz(object):
                 #logaddexp contribution from this template to marginalise
                 lnProb = np.logaddexp(lnProb, tmp)
 
-            return lnProb
+            return lnProb - self.prior_norm
 
 
     def _priorTransform(self, params):
@@ -286,6 +289,81 @@ class Photoz(object):
                                                                       self.num_components_sampling,
                                                                       info['it']))
             self.pbar.refresh()
+
+    def normalise_prior_setup(self, galind, num_components, magnitude_grid_len=25,
+                              redshift_grid_len=10):
+        # Set up 1D grids
+        self.magnitude_grid_len = magnitude_grid_len
+        self.redshift_grid_len = redshift_grid_len
+        self.redshift_grid = np.linspace(self.config.z_lo, self.config.z_hi,
+                                         self.redshift_grid_len)
+        ref_mag_hi = self.photometry[galind].ref_mag_hi
+        self.magnitude_grid = np.linspace(self.config.ref_mag_lo, ref_mag_hi,
+                                          self.magnitude_grid_len)
+
+        # Create 3D grid for single-component prior - redshift x magnitude x template
+        prior_grid_type = np.zeros((self.redshift_grid_len, self.magnitude_grid_len, self.num_types))
+        for i, z in enumerate(self.redshift_grid):
+            for j, m in enumerate(self.magnitude_grid):
+                prior_grid_type[i, j, :] = np.exp(self.model.lnPrior(z, m))
+
+        self.prior_grid_tmp = np.zeros((self.redshift_grid_len, self.magnitude_grid_len, self.num_templates))
+        for tmp in range(self.num_templates):
+            t = self.tmp_ind_to_type_ind[tmp]
+            self.prior_grid_tmp[:, :, tmp] = prior_grid_type[:, :, t]
+
+    def normalise_prior(self, galind, num_components):
+        # This could/should be replaced with code to cache prior grid
+        self.normalise_prior_setup(galind, num_components)
+
+        # Create N-D grid of 1 + xi([za, zb...])
+        xi_grid = np.zeros(tuple(self.redshift_grid_len for
+                            i in range(num_components)))
+        for inds in itr.product(*itr.repeat(range(self.redshift_grid_len), num_components)):
+            try:
+                xi_grid[inds] = 1. + self.model.correlationFunction(
+                                    self.redshift_grid[np.array(inds)])
+            except ZeroDivisionError:
+                xi_grid[inds] = 1.
+
+        # Create N-D grid of S([ma, mb...])
+        select_grid = np.zeros(tuple(self.magnitude_grid_len for
+                            i in range(num_components)))
+        for inds in itr.product(*itr.repeat(range(self.magnitude_grid_len), num_components)):
+            total_ref_flux = np.sum(10.**(-0.4*self.magnitude_grid[np.array(inds)]))
+            select_grid[inds] = np.exp(self.model.lnSelection(total_ref_flux,
+                                                       self.photometry[galind]))
+        # Combine N 2D prior grids, N-D xi grid and N-D select grid into one 2N-D grid
+        # Axes = za, zb, ... ma, mb ...
+        total_shape = tuple(element for tpl in
+                            tuple((self.redshift_grid_len, self.magnitude_grid_len) for i in range(num_components))
+                            for element in tpl)
+        self.total_prior_grid = np.zeros(total_shape)
+
+        for zinds in itr.product(*itr.repeat(range(self.redshift_grid_len), num_components)):
+            for minds in itr.product(*itr.repeat(range(self.magnitude_grid_len), num_components)):
+
+                okayz = (self.config.sort_redshifts and tuple(sorted(zinds))==zinds)
+                okaym = (not self.config.sort_redshifts) and tuple(sorted(minds))==minds
+                if okayz or okaym:
+                    prior_prod = np.ones(self.num_templates)
+                    for cmp in range(num_components):
+                        prior_prod *= self.prior_grid_tmp[zinds[cmp], minds[cmp], :]
+                    prior_prod = np.sum(prior_prod)
+
+                    inds = tuple(element for tpl in
+                                    tuple((zinds[i], minds[i]) for i in range(num_components))
+                                    for element in tpl)
+
+                    self.total_prior_grid[inds] = prior_prod * select_grid[minds] * xi_grid[zinds]
+                else:
+                    self.total_prior_grid[inds] = 0.
+
+        self.prior_norm = simps(simps(self.total_prior_grid, x=self.magnitude_grid), x=self.redshift_grid)
+        for cmp in range(num_components-1):
+            self.prior_norm  = simps(simps(self.prior_norm , x=self.magnitude_grid), x=self.redshift_grid)
+        self.prior_norm = np.log(self.prior_norm)
+
 
     def sample(self, num_components, galaxy=None, nresample=1000, seed=False,
                measurement_component_mapping=None, npoints=150, print_interval=10,
@@ -380,6 +458,8 @@ class Photoz(object):
 
                     num_param = 2 * nb
                     self.model._setMeasurementComponentMapping(measurement_component_mapping, nb)
+
+                    self.normalise_prior(gal.index, nb)
 
                     if use_pymultinest:
                         if not os.path.exists('chains'):
