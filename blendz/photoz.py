@@ -45,10 +45,10 @@ class Photoz(object):
             #Warn user is config and either/or responses/photometry given that config ignored
             if ((model is not None and config is not None) or
                     (photometry is not None and config is not None)):
-                warnings.warn("""A configuration object was provided to Photoz object
-                                as well as a Model/Photometry object, though these
-                                should be mutually exclusive. The configuration
-                                provided will be ignored.""")
+                warnings.warn('A configuration object was provided to Photoz object '
+                              + 'as well as a Model/Photometry object, though these '
+                              + 'should be mutually exclusive. The configuration '
+                              + 'provided will be ignored.')
             #Responses and photometry given, merge their configs
             if (model is not None) and (photometry is not None):
                 self.config = Configuration(**kwargs)

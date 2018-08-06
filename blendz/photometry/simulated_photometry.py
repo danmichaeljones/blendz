@@ -25,10 +25,10 @@ class SimulatedPhotometry(PhotometryBase):
             self.responses = self.model.responses
 
             if config is not None:
-                warnings.warn("""A configuration object was provided to
-                                SimulatedPhotometry as well as a Responses
-                                object, though these should be mutually exclusive.
-                                The configuration provided will be ignored.""")
+                warnings.warn('A configuration object was provided to '
+                              + 'SimulatedPhotometry as well as a Responses '
+                              + 'object, though these should be mutually exclusive. '
+                              + 'The configuration provided will be ignored.')
         else:
             #Config given, take default+kwargs+given config
             #which is loaded in in PhotometryBase

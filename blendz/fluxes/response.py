@@ -12,10 +12,10 @@ class Responses(object):
         #Warn user is config and either/or templates given that config ignored
         if ((templates is not None and config is not None) or
                 (filters is not None and config is not None)):
-            warnings.warn("""A configuration object was provided to Responses
-                            as well as a Template/Filter object, though these
-                            should be mutually exclusive. The configuration
-                            provided will be ignored.""")
+            warnings.warn('A configuration object was provided to Responses '
+                          + 'as well as a Template/Filter object, though these '
+                          + 'should be mutually exclusive. The configuration '
+                          + 'provided will be ignored.')
         #Both templates and filters given, merge with default+kwargs
         if (templates is not None) and (filters is not None):
             self.config = Configuration(**kwargs)

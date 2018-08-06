@@ -15,10 +15,10 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
     def __init__(self, responses=None, config=None, **kwargs):
         #Warn user is config and responses given that config ignored
         if ((responses is not None) and (config is not None)):
-            warnings.warn("""A configuration was provided to Model object
-                            in addition to the Responses, though these
-                            should be mutually exclusive. The configuration
-                            provided will be ignored.""")
+            warnings.warn('A configuration was provided to Model object '
+                          + 'in addition to the Responses, though these '
+                          + 'should be mutually exclusive. The configuration '
+                          + 'provided will be ignored.')
         #If responses given, use that
         if responses is not None:
             self.config = Configuration(**kwargs)

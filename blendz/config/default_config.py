@@ -214,7 +214,8 @@ class DefaultConfiguration(object):
         try:
             self.magnitude_limit = self.maybeGet('Data', 'magnitude_limit', float)
             if self.magnitude_limit_col is not None:
-                warnings.warn('Both magnitude_limit and magnitude_limit_col have been set, so magnitude_limit will be ignored.')
+                warnings.warn('Both magnitude_limit and magnitude_limit_col '
+                              + 'have been set, so magnitude_limit will be ignored.')
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             self.magnitude_limit = None
 
