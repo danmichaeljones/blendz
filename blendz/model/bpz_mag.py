@@ -2,7 +2,8 @@ from builtins import *
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.optimize import minimize
-from itertools import repeat
+from scipy.special import logsumexp
+from itertools import repeat, combinations
 from blendz.model import ModelBase
 
 class BPZ_Mag(ModelBase):
@@ -145,9 +146,8 @@ class BPZ_Mag(ModelBase):
             three = (delta_r**2) / (self.config.r0**2.)
             return one * ( (two**power) - (three**power) )
         else:
-            #Could define this recursively by calling with a
-            #len 2 slice of redshifts - assuming bispectrum and above = 0
-            raise NotImplementedError('No N>2 yet...')
+            # Assume any xi^N, N>2 is zero, call two-point function recursively and sum
+            return logsumexp([self.correlationFunction(np.asarray(cmb)) for cmb in combinations(redshifts, 2)])
 
     def lnMagnitudePrior(self, magnitude):
         return (self.prior_params_dict['phi'] * magnitude) * np.log(10.)
