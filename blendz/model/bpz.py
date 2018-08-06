@@ -6,10 +6,10 @@ from scipy.special import logsumexp
 from itertools import repeat, combinations
 from blendz.model import ModelBase
 
-class BPZ_Mag(ModelBase):
+class BPZ(ModelBase):
     #def __init__(self, mag_grid_len=100, max_ref_mag_hi=None, **kwargs):
     def __init__(self, mag_grid_len=100, **kwargs):
-        super(BPZ_Mag, self).__init__(**kwargs)
+        super(BPZ, self).__init__(**kwargs)
         self.mag_grid_len = mag_grid_len
         self.possible_types = self.responses.templates.possible_types
 
