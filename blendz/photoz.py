@@ -74,9 +74,7 @@ class Photoz(object):
                 if self.config.model_type == 'Histogram':
                     self.model = blendz.model.Histogram(config=self.config)
                 elif self.config.model_type == 'BPZ':
-                    #BPZ wants the maximum value of the ref_mag_hi from photometry
-                    max_ref_mag_hi = np.max([g.ref_mag_hi for g in self.photometry])
-                    self.model = blendz.model.BPZ(config=self.config, max_ref_mag_hi=max_ref_mag_hi)
+                    self.model = blendz.model.BPZ(config=self.config)
                 else:
                     raise ValueError('Configuration option model_type must be '
                                      + 'either Histogram or BPZ. If you want to '
@@ -96,9 +94,7 @@ class Photoz(object):
                 if self.config.model_type == 'Histogram':
                     self.model = blendz.model.Histogram(config=self.config)
                 elif self.config.model_type == 'BPZ':
-                    #BPZ wants the maximum value of the ref_mag_hi from photometry
-                    max_ref_mag_hi = np.max([g.ref_mag_hi for g in self.photometry])
-                    self.model = blendz.model.BPZ(config=self.config, max_ref_mag_hi=max_ref_mag_hi)
+                    self.model = blendz.model.BPZ(config=self.config)
                 else:
                     raise ValueError('Configuration option model_type must be '
                                      + 'either Histogram or BPZ. If you want to '
@@ -107,6 +103,10 @@ class Photoz(object):
                                      + 'using the model=... keyword argument.')
                 self.responses = self.model.responses
 
+            # Get max_ref_mag_hi from photometry, which already deals with sigma vs fixed
+            self.max_ref_mag_hi = np.max([g.ref_mag_hi for g in self.photometry])
+            self.model.max_ref_mag_hi = self.max_ref_mag_hi
+
             self.num_templates = self.responses.templates.num_templates
             self.num_measurements = self.responses.filters.num_filters
             self.num_galaxies = self.photometry.num_galaxies
@@ -114,8 +114,6 @@ class Photoz(object):
             self.tmp_ind_to_type_ind = self.responses.templates.tmp_ind_to_type_ind
             self.possible_types = self.responses.templates.possible_types
             self.num_types = len(self.possible_types)
-
-            self.max_ref_mag_hi = np.max([g.ref_mag_hi for g in self.photometry])
 
             #Default to assuming single component, present in all measurements
             self.model._setMeasurementComponentMapping(None, 1)

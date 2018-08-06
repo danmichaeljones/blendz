@@ -6,16 +6,45 @@ from itertools import repeat
 from blendz.model import ModelBase
 
 class BPZ_Mag(ModelBase):
-    def __init__(self, mag_grid_len=100, max_ref_mag_hi=None, **kwargs):
+    #def __init__(self, mag_grid_len=100, max_ref_mag_hi=None, **kwargs):
+    def __init__(self, mag_grid_len=100, **kwargs):
         super(BPZ_Mag, self).__init__(**kwargs)
         self.mag_grid_len = mag_grid_len
         self.possible_types = self.responses.templates.possible_types
-        self.max_ref_mag_hi = max_ref_mag_hi
 
-        if (self.prior_params is not np.nan) and (self.max_ref_mag_hi is not None):
-            self._loadParameterDict()
-            self._calculateRedshiftPriorNorm()
+    @property #getter, no setter so read-only
+    def prior_params_dict(self):
+        try:
+            # Return the precalculated value
+            return self._prior_params_dict
+        except AttributeError:
+            # First time, precalculate and return if parameters are set
+            if (self.prior_params is not np.nan):
+                self._loadParameterDict()
+                return self._prior_params_dict
+            else:
+                # Complain if they're not
+                raise ValueError('Trying to use prior without setting prior parameters. '
+                                 + 'Either set in config file or run calibration.')
 
+    @property #getter, no setter so read-only
+    def redshift_prior_norm(self):
+        try:
+            # Return the precalculated value
+            return self._redshift_prior_norm
+        except AttributeError:
+            # First time, precalculate and return if max_ref_mag_hi is set
+            if self.max_ref_mag_hi is not None:
+                self._calculateRedshiftPriorNorm()
+                return self._redshift_prior_norm
+            else:
+                # Complain if it's not
+                raise ValueError('Trying to use prior when max_ref_mag_hi is '
+                                 + 'not known. If you are using ref_mag_hi_sigma, '
+                                 + 'the prior can only be called when set '
+                                 + 'as the model inside a Photoz() object. If you '
+                                 + 'are using ref_mag_hi, you must not set ref_mag_hi_sigma '
+                                 + 'in the config file as it will be preferred.')
     def _loadParameterDict(self):
         nt = len(self.possible_types)
 
@@ -30,19 +59,19 @@ class BPZ_Mag(ModelBase):
         kmt = {t: self.prior_params[i + 4*nt - 2] for i, t in enumerate(self.possible_types)}
         phi = self.prior_params[-1]
 
-        self.prior_params_dict = {
+        self._prior_params_dict = {
             'k_t': kt, 'f_t': ft, 'alpha_t': alpt, 'z_0t': z0t, 'k_mt': kmt, 'phi':phi
         }
 
     def _calculateRedshiftPriorNorm(self):
-        self.redshift_prior_norm = {}
+        self._redshift_prior_norm = {}
         mag_range = np.linspace(self.config.ref_mag_lo, self.max_ref_mag_hi, self.mag_grid_len)
         for T in self.possible_types:
             norms = np.zeros(self.mag_grid_len)
             for i, mag in enumerate(mag_range):
                 zi = np.exp(np.array([self.lnRedshiftPrior(zz, T, mag, norm=False) for zz in self.responses.zGrid]))
                 norms[i] = np.log(1./np.trapz(zi[np.isfinite(zi)], x=self.responses.zGrid[np.isfinite(zi)]))
-            self.redshift_prior_norm[T] = interp1d(mag_range, norms)
+            self._redshift_prior_norm[T] = interp1d(mag_range, norms)
 
     def _calculateMagnitudePriorNorm(self, photometry):
         #Integrates over P(m) * S(m) - the selection depends on galaxy

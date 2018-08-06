@@ -35,6 +35,20 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
         self.prior_params = self.config.prior_params
         self.num_templates = self.responses.templates.num_templates
 
+        #If ref_mag_hi_sigma is not set, use ref_mag_hi instead, but prefer sigma
+        if self.config.ref_mag_hi_sigma is None:
+            if self.config.ref_mag_hi is not None:
+                # Use fixed ref_mag_hi
+                self.max_ref_mag_hi = self.config.ref_mag_hi
+            else:
+                # None available, so raise exception
+                raise ValueError('One of ref_mag_hi or ref_mag_hi_sigma must be '
+                                 + 'set in config to use the model.')
+        else:
+            # Using ref_mag_hi_sigma needs photometry, so set to None and
+            # let Photoz() deal with setting it once model+photometry available
+            self.max_ref_mag_hi = None
+
     def _setMeasurementComponentMapping(self, specification, num_components):
         '''
         Construct the measurement-component mapping matrix from the specification.
