@@ -5,9 +5,9 @@ from scipy.optimize import minimize
 from itertools import repeat
 from blendz.model import ModelBase
 
-class BPZ(ModelBase):
+class BPZ_Fixed(ModelBase):
     def __init__(self, mag_grid_len=100, max_ref_mag_hi=None, **kwargs):
-        super(BPZ, self).__init__(**kwargs)
+        super(BPZ_Fixed, self).__init__(**kwargs)
         self.mag_grid_len = mag_grid_len
         self.possible_types = self.responses.templates.possible_types
         self.max_ref_mag_hi = max_ref_mag_hi
