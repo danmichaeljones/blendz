@@ -28,8 +28,12 @@ class Photometry(PhotometryBase):
             if self.config.spec_z_col is not None:
                 self.all_galaxies[g].truth['num_components'] = len(self.config.spec_z_col)
                 for c in range(len(self.config.spec_z_col)):
-                    self.all_galaxies[g].truth[c] = {}
-                    self.all_galaxies[g].truth[c]['redshift'] = self.photo_data[g, self.config.spec_z_col[c]]
+                    cmp_redshift = self.photo_data[g, self.config.spec_z_col[c]]
+                    self.all_galaxies[g].truth[c] = {'redshift': cmp_redshift}
+                    if not (self.config.z_lo <= cmp_redshift <= self.config.z_hi):
+                        warn_str = 'Galaxy {} has a spectroscopic redshift of {} in component {}. '.format(g, cmp_redshift, c) \
+                                 + 'This is outside of the prior range ({} -> {}).'.format(self.config.z_lo, self.config.z_hi)
+                        warnings.warn(warn_str)
 
             if self.config.magnitude_limit_col is not None:
                 self.all_galaxies[g].magnitude_limit = self.photo_data[g, self.config.magnitude_limit_col]
