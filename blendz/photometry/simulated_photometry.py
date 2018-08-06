@@ -191,7 +191,7 @@ class SimulatedPhotometry(PhotometryBase):
                 zc = params[g, c]
                 tc = int(params[g, num_components + c])
                 mc = params[g, (2*num_components) + c]
-                resp_c = self.responses(tc, None, zc)
+                resp_c = self.responses.interp(zc)[tc, :]
                 norm = (10.**(-0.4 * mc)) / resp_c[self.config.ref_band]
                 true_flux[g, :] += resp_c * norm * self.model.measurement_component_mapping[c, :]
 
