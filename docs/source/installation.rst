@@ -78,7 +78,7 @@ and on macOS using `MacPorts <https://www.macports.org/>`_ by
     sudo port install openmpi
 
 
-Common `Multinest` errors
+Common errors
 --------------------------
 
 Could not load Multinest library
@@ -134,4 +134,4 @@ seems to be problem related to Anaconda's packaging of the MKL library. Forcing 
 
     conda install -f numpy
 
-tends to fix it.
+can sometimes fix it. For more information, see `this discussion on GitHub. <https://github.com/BVLC/caffe/issues/3884/>`_
