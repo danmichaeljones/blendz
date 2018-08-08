@@ -74,6 +74,26 @@ Configuration option                    Description
 
 
 
+**HST**
+
+As packaged in BPZ (`Benitez (2000) <http://adsabs.harvard.edu/abs/2000ApJ...536..571B>`_ )
+
+======================               =====================
+Configuration option                    Description
+======================               =====================
+``hst/F110W``                                 F110W
+
+``hst/F160W``                                 F160W
+
+``hst/F435W``                                  F435W
+
+``hst/F606W``                                  F606W
+
+``hst/F775W``                                   F775W
+
+``hst/F850LP``                                   F850LP
+======================               =====================
+
 
 
 
