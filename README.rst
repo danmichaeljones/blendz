@@ -54,6 +54,7 @@ or keyword arguments
 
 to set the configuration.
 
+You can `read the full documentation <http://blendz.readthedocs.io>`_.
 
 Citation
 --------
@@ -65,7 +66,3 @@ If you use this code in your research, please attribute `this paper <https://arx
   @article{blendz,
          Author = ... ,
        }
-
-
-
-You can `read the full documentation <http://blendz.readthedocs.io>`_.
