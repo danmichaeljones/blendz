@@ -70,17 +70,7 @@ class Photoz(object):
                 self.config.mergeFromOther(photometry.config)
                 self.photometry = photometry
 
-                if self.config.model_type == 'Histogram':
-                    self.model = blendz.model.Histogram(config=self.config)
-                elif self.config.model_type == 'BPZ':
-                    self.model = blendz.model.BPZ(config=self.config)
-                else:
-                    raise ValueError('Configuration option model_type must be '
-                                     + 'either Histogram or BPZ. If you want to '
-                                     + 'use a custom prior, instantiate your '
-                                     + 'custom model class and pass to Photoz '
-                                     + 'using the model=... keyword argument.')
-
+                self.model = blendz.model.BPZ(config=self.config)
                 self.responses = self.model.responses
             #Neither given, load both from provided (or default, if None) config
             else:
@@ -90,16 +80,7 @@ class Photoz(object):
 
                 self.photometry = Photometry(config=self.config)
 
-                if self.config.model_type == 'Histogram':
-                    self.model = blendz.model.Histogram(config=self.config)
-                elif self.config.model_type == 'BPZ':
-                    self.model = blendz.model.BPZ(config=self.config)
-                else:
-                    raise ValueError('Configuration option model_type must be '
-                                     + 'either Histogram or BPZ. If you want to '
-                                     + 'use a custom prior, instantiate your '
-                                     + 'custom model class and pass to Photoz '
-                                     + 'using the model=... keyword argument.')
+                self.model = blendz.model.BPZ(config=self.config)
                 self.responses = self.model.responses
 
             # Get max_ref_mag_hi from photometry, which already deals with sigma vs fixed
@@ -587,7 +568,6 @@ class Photoz(object):
         """Apply a function to the 1D marginal distribution samples of each parameter.
 
         Args:
-
             func (function):
                 The function to apply to the marginal distribution samples.
                 It should accept an array of the samples as its first argument,
