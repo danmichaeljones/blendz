@@ -11,7 +11,6 @@ class BPZ(ModelBase):
     def __init__(self, mag_grid_len=100, **kwargs):
         super(BPZ, self).__init__(**kwargs)
         self.mag_grid_len = mag_grid_len
-        self.possible_types = self.responses.templates.possible_types
 
     @property #getter, no setter so read-only
     def prior_params_dict(self):

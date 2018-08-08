@@ -34,6 +34,7 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
 
         self.prior_params = self.config.prior_params
         self.num_templates = self.responses.templates.num_templates
+        self.possible_types = self.responses.templates.possible_types
 
         #If ref_mag_hi_sigma is not set, use ref_mag_hi instead, but prefer sigma
         if self.config.ref_mag_hi_sigma is None:
