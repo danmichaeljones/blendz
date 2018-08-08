@@ -6,7 +6,7 @@ setup(name = 'blendz',
       author = 'Daniel Michael Jones',
       author_email = 'd.jones15@imperial.ac.uk',
       license = 'MIT',
-      url = 'http://blendz.readthedocs.io'
+      url = 'http://blendz.readthedocs.io',
       packages = find_packages(),
       install_requires=[
         'numpy',
