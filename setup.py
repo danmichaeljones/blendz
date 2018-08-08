@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
 
 setup(name = 'blendz',
-      version = '0.0',
-      description = 'None',
-      author = 'None',
-      author_email = 'danmichaeljones@me.com',
-      license = 'None',
+      version = '1.0.0',
+      description = 'Bayesian photometric redshifts of blended sources.',
+      author = 'Daniel Michael Jones',
+      author_email = 'd.jones15@imperial.ac.uk',
+      license = 'MIT',
+      url = 'http://blendz.readthedocs.io'
       packages = find_packages(),
       install_requires=[
         'numpy',
