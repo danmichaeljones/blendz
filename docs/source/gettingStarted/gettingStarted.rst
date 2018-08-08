@@ -2,62 +2,13 @@
 Getting started
 ===============
 
-.. code:: python
+For most normal uses of ``blendz``, the only class you should need is ``blendz.Photoz``.
+This is designed to be the only user-facing class.
 
-    import blendz
+The order of things to do to use ``blendz`` is as follows:
 
-The simplest way to use ``blendz`` is to create a ``Photoz`` object.
+- :ref:`set-config` - done either using configuration files or keyword arguments.
 
-.. code:: python
+- :ref:`calibrate` - The prior parameters can be set manually in the configuration, or using the prior calibration procedure. The output of the default calibration procedure is another configuration file that can be read in, containing the prior parameters.
 
-    from os.path import join
-
-    pz = blendz.Photoz(data_path=join(blendz.RESOURCE_PATH, 'data/bpz/UDFtest.cat'),
-                       mag_cols = [1, 3, 5, 7, 9, 11],
-                       sigma_cols = [2, 4, 6, 8, 10, 12],
-                       ref_band = 2, ref_mag_lo = 20, ref_mag_hi = 32,
-                       zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
-                       template_set='BPZ6',
-                       filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', \
-                                'HST_ACS_WFC_F775W', 'HST_ACS_WFC_F850LP', \
-                                'nic3_f110w', 'nic3_f160w'])
-
-Sample from the single component posterior:
-
-.. code:: python
-
-    pz.sample(1, resample=10000)
-
-
-.. parsed-literal::
-
-    [Gal: 4/4, Comp: 1/1, Itr: 1800] : 100%|██████████| 4/4 [00:38<00:00,  9.59s/it]
-
-
-Plot the result:
-
-.. code:: python
-
-    %matplotlib inline
-    from matplotlib import pyplot as plt
-
-    for g in range(pz.num_galaxies):
-        plt.figure(figsize=(14, 5))
-        plt.hist(pz.reweighted_samples[g][1][:, 0], bins=50)
-        plt.axvline(pz.photometry[g].spec_redshift, color='k')
-
-
-
-.. image:: output_8_0.png
-
-
-
-.. image:: output_8_1.png
-
-
-
-.. image:: output_8_2.png
-
-
-
-.. image:: output_8_3.png
+- :ref:`photoz` - After running the nested sampling for each number of components under consideration, the posterior samples and blend probabilities are available for analysis.

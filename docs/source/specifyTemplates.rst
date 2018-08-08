@@ -1,3 +1,5 @@
+.. _templates:
+
 Specifying templates
 =====================
 
@@ -44,7 +46,7 @@ is a configuration file containing the following information:
 
 - The path to the file specifying the template *relative to the location of the template set file*.
 
-- The galaxy type - this should be either ``early``, ``late`` or ``other`` (unless you define your own priors).
+- The galaxy type a string to group templates together in the prior.
 
 An example layout of a template set is given below:
 
@@ -64,7 +66,7 @@ full filename, including the file extension.
 
 Each template refered to in the template set file is then specified by a plaintext
 file of two columns, wavelength (Angstroms) in the first, and spectral flux
-density (in **UNITS**) in the second, separated by whitespace, e.g.
+density in the second, separated by whitespace, e.g.
 
 .. code:: ini
 

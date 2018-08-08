@@ -1,3 +1,5 @@
+.. _set-config:
+
 Setting the configuration
 =========================
 
@@ -29,17 +31,14 @@ keyword arguments:
 
 .. code:: python
 
-    from os.path import join
+.. code:: python
 
-    data = blendz.Photoz(data_path=join(blendz.RESOURCE_PATH, 'data/bpz/UDFzspec.cat'),
-                                        mag_cols = [22, 24, 26, 28, 30, 31],
-                                        sigma_cols = [23, 25, 27, 29, 31, 33],
-                                        ref_band = 2,
-                                        zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
-                                        template_set='BPZ8',
-                                        filters=['HST_ACS_WFC_F435W', 'HST_ACS_WFC_F606W', \
-                                                 'HST_ACS_WFC_F775W', 'HST_ACS_WFC_F850LP', \
-                                                 'nic3_f110w', 'nic3_f160w'])
+    pz = blendz.Photoz(data_path='path/to/data.txt',
+                       mag_cols = [1, 2, 3, 4, 5],
+                       sigma_cols = [6, 7, 8, 9, 10],
+                       ref_band = 2,
+                       filters=['sdss/u', 'sdss/g',
+                                'sdss/r', 'sdss/i', 'sdss/z'])
 
 
 
@@ -71,7 +70,7 @@ separated by either a ``=`` or ``:`` separator. Whitespace around the separator 
 
 A few notes about their format:
 
-- Configuration options *must* be separated into two (case-sensitive) sections, ``[Run]`` and ``[Data]``. An explanation of all possible configuration options, split by these sections are on **PAGE**.
+- Configuration options *must* be separated into two (case-sensitive) sections, ``[Run]`` and ``[Data]``. An explanation of all possible configuration options, split by these sections can be found on the :ref:`config-options` page.
 
 - Comments can be added to configuration files using ``#``
 
@@ -86,11 +85,11 @@ An example of a configuration file (leaving some settings as default) is given b
   [Data]
 
   data_path = path/to/datafile.txt
-  mag_cols = 1, 3, 5, 7, 9, 11
-  sigma_cols = 2, 4, 6, 8, 10, 12
+  mag_cols = 1, 3, 5, 7, 9
+  sigma_cols = 2, 4, 6, 8, 10
   ref_band = 2
-  filters = HST_ACS_WFC_F435W, HST_ACS_WFC_F606W, HST_ACS_WFC_F775W, HST_ACS_WFC_F850LP, nic3_f110w, nic3_f160w
-  zero_point_errors = 0.01, 0.01, 0.01, 0.01, 0.01, 0.01
+  filters = sdss/u, sdss/g, sdss/r, sdss/i, sdss/z
+  zero_point_errors = 0.01, 0.01, 0.01, 0.01, 0.01
 
 
   [Run]

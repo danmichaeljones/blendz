@@ -1,9 +1,8 @@
 blendz API documentation
 ========================
 
-.. toctree::
-   :maxdepth: 2
+The ``blendz.Photoz`` class is designed to be the only user-facing class and
+has methods for each step of the photo-z analysis.
 
-   api/photoz
-   api/config
-   api/fluxes
+.. autoclass:: blendz.Photoz
+   :members:

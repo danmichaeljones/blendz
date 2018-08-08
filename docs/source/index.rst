@@ -25,7 +25,13 @@ blended sources with an arbitrary number of intrinsic components. Using nested s
 and magnitude of each component, plus the relative model probability to identify whether
 a source is blended.
 
-``blendz`` is easy to use, with either simple configuration files
+``blendz`` is easy to install using  `pip <http://www.pip-installer.org/>`_
+
+.. code:: bash
+
+    pip install blendz
+
+and can be run using either simple configuration files
 
 .. code:: python
 
@@ -71,7 +77,9 @@ Documentation Contents
 
    installation
    gettingStarted/gettingStarted
-   settingConfig/settingConfig
+   settingConfig
+   calibrate
+   photoz
    specifyFilters
    specifyTemplates
    allOptions

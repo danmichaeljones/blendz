@@ -12,6 +12,10 @@ specified in the ``filters`` configuration option using the following names:
 
 **SDSS**
 
+Described in `Stoughton et al. (2002) <http://adsabs.harvard.edu/abs/2002AJ....123..485S>`_
+
+
+
 ======================               =====================
 Configuration option                    Description
 ======================               =====================
@@ -29,109 +33,46 @@ Configuration option                    Description
 
 
 
-
-**Subaru**
-
-======================               ====================================
-Configuration option                    Description
-======================               ====================================
-``subaru/B``                          Subaru Suprime-Cam B filter
-
-``subaru/g``                            Subaru Suprime-Cam g' filter
-
-``subaru/I``                            Subaru Suprime-Cam Ic filter
-
-``subaru/R``                            Subaru Suprime-Cam Rc filter
-
-``subaru/rp``                           Subaru Suprime-Cam r' filter
-
-``subaru/V``                            Subaru Suprime-Cam V filter
-
-``subaru/z``                            Subaru Suprime-Cam z' filter
-======================               ====================================
-
-
-
-
-
-
 **Viking**
 
+Described in `Edge et al. (2013) <http://adsabs.harvard.edu/abs/2013Msngr.154...32E>`_
+
+
 ======================               =====================
 Configuration option                    Description
 ======================               =====================
-``viking/h``
+``viking/h``                                H
 
-``viking/j``
+``viking/j``                                J
 
-``viking/k``
+``viking/k``                              K
 
-``viking/y``
+``viking/y``                                Y
 ======================               =====================
 
 
 
-**BPZ-Packaged**
+**LSST**
 
-=================================               =====================
-Configuration option                               Description
-=================================               =====================
-``bpz/rp_Subaru.res``
+Described in `Abell et al.(2009) <http://adsabs.harvard.edu/abs/2009arXiv0912.0201L>`_
 
-``bpz/H_Johnson.res``
+======================               =====================
+Configuration option                    Description
+======================               =====================
+``lsst/u``                                 u
 
-``bpz/V_Johnson.res``
+``lsst/g``                                  g
 
-``bpz/g_SDSS.res``
+``lsst/r``                                  r
 
-``bpz/R_LRIS.res``
+``lsst/i``                                  i
 
-``bpz/u_SDSS.res``
+``lsst/z``                                   z
 
-``bpz/I_LRIS.res``
+``lsst/y``                                   Y
+======================               =====================
 
-``bpz/I_Subaru.res``
 
-``bpz/z_Subaru.res``
-
-``bpz/U1400.res``
-
-``bpz/R_Subaru.res``
-
-``bpz/HST_ACS_WFC_F606W.res``
-
-``bpz/nic3_f110w.res``
-
-``bpz/V_LRIS.res``
-
-``bpz/HST_ACS_WFC_F435W.res``
-
-``bpz/J_Johnson.res``
-
-``bpz/HST_ACS_WFC_F775W.res``
-
-``bpz/U_Johnson.res``
-
-``bpz/nic3_f160w.res``
-
-``bpz/g_Subaru.res``
-
-``bpz/HST_ACS_WFC_F850LP.res``
-
-``bpz/V_Subaru.res``
-
-``bpz/r_SDSS.res``
-
-``bpz/i_SDSS.res``
-
-``bpz/z_SDSS.res``
-
-``bpz/B_Johnson.res``
-
-``bpz/K_Johnson.res``
-
-``bpz/B_Subaru.res``
-=================================               =====================
 
 
 
@@ -180,5 +121,7 @@ you should set the configuration options to:
 .. code:: python
 
   filter_path = "containing_folder/filters"
-  filters = ["instrument_one/filter_one", "instrument_one/filter_two", \
-             "instrument_two/filter_three", "instrument_two/filter_four"]
+  filters = ["instrument_one/filter_one.txt", "instrument_one/filter_two.txt", \
+             "instrument_two/filter_three.txt", "instrument_two/filter_four.txt"]
+
+The default filters only don't need file extensions as they are saved in plaintext files without file extensions.

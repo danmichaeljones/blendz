@@ -1,3 +1,5 @@
+.. _new-prior:
+
 Specifying new priors
 ======================
 
@@ -16,25 +18,24 @@ Your new class should have the following basic layout:
 
   class MyNewModel(ModelBase):
 
+      #Optional:
       def __init__(self, new_prior_params, **kwargs):
           #Run the setup defined in ModelBase
           super(MyNewModel, self).__init__(**kwargs)
           #Do some other setup with your new_prior_parameters
 
-      def lnRedshiftPrior(self, redshift, template_type, component_ref_mag):
-          #Definition of P(z_a | t_a, m_0a)
+      #Mandatory:
+      def lnPrior(self, redshift, magnitude):
+          #Definition of P(z_a, t_a, m_0a) for all t_a
           return 0.
 
-      def lnTemplatePrior(self, template_type, component_ref_mag):
-          #Definition of P(t_a | m_0a)
-          return 0.
-
-      def lnMagnitudePrior(self, magnitude):
-          #Definition of P(m_0a)
-          return 0.
-
+      #Optional:
       def correlationFunction(self, redshifts):
           #Definition of xi({z})
+          return 0.
+
+      #Optional:
+      def calibrate(self, photometry, cached_likelihood, **kwargs):
           return 0.
 
 
@@ -43,18 +44,20 @@ A few things to note:
 
 - The ``__init__`` function is optional but allows you to define additional setup tasks that are done when your model is instantiated. It is important you call the superclass ``__init__`` if you define this.
 
-- While ``__init__`` is optional, you **must** redefine ``lnTemplatePrior``, ``lnRedshiftPrior``, ``correlationFunction`` and ``lnMagnitudePrior``. ``ModelBase`` is an `abstract base class <https://docs.python.org/3/library/abc.html>`_ that will raise a ``TypeError`` if you attempt to instantiate your class without redefining these methods.
+- The ``correlationFunction`` function is also optional. The function ``self.comovingSeparation(z_lo, z_hi)`` defined in ``ModelBase`` may be helpful.
 
-- The ``**kwargs`` get passed by ``ModelBase`` to ``Configuration``, allowing you to edit the settings of your class (and of the flux responses it contains from ``ModelBase``) using keyword arguments.
+- While ``__init__`` is optional, you **must** redefine ``lnPrior``. This function takes a ``float`` for both the redshift and magnitude, and returns a ``numpy.array`` of the natural log of the prior for each template *type* (not each template). The ``self.possible_types`` attribute is a list of the possible types, where each element is a string with the name of that type. These are automatically read from the template set file supplied at runtime.
 
-- The ``template_type`` argument passed to ``lnTemplatePrior`` and ``lnRedshiftPrior`` is a string specifying the template type as defined in the template set file. While the default priors are only defined for ``"early"``, ``"late"`` and ``"other"`` types, you can support any types your templates use - you need to define your priors for at least these three if you use the default templates.
+- The ``**kwargs`` get passed by ``ModelBase`` to ``Configuration``, allowing you to edit the configuration like other ``blendz`` classes using keyword arguments.
 
 - The ``redshift``, ``magnitude`` and ``component_ref_mag`` arguments passed to natural-log prior functions are floats, while the ``redshifts`` argument in ``correlationFunction`` is a 1D ``numpy`` array.
 
-
+- The ``calibrate`` function is also optional. This takes as arguments a ``blendz.photometry.Photometry`` object and a ``numpy.array`` of shape ``(num_galaxies, num_templates)`` filled with the likelihood. This function is called by the ``blendz.Photoz.calibrate(**kwargs)`` function, with any keyword arguments passed to the function here. There is no return value for this function; the default model writes the resulting parameters to a configuration file that can be read by ``blendz.Photoz``.
 
 Using the new model
 --------------------
+
+The new model can simply be instantiated and passed to ``blendz.Photoz`` as a keyword argument.
 
 .. code:: python
 
