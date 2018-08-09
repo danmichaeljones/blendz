@@ -32,13 +32,13 @@ can be loaded when creating the ``Photoz`` instance by
 
 .. code:: python
 
-    pz.sample(load_state_path='photoz_out.pkl')
+    pz = blendz.Photoz(load_state_path='photoz_out.pkl')
 
 Running in parallel
 -------------------
 
-The inference can be run in parallel by saving a script to file (e.g., the code above)
-and running with MPI:
+The inference can be run in parallel by saving a script to file (e.g., the code above
+into a file ``photoz_run.py``) and running with MPI:
 
 .. code:: bash
 
