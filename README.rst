@@ -63,15 +63,15 @@ If you use this code in your research, please attribute `this paper <https://arx
 
 .. code-block:: tex
 
-@article{blendz,
-         author = {{Jones}, D.~M. and {Heavens}, A.~F.},
-         title = "{Bayesian photometric redshifts of blended sources}",
-         journal = {ArXiv e-prints},
-         archivePrefix = "arXiv",
-         eprint = {1808.02846},
-         keywords = {Astrophysics - Cosmology and Nongalactic Astrophysics, Astrophysics - Astrophysics of Galaxies},
-         year = 2018,
-         month = aug,
-         adsurl = {http://adsabs.harvard.edu/abs/2018arXiv180802846J},
-         adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-         }
+  @article{blendz,
+           author = {{Jones}, D.~M. and {Heavens}, A.~F.},
+           title = "{Bayesian photometric redshifts of blended sources}",
+           journal = {ArXiv e-prints},
+           archivePrefix = "arXiv",
+           eprint = {1808.02846},
+           keywords = {Astrophysics - Cosmology and Nongalactic Astrophysics, Astrophysics - Astrophysics of Galaxies},
+           year = 2018,
+           month = aug,
+           adsurl = {http://adsabs.harvard.edu/abs/2018arXiv180802846J},
+           adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+           }
