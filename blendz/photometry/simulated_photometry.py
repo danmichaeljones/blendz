@@ -14,7 +14,7 @@ class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
                 model=None, seed=None, signal_to_noise=10.,
                 num_walkers=100, burn_len=10000,
-                measurement_component_specification=None, magnitude_bounds=None, **kwargs):
+                magnitude_bounds=None, **kwargs):
         super(SimulatedPhotometry, self).__init__(config=config, **kwargs)
 
         if model is not None:
@@ -84,7 +84,6 @@ class SimulatedPhotometry(PhotometryBase):
 
         self.simulateRandomGalaxies(self.num_components, self.num_sims,
                                     max_redshift=self.max_redshift,
-                                    measurement_component_specification=measurement_component_specification,
                                     magnitude_bounds=self.magnitude_bounds)
 
         #Remove simulated galaxies that aren't within the selection
@@ -174,7 +173,8 @@ class SimulatedPhotometry(PhotometryBase):
         is is within the selection criteria
         '''
         ref_band_mag = np.log10(flux_data[self.config.ref_band]) / (-0.4)
-        return ref_band_mag <= self.config.magnitude_limit
+        #return ref_band_mag <= self.config.magnitude_limit
+        return np.all(ref_band_mag <= self.config.magnitude_limit)
 
     def generateObservables(self, params):
         '''
@@ -192,8 +192,11 @@ class SimulatedPhotometry(PhotometryBase):
                 tc = int(params[g, num_components + c])
                 mc = params[g, (2*num_components) + c]
                 resp_c = self.responses.interp(zc)[tc, :]
-                norm = (10.**(-0.4 * mc)) / resp_c[self.config.ref_band]
-                true_flux[g, :] += resp_c * norm * self.model.measurement_component_mapping[c, :]
+                if len(self.config.ref_band)==1:
+                    norm = (10.**(-0.4 * mc)) / resp_c[self.config.ref_band]
+                else:
+                    norm = (10.**(-0.4 * mc)) / resp_c[self.config.ref_band[c]]
+                true_flux[g, :] += resp_c * norm * self.model.mc_map_matrix[c, :]
 
         #Errors
         flux_err = true_flux / self.signal_to_noise #quoted error
@@ -242,7 +245,6 @@ class SimulatedPhotometry(PhotometryBase):
         return all_truths
 
     def simulateRandomGalaxies(self, num_components, num_sims, max_redshift=None,
-                               measurement_component_specification=None,
                                magnitude_bounds=None, burn_len=None, num_walkers=None):
         if max_redshift is None:
             max_redshift = self.max_redshift
@@ -253,7 +255,7 @@ class SimulatedPhotometry(PhotometryBase):
         if num_walkers is None:
             num_walkers = self.num_walkers
 
-        self.model._setMeasurementComponentMapping(measurement_component_specification, num_components)
+        self.model._setMeasurementComponentMapping(num_components)
 
         prior_parameters = self.drawParametersFromPrior(num_components, num_sims, burn_len=burn_len, num_walkers = num_walkers)
         all_mag_data, all_mag_sigma = self.generateObservables(prior_parameters)
