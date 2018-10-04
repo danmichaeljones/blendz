@@ -95,8 +95,10 @@ class Photoz(object):
             self.possible_types = self.responses.templates.possible_types
             self.num_types = len(self.possible_types)
 
-            #Default to assuming single component, present in all measurements
-            self.model._setMeasurementComponentMapping(None, 1)
+            #TODO: Check this
+            #This was defaulted to assume a single component, present in all measurements
+            #not sure why it needs to be set up here though, so comment out for now
+            #self.model._setMeasurementComponentMapping(None, 1)
 
             #Set up empty dictionaries to put results into
             self._samples = {}
@@ -151,7 +153,19 @@ class Photoz(object):
         return chi_sq
 
     def _lnLikelihood_mag(self, total_ref_flux):
-        #chi_sq = -1. * np.sum((self.photometry.current_galaxy.ref_mag_data - total_ref_mag)**2 / self.photometry.current_galaxy.ref_mag_sigma**2)
+        #Depending on the measurement-component mapping, the galaxy ref_flux/sigma
+        #can be an array of length either 1 or num_components.
+        #total_ref_flux should be of the same length
+
+        #TODO: No calls should be made where this isn't the case, so remove the assert
+        tmp_a = len(self.photometry.current_galaxy.ref_flux_data)
+        try:
+            tmp_b = len(total_ref_flux)
+        except TypeError:
+            total_ref_flux = np.array([total_ref_flux])
+            tmp_b = len(total_ref_flux)
+        assert(tmp_a == tmp_b)
+
         chi_sq = -1. * np.sum((self.photometry.current_galaxy.ref_flux_data - total_ref_flux)**2 / self.photometry.current_galaxy.ref_flux_sigma**2)
         return chi_sq
 
@@ -174,7 +188,14 @@ class Photoz(object):
             redshift_correlation = np.log(1. + self.model.correlationFunction(redshifts))
 
             #Get total flux in reference band  = transform to flux & sum
-            total_ref_flux = np.sum(10.**(-0.4 * magnitudes))
+            # total_ref_flux should be either len 1 or len==num_components
+            # This should match the number of reference bands, so check
+            # If 1, add components together (blend). If not, treat seperately
+            if len(self.config.ref_band)==1:
+                total_ref_flux = np.sum(10.**(-0.4 * magnitudes))
+            else:
+                total_ref_flux = 10.**(-0.4 * magnitudes) #Array with len==len(magnitudes)
+
             selection_effect = self.model.lnSelection(total_ref_flux,
                                                       self.photometry.current_galaxy)
 
@@ -190,11 +211,16 @@ class Photoz(object):
                 component_scaling_norm = 0.
                 for nb in range(num_components):
                     T = template_combo[nb]
-                    component_scaling = 10.**(-0.4*magnitudes[nb]) / model_fluxes[T, self.config.ref_band, nb]
-                    blend_flux += model_fluxes[T, :, nb] * component_scaling * self.model.measurement_component_mapping[nb, :]
+                    #TODO: Check this!
+                    if len(self.config.ref_band)==1:
+                        #Only one reference band but it's still an array, so get element
+                        component_scaling = 10.**(-0.4*magnitudes[nb]) / model_fluxes[T, self.config.ref_band[0], nb]
+                    else:
+                        component_scaling = 10.**(-0.4*magnitudes[nb]) / model_fluxes[T, self.config.ref_band[nb], nb]
+                    blend_flux += model_fluxes[T, :, nb] * component_scaling * self.model.mc_map_matrix[nb, :]
                     type_ind = self.tmp_ind_to_type_ind[T]
                     tmp += priors[nb, type_ind]
-                #Remove ref_band from blend_fluxes, as that goes into the magnitude
+                #Remove ref_band from blend_fluxes, as that goes into the ref-mag
                 #likelihood, not the flux likelihood
                 blend_flux = blend_flux[self.config.non_ref_bands]
 
@@ -291,7 +317,6 @@ class Photoz(object):
             self.prior_grid_tmp[:, :, tmp] = prior_grid_type[:, :, t]
 
     def normalise_prior(self, galind, num_components):
-        # This could/should be replaced with code to cache prior grid
         self.normalise_prior_setup(galind, num_components)
 
         # Create N-D grid of 1 + xi([za, zb...])
@@ -308,7 +333,13 @@ class Photoz(object):
         select_grid = np.zeros(tuple(self.magnitude_grid_len for
                             i in range(num_components)))
         for inds in itr.product(*itr.repeat(range(self.magnitude_grid_len), num_components)):
-            total_ref_flux = np.sum(10.**(-0.4*self.magnitude_grid[np.array(inds)]))
+            #Check whether to have single/multiple ref-band fluxes
+            #This will depend on the measurement-component mapping
+            if len(self.config.ref_band)==1:
+                #lnSelection will expect this as an array
+                total_ref_flux = np.array([np.sum(10.**(-0.4*self.magnitude_grid[np.array(inds)]))])
+            else:
+                total_ref_flux = 10.**(-0.4*self.magnitude_grid[np.array(inds)])
             select_grid[inds] = np.exp(self.model.lnSelection(total_ref_flux,
                                                        self.photometry[galind]))
         # Combine N 2D prior grids, N-D xi grid and N-D select grid into one 2N-D grid
@@ -344,7 +375,7 @@ class Photoz(object):
 
 
     def sample(self, num_components, galaxy=None, nresample=1000, seed=False,
-               measurement_component_mapping=None, npoints=150, print_interval=10,
+               mc_map_matrix=None, npoints=150, print_interval=10,
                use_pymultinest=None, save_path=None, save_interval=None):
         """Sample the posterior for a particular number of components.
 
@@ -365,7 +396,7 @@ class Photoz(object):
                 ampling again. If False, do not seed. If True, seed with value
                 derived from galaxy index. If int, seed with specific value.
 
-            measurement_component_mapping (None or list of tuples):
+            mc_map_matrix (None or list of tuples):
                 If None, sample from the fully blended posterior. For a partially
                 blended posterior, this should be a list of tuples (length = number of
                 measurements), where each tuples contains the (zero-based) indices of
@@ -402,10 +433,10 @@ class Photoz(object):
         if isinstance(num_components, int):
             num_components = [num_components]
         else:
-            if measurement_component_mapping is not None:
+            if mc_map_matrix is not None:
                 #TODO: This is a time-saving hack to avoid dealing with multiple specifications
                 #The solution would probably be to rethink the overall design
-                raise ValueError('measurement_component_mapping cannot be set when sampling multiple numbers of components in one call. Do the separate cases separately.')
+                raise ValueError('mc_map_matrix cannot be set when sampling multiple numbers of components in one call. Do the separate cases separately.')
 
         self.num_components_sampling = len(num_components)
         self.num_between_print = float(round(print_interval))
@@ -435,7 +466,7 @@ class Photoz(object):
                         rstate = np.random.RandomState(seed + gal.index)
 
                     num_param = 2 * nb
-                    self.model._setMeasurementComponentMapping(measurement_component_mapping, nb)
+                    self.model._setMeasurementComponentMapping(nb)
 
                     self.normalise_prior(gal.index, nb)
 
@@ -474,7 +505,7 @@ class Photoz(object):
             self.saveState(save_path)
 
     def _cacheTruthLikelihood(self):
-        self.model._setMeasurementComponentMapping(None, 1)
+        self.model._setMeasurementComponentMapping(1)
         #Single interp call -> Shape = (N_template, N_band, N_component)
         fixed_model_fluxes = {}
         fixed_lnLikelihood_flux = np.zeros((self.photometry.num_galaxies,
@@ -482,7 +513,9 @@ class Photoz(object):
         for g in self.photometry:
             fixed_model_fluxes[g.index] = self.responses.interp(np.array([g.truth[0]['redshift']]))
             for T in range(self.responses.templates.num_templates):
-                scaling = 10.**(-0.4*g.ref_mag_data) / fixed_model_fluxes[g.index][T, self.config.ref_band, 0]
+                #For the calibration, we know sources are one component only, so
+                #we can assume that ref_band is only length 1
+                scaling = 10.**(-0.4*g.ref_mag_data) / fixed_model_fluxes[g.index][T, self.config.ref_band[0], 0]
                 fixed_model_fluxes[g.index][T, :, 0] *= scaling
                 #Cache the flux likelihoods
                 non_ref_flux = fixed_model_fluxes[g.index][T, self.config.non_ref_bands, 0]
