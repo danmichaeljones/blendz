@@ -3,8 +3,8 @@ blendz
 
 *Bayesian photometric redshifts of blended sources*
 
-.. image:: https://img.shields.io/badge/astro--ph.CO-arxiv%3A1234.5678-B31B1B.svg?style=flat
-    :target: https://arxiv.org/abs/1234.5678
+.. image:: https://img.shields.io/badge/astro--ph.CO-arxiv%3A1808.02846-B31B1B.svg?style=flat
+    :target: https://arxiv.org/abs/1808.02846
 
 .. image:: https://readthedocs.org/projects/blendz/badge/
     :target: http://blendz.readthedocs.io/en/latest/
@@ -59,10 +59,19 @@ You can `read the full documentation <http://blendz.readthedocs.io>`_.
 Citation
 --------
 
-If you use this code in your research, please attribute `this paper <https://arxiv.org/abs/1234.5678>`_:
+If you use this code in your research, please attribute `this paper <https://arxiv.org/abs/1808.02846>`_:
 
 .. code-block:: tex
 
   @article{blendz,
-         Author = ... ,
-       }
+           author = {{Jones}, D.~M. and {Heavens}, A.~F.},
+           title = "{Bayesian photometric redshifts of blended sources}",
+           journal = {ArXiv e-prints},
+           archivePrefix = "arXiv",
+           eprint = {1808.02846},
+           keywords = {Astrophysics - Cosmology and Nongalactic Astrophysics, Astrophysics - Astrophysics of Galaxies},
+           year = 2018,
+           month = aug,
+           adsurl = {http://adsabs.harvard.edu/abs/2018arXiv180802846J},
+           adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+           }
