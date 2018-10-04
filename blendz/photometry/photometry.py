@@ -47,6 +47,8 @@ class Photometry(PhotometryBase):
                 else:
                     raise ValueError('One of ref_mag_hi or ref_mag_hi_sigma must be set in config to load photometry.')
             else:
-                ref_flux_hi = self.config.ref_mag_hi_sigma * self.all_galaxies[g].ref_flux_sigma
+                # ref_flux_hi is the flux of ref_mag_hi, largest magnitude = smallest flux
+                # if galaxy.ref_flux_sigma is an array, we should take it's minimum value
+                ref_flux_hi = self.config.ref_mag_hi_sigma * np.min(self.all_galaxies[g].ref_flux_sigma)
                 ref_mag_hi = -2.5 * np.log10(ref_flux_hi)
                 self.all_galaxies[g].ref_mag_hi = ref_mag_hi
