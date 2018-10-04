@@ -50,9 +50,13 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
             # let Photoz() deal with setting it once model+photometry available
             self.max_ref_mag_hi = None
 
-    def _setMeasurementComponentMapping(self, specification, num_components):
+    def _setMeasurementComponentMapping(self, num_components):
         '''
         Construct the measurement-component mapping matrix from the specification.
+        The specification is the measurement_component_mapping config option,
+        and is a list of length num_measurements*num_components, organised
+        [C1B1, C1B2... C1Bn, C2B1...] where CnBm is a bool indicating whether
+        component Cn is present in band (measurement) Bm.
 
         If specification is None, it is assumed that all measurements contain
         num_components components. Otherwise, specification should be a list of
@@ -61,31 +65,64 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
 
         If specification is given, the reference band must contain all components.
         '''
+
+        specification = self.config.measurement_component_mapping
         num_measurements = self.responses.filters.num_filters
-        if specification is None:
-            self.measurement_component_mapping = np.ones((num_components, num_measurements))
-            self.redshifts_exchangeable = True
-        else:
-            measurement_component_mapping = np.zeros((num_components, num_measurements))
-            for m in range(num_measurements):
-                measurement_component_mapping[specification[m], m] = 1.
 
-            if not np.all(measurement_component_mapping[:, self.config.ref_band] == 1.):
-                #TODO: Currently enforcing the ref band to have all components. This is needed
-                # to be able to specifiy the fractions (IS IT??). Also ref band is currently used in the priors,
-                # though the magnitudes going to the priors either have to be in the reference band
-                # *OR* on their own, in which case no separation in necessary (like original BPZ case)
-                raise ValueError('The reference band must contain all components.')
+        #While we're here setting the number of components, check that ref_band
+        #has the right length, which is either:
+        # 1 - fully blended systems and partial blended systems with blended reference band
+        # num_components - partial blended systems with resolved reference band
+        if len(self.config.ref_band)!=1 and len(ref_band)!=num_components:
+            msg = 'ref_band should either be length 1 (fully blended systems ' +\
+                  'and partial blended systems with blended reference band) ' +\
+                  'or length num_components={} '.format(num_components) +\
+                  '(partial blended systems with every reference band measurement resolved), ' +\
+                  'but ref_band currently has length {}.'.format(len(self.config.ref_band))
+            raise ValueError()
 
-            #Set the mapping
-            self.measurement_component_mapping = measurement_component_mapping
+        #Create the mapping matrix
+        if specification is not None:
+            # If the spec is given in the config file, check that the number of
+            # components is compatible, i.e., that the list is the right size
+            if len(specification) != (num_measurements * num_components):
+                msg = 'The number of components is incompatible with the ' +\
+                      'measurement_component_mapping list you have set. ' +\
+                      'This list needs to be num_filters*num_components ' +\
+                      '= {} '.format(num_measurements * num_components) +\
+                      'long, but it is currently {}'.format(len(specification)) + ' long.'
+
+                msg += ' - DEBUG - {}'.format(specification)
+                raise ValueError(msg)
+
+            #Construct the mapping matrix from this list
+            mc_map_matrix = np.zeros((num_components, num_measurements))
+            i = 0
+            for c in range(num_components):
+                for m in range(num_measurements):
+                    mc_map_matrix[c, m] = specification[i]
+                    i += 1
+            self.mc_map_matrix = mc_map_matrix
+
             #Set whether the redshifts are exchangable and so need sorting condition
             #Only need to check if there's more than one component
+            #Do this by, for each row, iterating over every row after it and
+            #checking whether it is equal to any other row.
+            #If any True, they are exchangable
             if num_components > 1:
-                self.redshifts_exchangeable = np.all(measurement_component_mapping[1:, :] ==
-                                                     measurement_component_mapping[:-1, :])
+                redshifts_exchangeable = False
+                for c in range(num_components):
+                    for r in range(c+1, num_components):
+                        tmp = np.all(mc_map_matrix[c, :] == mc_map_matrix[r, :])
+                        redshifts_exchangeable = bool(redshifts_exchangeable + tmp)
+                self.redshifts_exchangeable = redshifts_exchangeable
             else:
-                self.redshifts_exchangeable = None
+                self.redshifts_exchangeable = False
+        else:
+            self.mc_map_matrix = np.ones((num_components, num_measurements))
+            self.redshifts_exchangeable = True
+
+
 
     def _obeyPriorConditions(self, redshifts, magnitudes, ref_mag_hi):
         '''Check that the (arrays of) redshift and magnitude have sensible
@@ -99,7 +136,7 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
                                and np.all(magnitudes <= ref_mag_hi)
         bounds_check = redshifts_in_bounds and magnitudes_in_bounds
         #Only need sorting condition if redshifts are exchangable
-        # (depends on measurement_component_mapping) and if there's
+        # (depends on mc_map_matrix) and if there's
         # multiple components
         if num_components>1 and self.redshifts_exchangeable:
             if self.config.sort_redshifts:
@@ -161,10 +198,26 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
         return (3.e5 / self.config.hubble) * integral
 
     def lnSelection(self, flux, galaxy):
+        #Depending on the measurement-component mapping, the galaxy ref_sigma
+        #can be an array of length either 1 or num_components.
+        #flux (which is ref-band flux) should be of the same length
+
+        #TODO: No calls should be made where this isn't the case, so remove the assert
+        tmp_a = len(galaxy.ref_flux_sigma)
+        try:
+            tmp_b = len(flux)
+        except TypeError:
+            flux = np.array([flux])
+            tmp_b = len(flux)
+        assert(tmp_a == tmp_b)
+
         flim = 10.**(-0.4 * galaxy.magnitude_limit)
         sigma = galaxy.ref_flux_sigma
         selection = 0.5 - (0.5 * erf((flim - flux) / (sigma * np.sqrt(2))))
-        return np.log(selection)
+        #If flux has multiple elements, the selection is a product over S,
+        #so return the sum of the log
+        #If it's only one element, the sum does nothing anyway
+        return np.sum(np.log(selection))
 
     def lnPriorCalibrationPrior(self):
         '''Returns the prior on the prior parameters for the calibration procedure.'''
