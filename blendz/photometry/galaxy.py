@@ -39,7 +39,7 @@ class Galaxy(object):
         notSeen = np.array([((b in noObs) or (b in noDet)) for b in range(len(self.mag_data))])
         seen = np.array([not b for b in notSeen])
 
-        if not seen[self.ref_band]:
+        if not np.all(seen[self.ref_band]):
             print(self.mag_data)
             raise ValueError('Galaxies must be observed in reference band, but galaxy {} had ref-band magnitude of {}, i.e., marked as a non-observation/detection.'.format(self.index, self.ref_mag_data))
 
