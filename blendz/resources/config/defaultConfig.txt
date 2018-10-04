@@ -5,6 +5,7 @@ no_detect_value = 99.
 no_observe_value = -99.
 data_is_csv = False
 skip_data_rows = 0
+measurement_component_mapping = None
 
 [Run]
 

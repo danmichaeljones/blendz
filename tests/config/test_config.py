@@ -42,7 +42,7 @@ class TestConfiguration(object):
             assert isinstance(cfg.z_lo, float)
             assert isinstance(cfg.z_hi, float)
             assert isinstance(cfg.z_len, int)
-            assert isinstance(cfg.ref_band, int)
+            assert isinstance(cfg.ref_band, np.ndarray)
             assert isinstance(cfg.template_set, str)
             assert isinstance(cfg.template_set_path, str)
             assert isinstance(cfg.ref_mag_lo, float)
@@ -50,7 +50,6 @@ class TestConfiguration(object):
             assert isinstance(cfg.data_path, str)
             assert isinstance(cfg.mag_cols, list)
             assert isinstance(cfg.sigma_cols, list)
-            assert isinstance(cfg.ref_band, int)
             assert (isinstance(cfg.spec_z_col, list)) or (cfg.spec_z_col is None)
             assert isinstance(cfg.filter_path, str)
             assert isinstance(cfg.filters, list)
@@ -99,6 +98,29 @@ class TestConfiguration(object):
         grid = cfg.redshift_grid
         assert np.all(grid == np.linspace(cfg.z_lo, cfg.z_hi, cfg.z_len))
 
+    def test_none(self):
+        #Check the values that should be read in as None are correct
+        cfg_none = blendz.config.Configuration()
+        assert(cfg_none.magnitude_limit_col is None) #maybeGet -> int
+        assert(cfg_none.spec_z_col is None) #maybeGetList -> int
+        assert(cfg_none.measurement_component_mapping is None) #maybeGet -> bool
+
+        #Read in a config file that replaces all of the default-None values
+        cfg_notNone = blendz.Configuration(config_path=join(blendz.RESOURCE_PATH,
+                                                        'config/testNotNoneConfig.txt'))
+        #Check they're not None
+        assert(cfg_notNone.magnitude_limit_col is not None) #maybeGet -> int
+        assert(cfg_notNone.spec_z_col is not None) #maybeGetList -> int
+        assert(cfg_notNone.measurement_component_mapping is not None) #maybeGet -> bool
+        #Check the overall object types are correct
+        assert isinstance(cfg_notNone.magnitude_limit_col, int)
+        assert isinstance(cfg_notNone.spec_z_col, list)
+        assert isinstance(cfg_notNone.measurement_component_mapping, list)
+        #Check the individual element types are correct
+        assert isinstance(cfg_notNone.spec_z_col[0], int)
+        assert isinstance(cfg_notNone.measurement_component_mapping[0], float)
+
+
     def test_lists(self):
         load_list_config = blendz.Configuration(config_path=join(blendz.RESOURCE_PATH,
                                                         'config/testListConfig.txt'))
@@ -108,14 +130,14 @@ class TestConfiguration(object):
                         filters=['hst/F435W', 'hst/F606W', 'hst/F775W',
                                  'hst/F850LP', 'hst/F110W', 'hst/F160W'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
-                        spec_z_col=13)
+                        spec_z_col=13, ref_band=2)
 
         made_list_config2 = blendz.config.Configuration(
                         mag_cols=[1, 3, 5, 7, 9, 11], sigma_cols=[2, 4, 6, 8, 10, 12],
                         filters=['hst/F435W', 'hst/F606W', 'hst/F775W',
                                  'hst/F850LP', 'hst/F110W', 'hst/F160W'],
                         zero_point_errors = [0.01, 0.01, 0.01, 0.01, 0.01, 0.01],
-                        spec_z_col=[13, 14])
+                        spec_z_col=[13, 14], ref_band=[1, 2])
 
         for cfg in [load_list_config, made_list_config1, made_list_config2]:
             #Check they're lists...
@@ -123,12 +145,14 @@ class TestConfiguration(object):
             assert isinstance(cfg.sigma_cols, list)
             assert isinstance(cfg.filters, list)
             assert isinstance(cfg.zero_point_errors, np.ndarray)
+            assert isinstance(cfg.ref_band, np.ndarray)
             assert isinstance(cfg.spec_z_col, list)
             # ... of the right type
             assert isinstance(cfg.mag_cols[0], int)
             assert isinstance(cfg.sigma_cols[0], int)
             assert isinstance(cfg.filters[0], str)
             assert isinstance(cfg.zero_point_errors[0], float)
+            assert isinstance(cfg.ref_band[0], int)
             assert isinstance(cfg.spec_z_col[0], int)
 
         for cfg in [load_list_config, made_list_config2]:
