@@ -81,7 +81,8 @@ class BPZ(ModelBase):
 
         mag_lnPrior = np.array([self.lnMagnitudePrior(m) for m in mag_grid])
         for gal in photometry:
-            lnSelection_effect = self.lnSelection(flux_grid, gal)
+            #lnSelection is not vectorisable
+            lnSelection_effect = np.array([self.lnSelection(F, gal) for F in flux_grid])
             prior_select =  np.exp(mag_lnPrior + lnSelection_effect)
             self.magnitude_prior_norm[gal.index] = np.log(np.trapz(prior_select, x=mag_grid))
 
@@ -186,8 +187,15 @@ class BPZ(ModelBase):
             lnProb_all = 0.
             for g in photometry:
                 total_ref_mag = g.ref_mag_data
+                if len(total_ref_mag)!=1:
+                    raise ValueError('The prior calibration for the '
+                                     +' default model assumes non-blended '
+                                     +'photometry. Galaxy {} '.format(g.index)
+                                     +'has multiple reference band magnitudes, '
+                                     +'and multiple reference bands are reserved '
+                                     +'for partially blended systems only.')
                 magnitude_prior = self.lnMagnitudePrior(total_ref_mag)
-                if not np.isfinite(magnitude_prior):
+                if not np.all(np.isfinite(magnitude_prior)):
                     pass
                 else:
                     total_ref_flux = 10.**(-0.4 * total_ref_mag)
