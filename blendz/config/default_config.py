@@ -194,8 +194,21 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        #The measurement_component_mapping is specified as a list of length
+        #num_bands*num_component, organised [C1B1, C1B2... C1Bn, C2B1...]
         try:
-            self._ref_band = self.maybeGet('Data', 'ref_band', int)
+            self.measurement_component_mapping = self.maybeGetList('Data', 'measurement_component_mapping', float)
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            self.measurement_component_mapping = None
+
+        #For fully blended systems, ref_band should be len=1 array
+        #For part blended systems with blended reference band, same as full blend
+        #For part blended systems with resolved reference bands, we assume there
+        # is one completely resolved measurement for each component, so
+        # ref_band should be a len=num_components array
+        # ----> ref_band should be len=1 OR len=num_components
+        try:
+            self._ref_band = np.array(self.maybeGetList('Data', 'ref_band', int))
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
