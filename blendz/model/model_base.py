@@ -73,13 +73,13 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
         #has the right length, which is either:
         # 1 - fully blended systems and partial blended systems with blended reference band
         # num_components - partial blended systems with resolved reference band
-        if len(self.config.ref_band)!=1 and len(ref_band)!=num_components:
+        if len(self.config.ref_band)!=1 and len(self.config.ref_band)!=num_components:
             msg = 'ref_band should either be length 1 (fully blended systems ' +\
                   'and partial blended systems with blended reference band) ' +\
                   'or length num_components={} '.format(num_components) +\
                   '(partial blended systems with every reference band measurement resolved), ' +\
                   'but ref_band currently has length {}.'.format(len(self.config.ref_band))
-            raise ValueError()
+            raise ValueError(msg)
 
         #Create the mapping matrix
         if specification is not None:
