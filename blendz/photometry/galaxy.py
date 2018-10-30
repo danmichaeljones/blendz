@@ -8,9 +8,15 @@ class Galaxy(object):
         self.mag_sigma = mag_sigma
 
         self.config = config
+
         self.ref_band = self.config.ref_band
         self.ref_mag_data = self.mag_data[self.ref_band]
         self.ref_mag_sigma = self.mag_sigma[self.ref_band]
+
+        self.select_band = self.config.select_band
+        self.select_mag_data = self.mag_data[self.select_band]
+        self.select_mag_sigma = self.mag_sigma[self.select_band]
+
         self.zero_point_frac = zero_point_frac
         self.index = index
 
@@ -39,9 +45,9 @@ class Galaxy(object):
         notSeen = np.array([((b in noObs) or (b in noDet)) for b in range(len(self.mag_data))])
         seen = np.array([not b for b in notSeen])
 
-        if not np.all(seen[self.ref_band]):
+        if not np.all(seen[self.select_band]):
             print(self.mag_data)
-            raise ValueError('Galaxies must be observed in reference band, but galaxy {} had ref-band magnitude of {}, i.e., marked as a non-observation/detection.'.format(self.index, self.ref_mag_data))
+            raise ValueError('Galaxies must be observed in selection band, but galaxy {} had selection-band magnitude of {}, i.e., marked as a non-observation/detection.'.format(self.index, self.select_mag_data))
 
         #Add the zero point errors in
         #First, handle the observed objects
@@ -56,3 +62,7 @@ class Galaxy(object):
         #Flux data and sigma, with the reference band removed
         self.flux_data_noRef = self.flux_data[self.config.non_ref_bands]
         self.flux_sigma_noRef = self.flux_sigma[self.config.non_ref_bands]
+
+        #Create attribute for the flux in the selection band
+        self.select_flux_data = self.flux_data[self.config.select_band]
+        self.select_flux_sigma = self.flux_sigma[self.config.select_band]
