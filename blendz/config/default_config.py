@@ -212,6 +212,17 @@ class DefaultConfiguration(object):
         except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
             pass
 
+        #Selection band can in principle be different to ref_band, but if it's
+        #not given, just set this to ref_band as default. Selection band should
+        #also be allowed to be an array, like ref_band
+        try:
+            self.select_band = np.array(self.maybeGetList('Data', 'select_band', int))
+        except (ConfigParser.NoOptionError, ConfigParser.NoSectionError):
+            try:
+                self.select_band = self.ref_band
+            except AttributeError:
+                pass
+
         #spec_z_col is never allowed to not be set, force it to None if not set
         #reading None can cause exceptions too, so catch them and set to None
         try:
