@@ -81,6 +81,15 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
                   'but ref_band currently has length {}.'.format(len(self.config.ref_band))
             raise ValueError(msg)
 
+        #Do the same for the selection band, which has the same constraints
+        if len(self.config.select_band)!=1 and len(self.config.select_band)!=num_components:
+            msg = 'select_band should either be length 1 (fully blended systems ' +\
+                  'and partial blended systems with blended selection band) ' +\
+                  'or length num_components={} '.format(num_components) +\
+                  '(partial blended systems with every selection band measurement resolved), ' +\
+                  'but select_band currently has length {}.'.format(len(self.config.select_band))
+            raise ValueError(msg)
+
         #Create the mapping matrix
         if specification is not None:
             # If the spec is given in the config file, check that the number of
@@ -198,21 +207,12 @@ class ModelBase(with_metaclass(abc.ABCMeta)):
         return (3.e5 / self.config.hubble) * integral
 
     def lnSelection(self, flux, galaxy):
-        #Depending on the measurement-component mapping, the galaxy ref_sigma
-        #can be an array of length either 1 or num_components.
+        #Depending on the measurement-component mapping, the galaxy
+        #select_sigma can be an array of length either 1 or num_components.
         #flux (which is ref-band flux) should be of the same length
 
-        #TODO: No calls should be made where this isn't the case, so remove the assert
-        tmp_a = len(galaxy.ref_flux_sigma)
-        try:
-            tmp_b = len(flux)
-        except TypeError:
-            flux = np.array([flux])
-            tmp_b = len(flux)
-        assert(tmp_a == tmp_b)
-
         flim = 10.**(-0.4 * galaxy.magnitude_limit)
-        sigma = galaxy.ref_flux_sigma
+        sigma = galaxy.select_flux_sigma
         selection = 0.5 - (0.5 * erf((flim - flux) / (sigma * np.sqrt(2))))
         #If flux has multiple elements, the selection is a product over S,
         #so return the sum of the log
