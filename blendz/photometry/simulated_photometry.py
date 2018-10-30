@@ -172,9 +172,8 @@ class SimulatedPhotometry(PhotometryBase):
         '''Take in an array of flux data and return a bool of whether
         is is within the selection criteria
         '''
-        ref_band_mag = np.log10(flux_data[self.config.ref_band]) / (-0.4)
-        #return ref_band_mag <= self.config.magnitude_limit
-        return np.all(ref_band_mag <= self.config.magnitude_limit)
+        select_band_mag = np.log10(flux_data[self.config.select_band]) / (-0.4)
+        return np.all(select_band_mag <= self.config.magnitude_limit)
 
     def generateObservables(self, params):
         '''
