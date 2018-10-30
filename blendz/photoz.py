@@ -196,8 +196,11 @@ class Photoz(object):
             else:
                 total_ref_flux = 10.**(-0.4 * magnitudes) #Array with len==len(magnitudes)
 
-            selection_effect = self.model.lnSelection(total_ref_flux,
-                                                      self.photometry.current_galaxy)
+            #Check whether the selection band is ref or not
+            #Only need this if it is
+            if np.all(self.config.ref_band == self.config.select_band):
+                selection_effect_ref = self.model.lnSelection(total_ref_flux,
+                        self.photometry.current_galaxy)
 
             #Loop over all templates - discrete marginalisation
             #All log probabilities so (multiply -> add) and (add -> logaddexp)
@@ -220,6 +223,16 @@ class Photoz(object):
                     blend_flux += model_fluxes[T, :, nb] * component_scaling * self.model.mc_map_matrix[nb, :]
                     type_ind = self.tmp_ind_to_type_ind[T]
                     tmp += priors[nb, type_ind]
+
+                #Check whether the selection band is ref or not
+                #If not, we need to use the template fluxes
+                if np.all(self.config.ref_band == self.config.select_band):
+                    tmp += selection_effect_ref
+                else:
+                    select_flux = blend_flux[self.config.select_band]
+                    tmp += self.model.lnSelection(select_flux,
+                                                  self.photometry.current_galaxy)
+
                 #Remove ref_band from blend_fluxes, as that goes into the ref-mag
                 #likelihood, not the flux likelihood
                 blend_flux = blend_flux[self.config.non_ref_bands]
@@ -228,7 +241,7 @@ class Photoz(object):
                 tmp += redshift_correlation
                 tmp += self._lnLikelihood_flux(blend_flux)
                 tmp += self._lnLikelihood_mag(total_ref_flux)
-                tmp += selection_effect
+
 
                 #logaddexp contribution from this template to marginalise
                 lnProb = np.logaddexp(lnProb, tmp)
@@ -294,84 +307,81 @@ class Photoz(object):
                                                                       info['it']))
             self.pbar.refresh()
 
-    def normalise_prior_setup(self, galind, num_components, magnitude_grid_len=25,
-                              redshift_grid_len=10):
-        # Set up 1D grids
-        self.magnitude_grid_len = magnitude_grid_len
-        self.redshift_grid_len = redshift_grid_len
-        self.redshift_grid = np.linspace(self.config.z_lo, self.config.z_hi,
-                                         self.redshift_grid_len)
-        ref_mag_hi = self.photometry[galind].ref_mag_hi
-        self.magnitude_grid = np.linspace(self.config.ref_mag_lo, ref_mag_hi,
-                                          self.magnitude_grid_len)
+    def _full_lnPrior(self, params):
+        num_components = int(len(params) // 2)
+        redshifts = params[:num_components]
+        magnitudes = params[num_components:]
 
-        # Create 3D grid for single-component prior - redshift x magnitude x template
-        prior_grid_type = np.zeros((self.redshift_grid_len, self.magnitude_grid_len, self.num_types))
-        for i, z in enumerate(self.redshift_grid):
-            for j, m in enumerate(self.magnitude_grid):
-                prior_grid_type[i, j, :] = np.exp(self.model.lnPrior(z, m))
+        if not self.model._obeyPriorConditions(redshifts, magnitudes, self.photometry.current_galaxy.ref_mag_hi):
+            return -np.inf
+        else:
 
-        self.prior_grid_tmp = np.zeros((self.redshift_grid_len, self.magnitude_grid_len, self.num_templates))
-        for tmp in range(self.num_templates):
-            t = self.tmp_ind_to_type_ind[tmp]
-            self.prior_grid_tmp[:, :, tmp] = prior_grid_type[:, :, t]
+            cmp_priors = np.zeros((num_components, self.num_types))
+            for nb in range(num_components):
+                cmp_priors[nb, :] = self.model.lnPrior(redshifts[nb], magnitudes[nb])
 
-    def normalise_prior(self, galind, num_components):
-        self.normalise_prior_setup(galind, num_components)
+            redshift_correlation = np.log(1. + self.model.correlationFunction(redshifts))
 
-        # Create N-D grid of 1 + xi([za, zb...])
-        xi_grid = np.zeros(tuple(self.redshift_grid_len for
-                            i in range(num_components)))
-        for inds in itr.product(*itr.repeat(range(self.redshift_grid_len), num_components)):
-            try:
-                xi_grid[inds] = 1. + self.model.correlationFunction(
-                                    self.redshift_grid[np.array(inds)])
-            except ZeroDivisionError:
-                xi_grid[inds] = 1.
-
-        # Create N-D grid of S([ma, mb...])
-        select_grid = np.zeros(tuple(self.magnitude_grid_len for
-                            i in range(num_components)))
-        for inds in itr.product(*itr.repeat(range(self.magnitude_grid_len), num_components)):
-            #Check whether to have single/multiple ref-band fluxes
-            #This will depend on the measurement-component mapping
             if len(self.config.ref_band)==1:
-                #lnSelection will expect this as an array
-                total_ref_flux = np.array([np.sum(10.**(-0.4*self.magnitude_grid[np.array(inds)]))])
+                total_ref_flux = np.sum(10.**(-0.4 * magnitudes))
             else:
-                total_ref_flux = 10.**(-0.4*self.magnitude_grid[np.array(inds)])
-            select_grid[inds] = np.exp(self.model.lnSelection(total_ref_flux,
-                                                       self.photometry[galind]))
-        # Combine N 2D prior grids, N-D xi grid and N-D select grid into one 2N-D grid
-        # Axes = za, zb, ... ma, mb ...
-        total_shape = tuple(element for tpl in
-                            tuple((self.redshift_grid_len, self.magnitude_grid_len) for i in range(num_components))
-                            for element in tpl)
-        self.total_prior_grid = np.zeros(total_shape)
+                total_ref_flux = 10.**(-0.4 * magnitudes) #Array with len==len(magnitudes)
 
-        for zinds in itr.product(*itr.repeat(range(self.redshift_grid_len), num_components)):
-            for minds in itr.product(*itr.repeat(range(self.magnitude_grid_len), num_components)):
+            #Check whether the selection band is ref or not
+            #If it is, we can use a single selection effect for every template
+            if np.all(self.config.ref_band == self.config.select_band):
+                selection_effect_ref = self.model.lnSelection(total_ref_flux,
+                        self.photometry.current_galaxy)
+            #If not, we need to use the model fluxes, so get them here
+            else:
+                model_fluxes = self.responses.interp(redshifts)
 
-                okayz = (self.config.sort_redshifts and tuple(sorted(zinds))==zinds)
-                okaym = (not self.config.sort_redshifts) and tuple(sorted(minds))==minds
-                if okayz or okaym:
-                    prior_prod = np.ones(self.num_templates)
-                    for cmp in range(num_components):
-                        prior_prod *= self.prior_grid_tmp[zinds[cmp], minds[cmp], :]
-                    prior_prod = np.sum(prior_prod)
+            lnProb = -np.inf
+            for template_combo in itr.product(*itr.repeat(range(self.num_templates), num_components)):
+                tmp = 0.
+                blend_flux = np.zeros(self.num_measurements)
+                for nb in range(num_components):
+                    T = template_combo[nb]
+                    type_ind = self.tmp_ind_to_type_ind[T]
+                    tmp += cmp_priors[nb, type_ind]
+                    #If selection band is not reference, we need the template fluxes
+                    if not np.all(self.config.ref_band == self.config.select_band):
+                        if len(self.config.ref_band)==1:
+                            #Only one reference band but it's still an array, so get element
+                            component_scaling = 10.**(-0.4*magnitudes[nb]) / model_fluxes[T, self.config.ref_band[0], nb]
+                        else:
+                            component_scaling = 10.**(-0.4*magnitudes[nb]) / model_fluxes[T, self.config.ref_band[nb], nb]
+                        blend_flux += model_fluxes[T, :, nb] * component_scaling * self.model.mc_map_matrix[nb, :]
 
-                    inds = tuple(element for tpl in
-                                    tuple((zinds[i], minds[i]) for i in range(num_components))
-                                    for element in tpl)
-
-                    self.total_prior_grid[inds] = prior_prod * select_grid[minds] * xi_grid[zinds]
+                #Check whether the selection band is ref or not
+                #If not, we need to use the template fluxes
+                if np.all(self.config.ref_band == self.config.select_band):
+                    tmp += selection_effect_ref
                 else:
-                    self.total_prior_grid[inds] = 0.
+                    select_flux = blend_flux[self.config.select_band]
+                    tmp += self.model.lnSelection(select_flux,
+                                                  self.photometry.current_galaxy)
+                #Other terms only appear once per summation-step
+                tmp += redshift_correlation
+                lnProb = np.logaddexp(lnProb, tmp)
 
-        self.prior_norm = simps(simps(self.total_prior_grid, x=self.magnitude_grid), x=self.redshift_grid)
-        for cmp in range(num_components-1):
-            self.prior_norm  = simps(simps(self.prior_norm , x=self.magnitude_grid), x=self.redshift_grid)
-        self.prior_norm = np.log(self.prior_norm)
+            return lnProb
+
+    def normalise_prior(self, galind, num_components,
+                        npoints=50, seed=False, method='multi'):
+        #Setup random seeding
+        if seed is False:
+            rstate = np.random.RandomState()
+        elif seed is True:
+            rstate = np.random.RandomState(galind)
+        else:
+            rstate = np.random.RandomState(seed + galind)
+
+        self.model._setMeasurementComponentMapping(num_components)
+        results = nestle.sample(self._full_lnPrior, self._priorTransform,
+                                num_components*2, method=method, npoints=npoints,
+                                rstate=rstate)#, callback=self._sampleProgressUpdate)
+        self.prior_norm = results.logz
 
 
     def sample(self, num_components, galaxy=None, nresample=1000, seed=False,
