@@ -12,7 +12,7 @@ from blendz.utilities import incrementCount
 
 class SimulatedPhotometry(PhotometryBase):
     def __init__(self, num_sims, config=None, num_components=1, max_redshift=None,
-                model=None, seed=None, signal_to_noise=10.,
+                model=None, seed=None, signal_to_noise=10., flux_error=None,
                 num_walkers=100, burn_len=10000,
                 magnitude_bounds=None, **kwargs):
         super(SimulatedPhotometry, self).__init__(config=config, **kwargs)
@@ -75,6 +75,16 @@ class SimulatedPhotometry(PhotometryBase):
         else:
             self.signal_to_noise = signal_to_noise
 
+        #Flux error is an array with an element for each filters
+        #If the arg is a float, assume every element the same
+        #Could be None though, so check that first
+        if flux_error is None:
+            self.flux_error = None
+        elif isinstance(flux_error, float):
+            self.flux_error = np.ones(self.model.responses.filters.num_filters) * flux_error
+        else:
+            self.flux_error = flux_error
+
         #Use an incrementing counter for the seed to make sure its always
         #different between various different function calls
         if seed is None:
@@ -91,6 +101,7 @@ class SimulatedPhotometry(PhotometryBase):
                                           for g in self.all_galaxies]))[0]
         self.all_galaxies = [g for i, g in enumerate(self.all_galaxies)
                              if i in in_selection]
+
         #Go back through and set the galaxy indices to the correct value
         for i, gal in enumerate(self.all_galaxies):
             gal.index = i
@@ -198,7 +209,10 @@ class SimulatedPhotometry(PhotometryBase):
                 true_flux[g, :] += resp_c * norm * self.model.mc_map_matrix[c, :]
 
         #Errors
-        flux_err = true_flux / self.signal_to_noise #quoted error
+        if self.flux_error is not None:
+            flux_err = self.flux_error
+        else:
+            flux_err = true_flux / self.signal_to_noise #quoted error
         err_rstate = np.random.RandomState(next(self.sim_seed))
         rand_err = err_rstate.normal(loc=0., scale=flux_err, size=out_shape) #actual error
         obs_flux = true_flux + rand_err #added actual error to flux
@@ -206,6 +220,16 @@ class SimulatedPhotometry(PhotometryBase):
         #Conversions
         obs_mag = np.log10(obs_flux) / (-0.4)
         mag_err = np.log10((flux_err/obs_flux)+1.) / 0.4
+
+        #Check for non-detections and replace accordingly
+        for g in range(num_sims):
+            for b in range(len(obs_mag[g, :])):
+                if not np.isfinite(obs_mag[g, b]):
+                    obs_mag[g, b] = self.config.no_detect_value
+                    if self.flux_error is not None:
+                        mag_err[g, b] = np.log10((flux_err[b]/true_flux[g, b])+1.) / 0.4
+                    else:
+                        mag_err[g, b] = np.log10((flux_err[g, b]/true_flux[g, b])+1.) / 0.4
         return obs_mag, mag_err
 
     def createTruthDicts(self, params):
@@ -261,8 +285,10 @@ class SimulatedPhotometry(PhotometryBase):
         all_truths = self.createTruthDicts(prior_parameters)
 
         for g in range(num_sims):
-            new_galaxy = Galaxy(all_mag_data[g, :], all_mag_sigma[g, :], self.config, self.zero_point_frac, g)
-            new_galaxy.truth = all_truths[g]
-            new_galaxy.magnitude_limit = self.config.magnitude_limit
-            new_galaxy.ref_mag_hi = self.config.ref_mag_hi
-            self.all_galaxies.append(new_galaxy)
+            #Remove galaxies that aren't detected in the selection band
+            if np.all(all_mag_data[g, self.config.select_band] != self.config.no_detect_value):
+                new_galaxy = Galaxy(all_mag_data[g, :], all_mag_sigma[g, :], self.config, self.zero_point_frac, g)
+                new_galaxy.truth = all_truths[g]
+                new_galaxy.magnitude_limit = self.config.magnitude_limit
+                new_galaxy.ref_mag_hi = self.config.ref_mag_hi
+                self.all_galaxies.append(new_galaxy)
