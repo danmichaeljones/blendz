@@ -152,7 +152,7 @@ class TestConfiguration(object):
             assert isinstance(cfg.sigma_cols[0], int)
             assert isinstance(cfg.filters[0], str)
             assert isinstance(cfg.zero_point_errors[0], float)
-            assert isinstance(cfg.ref_band[0], int)
+            assert isinstance(cfg.ref_band[0], int) or isinstance(load_list_config.ref_band[0], np.integer)
             assert isinstance(cfg.spec_z_col[0], int)
 
         for cfg in [load_list_config, made_list_config2]:

@@ -127,7 +127,7 @@ class Photoz(object):
             except:
                 warnings.warn('SimulatedPhotometry seed not saved.')
         with open(filepath, 'wb') as f:
-            state = {key: val for key, val in self.__dict__.items() if key!='pbar'}
+            state = {key: val for key, val in self.__dict__.items() if key not in ['pbar', 'breakSilence']}
             dill.dump(state, f)
         #Put the random seed back how it was after the saving is done
         if isinstance(self.photometry, SimulatedPhotometry):
